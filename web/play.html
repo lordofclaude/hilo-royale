@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hi-Lo Royale — 100 fans enter, one survives the stats</title>
+<meta name="description" content="A prediction battle royale on real World Cup data. 100 fans, one match, every stat window is a question — last fan standing takes the crown. Provable on Solana.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,800,900&display=swap" rel="stylesheet">
+<style>
+/* Neon sports-broadcast theme — ported 1:1 from the iOS app (src/theme.ts):
+   pure black arena, cyan-vs-red duel, gold for rewards, colored glows. */
+:root{
+  --bg:#050608;--panel:#0b0e14;--panel2:#080b10;--ink:#07090d;--line:#1c2433;--line2:#334057;
+  --text:#f4f7fb;--muted:#93a1b5;--faint:#5f6d82;
+  --t1:#2ee6ff;--t2:#ff3b5c;--gold:#ffd54a;--accent:#ffc233;--accent2:#ff9f1a;
+  --hi:#2ee6ff;--lo:#ff3b5c;--push:#93a1b5;--success:#31f28b;
+  --hisoft:rgba(46,230,255,.12);--losoft:rgba(255,59,92,.12);--goldsoft:rgba(255,213,74,.1);
+  --shadow:0 20px 60px -24px rgba(0,0,0,.85);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:radial-gradient(1000px 560px at 88% -12%,rgba(46,230,255,.07) 0%,transparent 55%),radial-gradient(900px 560px at -8% 110%,rgba(255,59,92,.06) 0%,transparent 52%),var(--bg);color:var(--text);font-family:"DM Sans",system-ui,sans-serif;min-height:100vh;overflow-x:hidden;line-height:1.5;-webkit-font-smoothing:antialiased}
+/* broadcast display voice: heavy italic, slight tracking (iOS displayFont) */
+.df{font-family:"Cabinet Grotesk","DM Sans",sans-serif;font-style:italic;letter-spacing:.01em}
+svg.ic{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.125em;flex:none}
+svg.ic.fill{fill:currentColor;stroke:none}
+.wrap{max-width:1180px;margin:0 auto;padding:0 clamp(1rem,4vw,2.2rem)}
+button{font-family:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+a{color:var(--muted)}
+
+/* ---------- header ---------- */
+header{padding:1rem 0 .35rem}
+.hrow{display:flex;justify-content:space-between;align-items:center;gap:.8rem;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:.6rem;font-family:"Cabinet Grotesk",sans-serif;font-weight:900;font-style:italic;font-size:1.18rem;letter-spacing:.02em}
+.brand .mark{display:grid;place-items:center;width:31px;height:31px;border-radius:9px;background:linear-gradient(140deg,var(--accent),var(--accent2));color:#231703;box-shadow:0 0 14px rgba(255,194,51,.35)}
+.brand em{color:var(--gold);text-shadow:0 0 18px rgba(255,213,74,.45)}
+.hbtns{display:flex;gap:.5rem;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:.42rem;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:.42rem .85rem;font-size:.82rem;color:var(--muted);font-weight:500}
+.pill b{color:var(--text);font-variant-numeric:tabular-nums}
+.iconbtn{display:grid;place-items:center;width:37px;height:37px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--muted);transition:.15s}
+.iconbtn:hover{color:var(--text);border-color:var(--line2)}
+
+/* ---------- match hero ---------- */
+.hero{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line2);border-radius:20px;padding:1.15rem clamp(1rem,3vw,1.8rem) 1.05rem;box-shadow:var(--shadow);margin-top:.55rem}
+.comp{display:flex;justify-content:center;gap:.5rem;align-items:center;color:var(--muted);font-size:.73rem;letter-spacing:.15em;text-transform:uppercase;font-weight:600}
+.matchrow{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:.6rem;margin:.8rem 0 .2rem}
+.team{display:flex;flex-direction:column;align-items:center;gap:.42rem}
+.crest{width:50px;height:50px;border-radius:13px;display:grid;place-items:center;font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:1.02rem;box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),0 8px 24px -10px rgba(0,0,0,.6)}
+.crest.t1{background:linear-gradient(150deg,#0e9cc0,#2ee6ff);color:#03222c;box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),0 0 22px rgba(46,230,255,.35)}
+.crest.t2{background:linear-gradient(150deg,#d21f3f,#ff3b5c);color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),0 0 22px rgba(255,59,92,.35)}
+.team .name{font-weight:600;font-size:.92rem}
+.scorebox{text-align:center;min-width:120px}
+.score-num{font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:clamp(2.2rem,8vw,3rem);font-variant-numeric:tabular-nums;line-height:1;text-shadow:0 0 26px rgba(244,247,251,.18)}
+.score-num .dash{color:var(--faint);margin:0 .22rem}
+.minute{margin-top:.2rem;font-size:.76rem;color:var(--muted);font-weight:600;display:inline-flex;gap:.32rem;align-items:center;font-variant-numeric:tabular-nums}
+/* lobby switcher */
+.lobbies{display:flex;gap:.45rem;justify-content:center;flex-wrap:wrap;margin-top:.75rem}
+.lb{display:inline-flex;flex-direction:column;align-items:center;gap:.1rem;background:var(--ink);border:1px solid var(--line);border-radius:12px;padding:.45rem .8rem;color:var(--muted);font-size:.78rem;font-weight:600;transition:.15s;text-decoration:none}
+.lb small{font-size:.6rem;letter-spacing:.08em;color:var(--faint);font-weight:600}
+.lb:hover{border-color:var(--line2);color:var(--text)}
+.lb.cur{border-color:var(--gold);color:var(--text);background:var(--goldsoft)}
+.lb.cur small{color:var(--gold)}
+/* odds sparkline */
+.swing{margin-top:.85rem;display:none}
+.swing.on{display:block}
+.swing .lbl{display:flex;justify-content:space-between;font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.3rem;font-weight:600}
+.spark{width:100%;height:48px;display:block}
+
+/* ---------- layout ---------- */
+main{display:grid;grid-template-columns:1fr minmax(285px,340px);gap:1.15rem;padding:1.1rem 0 2.6rem;align-items:start}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+
+/* ---------- stage ---------- */
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:clamp(1.1rem,2.6vw,1.7rem);position:relative;overflow:hidden}
+.rndrow{display:flex;justify-content:center;align-items:center;gap:.5rem;flex-wrap:wrap}
+.chip{display:inline-flex;gap:.4rem;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:.28rem .7rem;font-size:.72rem;color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+#evstate{font-size:.66rem;letter-spacing:.1em;font-weight:700}
+#evstate.open{color:var(--hi);border-color:rgba(46,230,255,.4)}
+#evstate.locked{color:var(--gold);border-color:rgba(255,213,74,.45)}
+#evstate.settled{color:var(--muted)}
+.question{font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:clamp(1.25rem,3vw,1.7rem);text-align:center;max-width:26ch;margin:.9rem auto .35rem;line-height:1.16;min-height:3.4rem}
+.question b{color:var(--gold)}
+.lastval{text-align:center;color:var(--muted);font-size:.9rem;margin-bottom:.85rem;min-height:1.35rem}
+.lastval b{color:var(--text);font-size:1.15rem;font-variant-numeric:tabular-nums}
+/* crowd bar */
+.crowd{max-width:460px;margin:0 auto .8rem}
+.crowdlbl{font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.32rem;font-weight:600;text-align:center}
+.cbar{display:flex;height:24px;border-radius:999px;overflow:hidden;border:1px solid var(--line);background:#100b19}
+.cb{display:flex;align-items:center;font-size:.72rem;font-weight:700;transition:width .35s ease;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums}
+.cb-hi{background:rgba(46,230,255,.13);color:var(--hi);justify-content:flex-start;padding-left:.65rem;width:50%}
+.cb-lo{background:rgba(255,59,92,.13);color:var(--lo);justify-content:flex-end;padding-right:.65rem;width:50%}
+.cb.winside{filter:brightness(1.55) saturate(1.2)}
+/* timer */
+.timerbar{height:7px;background:#241834;border-radius:999px;overflow:hidden;margin:0 auto .95rem;max-width:460px}
+.timerbar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--lo));width:100%}
+.timerbar.panic i{background:var(--lo)}
+@keyframes tpulse{0%,100%{opacity:1}50%{opacity:.45}}
+.timerbar.panic.pulse i{animation:tpulse .42s infinite}
+/* answers */
+.answers{display:flex;gap:.85rem;justify-content:center;max-width:460px;margin:0 auto .85rem}
+.abtn{flex:1;display:flex;align-items:center;justify-content:center;gap:.5rem;padding:1.05rem .6rem;border-radius:14px;border:1.5px solid var(--line);background:var(--ink);color:var(--text);font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:1.05rem;letter-spacing:.03em;transition:.14s}
+.abtn.hi:hover:not(:disabled),.abtn.hi.picked{border-color:var(--hi);background:var(--hisoft);color:var(--hi);box-shadow:0 0 22px rgba(46,230,255,.28)}
+.abtn.lo:hover:not(:disabled),.abtn.lo.picked{border-color:var(--lo);background:var(--losoft);color:var(--lo);box-shadow:0 0 22px rgba(255,59,92,.28)}
+.abtn:disabled:not(.picked){opacity:.5;cursor:default}
+.verdict{min-height:2rem;text-align:center;font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:1.05rem}
+.verdict.ok{color:var(--hi)}.verdict.out{color:var(--lo)}
+.neardeath{min-height:1.4rem;text-align:center;font-size:.85rem;font-weight:700;color:var(--gold);letter-spacing:.03em}
+@keyframes ndpop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+.neardeath.show{animation:ndpop .5s ease}
+.streak{text-align:center;margin-top:.3rem;color:var(--muted);font-size:.9rem}
+.streak b{color:var(--gold);font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;text-shadow:0 0 16px rgba(255,213,74,.4);font-size:1.3rem;font-variant-numeric:tabular-nums}
+.streak .best{font-size:.76rem;margin-left:.55rem}
+/* survivors grid */
+.gl{display:flex;justify-content:space-between;font-size:.66rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin:1.25rem 0 .45rem}
+.grid{display:grid;grid-template-columns:repeat(10,1fr);gap:.32rem}
+.dot{aspect-ratio:1;border-radius:50%;background:#2f2147;transition:all .4s;cursor:default}
+.dot.me{outline:2px solid var(--gold);outline-offset:2px;background:var(--gold);box-shadow:0 0 12px rgba(255,213,74,.6)}
+.dot.dead{background:#191126;transform:scale(.55)}
+.dot.justdead{background:var(--lo);transform:scale(1.25)}
+.ticker{margin-top:.7rem;min-height:1.3rem;font-size:.78rem;color:var(--muted)}
+.ticker b{color:var(--lo)}
+
+/* ---------- side ---------- */
+.side{display:grid;gap:1.15rem}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.1rem}
+.card h3{font-family:"Cabinet Grotesk";font-weight:700;font-size:.76rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.8rem;display:flex;align-items:center;gap:.45rem}
+.feed{max-height:215px;overflow-y:auto;display:flex;flex-direction:column-reverse;gap:.4rem;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.feed:empty::before{content:"waiting for kickoff — join the lobby to roll the tape";font-size:.78rem;color:var(--faint);padding:.4rem .2rem;font-style:italic}
+.ev{display:flex;align-items:center;gap:.55rem;font-size:.8rem;padding:.45rem .65rem;background:var(--ink);border-radius:9px;border:1px solid var(--line);color:var(--muted)}
+.ev b{color:var(--text);font-variant-numeric:tabular-nums}
+.ev .evi{color:var(--gold)}
+.scoreline{font-family:"Cabinet Grotesk";font-weight:800;font-size:1.2rem;text-align:center;padding:.3rem 0 .55rem;font-variant-numeric:tabular-nums}
+/* market */
+.stat3{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;text-align:center}
+.st{background:var(--ink);border:1px solid var(--line);border-radius:11px;padding:.55rem .2rem}
+.st b{display:block;font-family:"Cabinet Grotesk";font-weight:800;font-size:1.1rem;color:var(--text);font-variant-numeric:tabular-nums}
+.st span{font-size:.62rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+/* ladder */
+.ladstats{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;text-align:center;margin-bottom:.85rem}
+.lad{background:var(--ink);border-radius:10px;padding:.5rem .2rem}
+.lad b{display:block;font-family:"Cabinet Grotesk";font-weight:800;font-size:1.1rem;color:var(--gold);font-variant-numeric:tabular-nums}
+.lad span{font-size:.62rem;color:var(--muted);letter-spacing:.07em;text-transform:uppercase}
+.wall{display:flex;flex-direction:column;gap:.3rem}
+.wrow{display:flex;justify-content:space-between;align-items:center;font-size:.79rem;padding:.36rem .6rem;background:var(--ink);border-radius:8px;color:var(--muted);border:1px solid transparent}
+.wrow b{color:var(--text);font-weight:600}
+.wrow .pts{color:var(--gold);font-variant-numeric:tabular-nums;font-weight:700}
+.wrow.you{border-color:var(--gold)}
+.wrow.you b{color:var(--gold)}
+.wrow .cr{color:var(--gold);display:inline-flex;gap:.1rem;vertical-align:-.1em}
+/* buttons + notes */
+.btn{width:100%;display:inline-flex;align-items:center;justify-content:center;gap:.5rem;background:linear-gradient(120deg,var(--accent),var(--accent2));color:#231703;font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;box-shadow:0 0 24px rgba(255,194,51,.3);border:none;border-radius:12px;padding:.95rem;font-size:1rem;transition:.15s}
+.btn:hover:not(:disabled){filter:brightness(1.08)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.ghost{background:var(--ink);color:var(--text);border:1px solid var(--line)}
+.btn.ghost:hover:not(:disabled){filter:none;border-color:var(--line2)}
+.note{color:var(--faint);font-size:.75rem;line-height:1.55;margin-top:.7rem}
+.note b{color:var(--muted)}
+
+/* ---------- winner modal ---------- */
+.winner{position:fixed;inset:0;background:rgba(8,5,12,.94);display:none;align-items:center;justify-content:center;z-index:20;backdrop-filter:blur(8px);text-align:center;padding:1rem;overflow-y:auto}
+.winner.open{display:flex}
+.wcard{max-width:560px;width:100%}
+.wcard h1{font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:clamp(1.7rem,5.5vw,3rem);color:var(--gold);text-shadow:0 0 32px rgba(255,213,74,.35);margin-bottom:.6rem;display:flex;align-items:center;justify-content:center;gap:.5rem}
+.wcard p{color:var(--muted);margin-bottom:1.1rem;line-height:1.5}
+#cardcanvas{width:min(300px,72vw);border-radius:14px;border:1px solid var(--line);display:block;margin:0 auto 1.1rem;box-shadow:0 18px 60px rgba(255,213,74,.16)}
+.wbtns{display:flex;gap:.7rem;justify-content:center;flex-wrap:wrap}
+.wbtns .btn{width:auto;padding:.85rem 1.5rem}
+
+/* ---------- juice ---------- */
+@keyframes shakeX{10%,90%{transform:translate(-2px,1px)}20%,80%{transform:translate(5px,-2px)}30%,50%,70%{transform:translate(-9px,3px)}40%,60%{transform:translate(9px,-3px)}}
+body.shake{animation:shakeX .5s both}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:30}
+.count{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:25;background:rgba(3,4,6,.88);font-family:"Cabinet Grotesk";font-style:italic;font-size:clamp(4rem,18vw,9rem);font-weight:900;color:var(--gold);text-shadow:0 0 60px rgba(255,213,74,.5)}
+.count.open{display:flex}
+@keyframes czoom{0%{transform:scale(1.6);opacity:0}30%{transform:scale(1);opacity:1}100%{opacity:.9}}
+.count span{animation:czoom .9s ease}
+@media (prefers-reduced-motion: reduce){
+  body.shake,.count span,.neardeath.show,.timerbar.panic.pulse i{animation:none}
+  .dot,.cb{transition:none}
+}
+footer{padding:0 0 2rem;color:var(--faint);font-size:.74rem;line-height:1.65;border-top:1px solid var(--line);padding-top:1.2rem}
+footer b{color:var(--muted)}
+</style></head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></symbol>
+  <symbol id="i-crown" viewBox="0 0 24 24"><path d="M3 7l4 4 5-7 5 7 4-4-1.5 12H4.5L3 7z"/></symbol>
+  <symbol id="i-ball" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8l3.5 2.5-1.3 4.1h-4.4L8.5 10.5 12 8z"/></symbol>
+  <symbol id="i-whistle" viewBox="0 0 24 24"><path d="M11 11H3l1.5 6a4 4 0 007.8-1V11z"/><circle cx="17" cy="8" r="4"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 19V5M4 15l5-5 4 3 7-8"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-3-6.7M21 4v4h-4"/></symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 8a5 5 0 010 8"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M22 9l-6 6M16 9l6 6"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0112 0M16 5.5a3.2 3.2 0 010 6M21 20a6 6 0 00-4-5.6"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h12l-2.5 4L17 12H5"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4"/></symbol>
+  <symbol id="i-cardy" viewBox="0 0 24 24"><rect x="7" y="3.5" width="10" height="15" rx="1.6"/><path d="M9 21.5h6"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M7 4v13M3.5 7.5L7 4l3.5 3.5M17 20V7M13.5 16.5L17 20l3.5-3.5"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.4 2.4 4.8-5.4"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.6-9-9c-1.3-3 1-7 4.6-7 2 0 3.4 1 4.4 2.6C13 5 14.4 4 16.4 4c3.6 0 5.9 4 4.6 7-2 4.4-9 9-9 9z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></symbol>
+</svg>
+
+<header><div class="wrap hrow">
+  <a class="brand" href="/" style="text-decoration:none;color:inherit"><span class="mark"><svg class="ic fill"><use href="#i-crown"/></svg></span>HI-LO <em>ROYALE</em>&nbsp;<span style="font-size:.72rem;color:var(--faint);font-weight:500">lobby <span id="lobbyid">…</span></span></a>
+  <div class="hbtns">
+    <span class="pill" style="color:var(--gold);border-color:rgba(255,213,74,.35)"><svg class="ic"><use href="#i-crown"/></svg><b id="fanhandle">…</b></span>
+    <button class="iconbtn" id="snd" aria-label="Toggle sound"><svg class="ic"><use href="#i-sound" id="snduse"/></svg></button>
+    <span class="pill"><svg class="ic" style="color:var(--gold)"><use href="#i-users"/></svg><b id="alivecount">100</b>&nbsp;alive</span>
+    <button class="iconbtn" id="leave" aria-label="Leave arena" title="Leave the arena"><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
+</div></header>
+
+<div class="wrap">
+  <section class="hero">
+    <div class="comp"><svg class="ic"><use href="#i-ball"/></svg><span id="comp">…</span></div>
+    <div class="matchrow">
+      <div class="team"><div class="crest t1" id="crest1">—</div><div class="name" id="name1">—</div></div>
+      <div class="scorebox">
+        <div class="score-num"><span id="g1">0</span><span class="dash">–</span><span id="g2">0</span></div>
+        <div class="minute"><svg class="ic" style="width:.8em"><use href="#i-whistle"/></svg><span id="minute">0'</span></div>
+      </div>
+      <div class="team"><div class="crest t2" id="crest2">—</div><div class="name" id="name2">—</div></div>
+    </div>
+    <div class="lobbies" id="lobbychips"></div>
+    <div class="swing" id="swingwrap">
+      <div class="lbl"><span id="swinglbl">win probability</span><span id="swingnow">–</span></div>
+      <svg class="spark" id="spark" viewBox="0 0 600 48" preserveAspectRatio="none" aria-hidden="true"></svg>
+    </div>
+  </section>
+
+  <main>
+    <div class="stage">
+      <div class="rndrow">
+        <span class="chip" id="qnum">GET READY</span>
+        <span class="chip" id="evstate" style="display:none">OPEN</span>
+      </div>
+      <div class="question" id="question">100 fans. One real match. Every stat window is a question — wrong answer, you're out. <b>Last fan standing takes the crown.</b></div>
+      <div class="lastval" id="lastval"></div>
+      <div class="crowd">
+        <div class="crowdlbl" id="crowdlbl">the lobby is deciding…</div>
+        <div class="cbar">
+          <div class="cb cb-hi" id="cbhi">50%</div>
+          <div class="cb cb-lo" id="cblo">50%</div>
+        </div>
+      </div>
+      <div class="timerbar" id="timerbar"><i id="timer"></i></div>
+      <div class="answers">
+        <button class="abtn hi" id="hi" disabled><svg class="ic"><use href="#i-up"/></svg><span id="hitxt">HIGHER</span></button>
+        <button class="abtn lo" id="lo" disabled><svg class="ic"><use href="#i-down"/></svg><span id="lotxt">LOWER</span></button>
+      </div>
+      <div class="verdict" id="verdict"></div>
+      <div class="neardeath" id="neardeath"></div>
+      <div class="streak">your streak <b id="streak">0</b><span class="best">best <b id="beststreak" style="font-size:.95rem">0</b></span></div>
+      <div class="gl"><span>the arena</span><span id="glcount">100 alive</span></div>
+      <div class="grid" id="crowd"></div>
+      <div class="ticker" id="ticker"></div>
+    </div>
+
+    <aside class="side">
+      <div class="card"><h3><svg class="ic"><use href="#i-ball"/></svg>Live match — TxLINE feed</h3>
+        <div class="scoreline" id="score">0 – 0</div>
+        <div class="feed" id="feed"></div>
+      </div>
+      <div class="card" id="marketcard" style="display:none"><h3><svg class="ic"><use href="#i-chart"/></svg>Live market</h3>
+        <div class="stat3">
+          <div class="st"><b id="mp1">–</b><span id="mp1l">home</span></div>
+          <div class="st"><b id="mdraw">–</b><span>draw</span></div>
+          <div class="st"><b id="mp2">–</b><span id="mp2l">away</span></div>
+        </div>
+        <div class="note">Real 1X2 win-probability from the TxLINE StablePrice consensus, captured through the match.</div>
+      </div>
+      <div class="card"><h3><svg class="ic fill" style="stroke:currentColor;fill:none"><use href="#i-crown"/></svg>Royale ladder</h3>
+        <div class="ladstats">
+          <div class="lad"><b id="lpts">0</b><span>points</span></div>
+          <div class="lad"><b id="lrank">—</b><span>rank</span></div>
+          <div class="lad"><b id="lcrowns">0</b><span>crowns</span></div>
+          <div class="lad"><b id="lmatches">0</b><span>lobbies</span></div>
+        </div>
+        <div class="wall" id="wall"></div>
+      </div>
+      <div class="card">
+        <button class="btn" id="start"><svg class="ic"><use href="#i-bolt"/></svg>Join lobby &amp; start</button>
+        <div class="note" id="vrfnote" style="display:none"><svg class="ic" style="color:var(--hi)"><use href="#i-shield"/></svg> <b>Provably fair</b> — bots, picks and tie-breaks are seeded by <a id="vrflink" href="#" target="_blank" rel="noopener">ORAO VRF randomness on Solana</a>.</div>
+        <div class="note" id="proofnote" style="display:none"><svg class="ic" style="color:var(--gold)"><use href="#i-check"/></svg> <b>Score proven on-chain</b> — <a id="prooflink" href="#" target="_blank" rel="noopener">validateStatV2 tx on Solscan</a>.</div>
+        <div class="note">Replay lobbies run on real World Cup matches pulled from the live TxLINE feed. Same engine as the iOS app.</div>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    <b>Real data, honest ledger.</b> Every lobby replays a real fixture pulled from the TxLINE feed (score events + StablePrice odds); questions come from the shared
+    <code>HiLoLogic.buildSchedule</code> engine (unit-tested, mirrored in the iOS app). Rounds run a solora-anchor-style lifecycle (open → locked → settled; a feedless window voids the round).
+    The 99 other fans are simulated<span id="vrffootwrap" style="display:none">, seeded by <b>ORAO VRF</b> verifiable randomness on Solana devnet (<a id="vrffoot" href="#" target="_blank" rel="noopener">request tx</a>)</span>.
+    Streak records stamp via wallet memo; the featured Argentina–Switzerland final score is proven by a real <code>validateStatV2</code> devnet transaction.
+  </footer>
+</div>
+
+<div class="winner" id="winner"><div class="wcard">
+  <h1 id="wtitle"><svg class="ic fill" style="color:var(--gold)"><use href="#i-crown"/></svg>LAST FAN STANDING</h1>
+  <p id="wsub"></p>
+  <canvas id="cardcanvas" width="1000" height="1400"></canvas>
+  <div class="wbtns">
+    <button class="btn" id="dl"><svg class="ic"><use href="#i-download"/></svg>Save streak card</button>
+    <button class="btn ghost" id="share"><svg class="ic"><use href="#i-share"/></svg>Share</button>
+    <button class="btn ghost" onclick="location.reload()"><svg class="ic"><use href="#i-refresh"/></svg>Play another lobby</button>
+  </div>
+</div></div>
+<div class="count" id="count"><span id="countn">3</span></div>
+<canvas id="fx"></canvas>
+
+<script src="lobbies.js"></script>
+<script src="vrf-proof.js"></script>
+<script src="game-logic.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const store={get(k,d){try{const v=localStorage.getItem('hilo.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('hilo.'+k,JSON.stringify(v))}catch(e){}}};
+/* ---- arena gate: no fan identity, no lobby ---- */
+const FAN=store.get('fan',null);
+if(!FAN||!FAN.handle){location.replace('/login'+location.search);}
+document.getElementById('fanhandle').textContent=FAN?FAN.handle:'';
+document.getElementById('leave').onclick=()=>{try{localStorage.removeItem('hilo.fan')}catch(e){};location.href='/';};
+const icon=(id,style)=>`<svg class="ic"${style?` style="${style}"`:''}><use href="#${id}"/></svg>`;
+/* game-logic questions carry emoji hints; the UI renders SVG icons instead */
+const KEY_ICON={corners:'i-flag',corner:'i-flag',shots:'i-target',shot:'i-target',cards:'i-cardy',card:'i-cardy',goal:'i-ball',sub:'i-swap',var:'i-monitor'};
+const qIcon=q=>icon(KEY_ICON[q.key]||'i-chart');
+const stripEmoji=s=>String(s||'').replace(/^[^A-Za-z0-9]+/,'');
+
+/* ---------------- provably fair seed (ORAO VRF) ---------------- */
+const VRF=window.FE_VRF||null;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const rng=VRF?mulberry32(parseInt(VRF.randomness.slice(0,8),16)^parseInt(VRF.randomness.slice(8,16),16)):Math.random;
+if(VRF){$('vrfnote').style.display='block';$('vrffootwrap').style.display='inline';$('vrflink').href=VRF.explorerTx;$('vrffoot').href=VRF.explorerTx;}
+
+/* ---------------- game-agnostic lobby select ---------------- */
+const LOBBIES=window.LOBBIES||[];
+function dailyIdx(){const k=new Date().toISOString().slice(0,10);let h=0;for(const c of k)h=(h*31+c.charCodeAt(0))>>>0;return h%LOBBIES.length;}
+const wanted=new URLSearchParams(location.search).get('fixture');
+const LOBBY=LOBBIES.find(l=>l.fixtureId===wanted)||LOBBIES[dailyIdx()]||LOBBIES[0];
+const FIXTURE=LOBBY.fixture,E=LOBBY.events;
+const teamCode=n=>String(n||'').slice(0,3).toUpperCase();
+const CODE1=teamCode(FIXTURE.Participant1),CODE2=teamCode(FIXTURE.Participant2);
+const LOBBY_ID=`${CODE1}-${CODE2}-${LOBBY.fixtureId.slice(-3)}`;
+const FINAL_SCORE=LOBBY.finalScore;
+/* hero */
+$('lobbyid').textContent=LOBBY_ID;
+$('comp').textContent=FIXTURE.Competition+(LOBBY.tag?' · '+LOBBY.tag:'');
+$('crest1').textContent=CODE1;$('crest2').textContent=CODE2;
+$('name1').textContent=FIXTURE.Participant1;$('name2').textContent=FIXTURE.Participant2;
+$('score').textContent='0 – 0';
+/* lobby switcher chips */
+$('lobbychips').innerHTML=LOBBIES.map((l,i)=>{
+  const cur=l.fixtureId===LOBBY.fixtureId;
+  const label=teamCode(l.fixture.Participant1)+' – '+teamCode(l.fixture.Participant2);
+  const sub=i===dailyIdx()?'TODAY':(l.tag||'REPLAY');
+  return `<a class="lb${cur?' cur':''}" href="?fixture=${l.fixtureId}"><span>${label}</span><small>${sub}</small></a>`;
+}).join('');
+/* odds sparkline + market (only when the lobby has an odds capture) */
+if(LOBBY.odds&&LOBBY.odds.winpct&&LOBBY.odds.winpct.length>1){
+  const S=LOBBY.odds.winpct;
+  $('swingwrap').classList.add('on');
+  $('swinglbl').textContent=FIXTURE.Participant2+' win probability';
+  $('swingnow').textContent=S[S.length-1].eng.toFixed(0)+'%';
+  const w=600,h=48,pad=4,xs=S[S.length-1].m||1;
+  const pts=S.map(p=>[pad+(p.m/xs)*(w-2*pad),h-pad-(p.eng/100)*(h-2*pad)]);
+  const d=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  $('spark').innerHTML=`<defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff3b5c" stop-opacity=".32"/><stop offset="1" stop-color="#ff3b5c" stop-opacity="0"/></linearGradient></defs>`+
+    `<path d="${d} L ${pts[pts.length-1][0].toFixed(1)} ${h} L ${pts[0][0].toFixed(1)} ${h} Z" fill="url(#sg)"/>`+
+    `<path d="${d}" fill="none" stroke="#ff3b5c" stroke-width="2" stroke-linejoin="round"/>`;
+  $('marketcard').style.display='block';
+  const last=S[S.length-1];
+  $('mp1').textContent=last.fra.toFixed(0)+'%';$('mdraw').textContent=last.draw.toFixed(0)+'%';$('mp2').textContent=last.eng.toFixed(0)+'%';
+  $('mp1l').textContent=FIXTURE.Participant1;$('mp2l').textContent=FIXTURE.Participant2;
+}
+/* on-chain settle proof (only when the lobby has one) */
+if(LOBBY.proof){$('proofnote').style.display='block';$('prooflink').href=LOBBY.proof.url;}
+
+/* ---------------- TxMock-compatible adapter over the lobby tape ---------------- */
+function djb2hex(s){let h=5381;for(const c of String(s))h=((h*33)^c.charCodeAt(0))>>>0;return h.toString(16).padStart(8,'0');}
+const TxMock={
+  FIXTURE, EVENTS:E, hash:djb2hex,
+  stream({speed=5,onEvent,onDone}){
+    let i=0,simMin=0,stopped=false;
+    const iv=setInterval(()=>{
+      if(stopped)return;
+      simMin+=speed*0.25;
+      while(i<E.length&&E[i].minute<=simMin){
+        const e=E[i++];onEvent&&onEvent(e);
+        if(e.type==='game_finalised'){clearInterval(iv);onDone&&onDone(e);return;}
+      }
+      if(i>=E.length){clearInterval(iv);onDone&&onDone(E[E.length-1]);}
+    },250);
+    return{stop(){stopped=true;clearInterval(iv)}};
+  },
+};
+
+/* ---------------- sound design: synthesized WebAudio stingers ---------------- */
+const AudioFX=(()=>{
+  let ctx=null,muted=store.get('muted',false);
+  function ensure(){if(!ctx){try{ctx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(ctx&&ctx.state==='suspended')ctx.resume();}
+  function tone(f,dur,type='sine',gain=.14,when=0,slideTo=null){
+    if(muted||!ctx)return;const t=ctx.currentTime+when;
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.type=type;o.frequency.setValueAtTime(f,t);
+    if(slideTo)o.frequency.exponentialRampToValueAtTime(Math.max(20,slideTo),t+dur);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(gain,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g).connect(ctx.destination);o.start(t);o.stop(t+dur+.05);
+  }
+  return{
+    init(){ensure()},
+    get muted(){return muted},
+    toggle(){muted=!muted;store.set('muted',muted);return muted},
+    click(){tone(660,.06,'square',.07)},
+    lock(){tone(520,.05,'square',.09);tone(780,.07,'square',.07,.05)},
+    correct(){tone(523,.11,'triangle',.14);tone(659,.11,'triangle',.14,.09);tone(784,.2,'triangle',.16,.18)},
+    push(){tone(440,.12,'sine',.1);tone(440,.12,'sine',.1,.16)},
+    wrong(){tone(190,.4,'sawtooth',.16,0,80)},
+    heartbeat(){tone(58,.09,'sine',.32);tone(52,.11,'sine',.26,.13)},
+    tick(){tone(300+rng()*80,.04,'square',.05)},
+    fanfare(){[523,659,784,1047].forEach((f,i)=>tone(f,.32,'triangle',.16,i*.12));tone(1319,.55,'triangle',.18,.5)},
+  };
+})();
+function paintSnd(){$('snduse').setAttribute('href',AudioFX.muted?'#i-mute':'#i-sound')}
+paintSnd();
+$('snd').onclick=()=>{AudioFX.toggle();paintSnd();};
+
+/* ---------------- confetti + shake ---------------- */
+const FX=(()=>{
+  const cv=$('fx'),cx=cv.getContext('2d');let parts=[],raf=null;
+  function fit(){cv.width=innerWidth;cv.height=innerHeight}fit();addEventListener('resize',fit);
+  function loop(){cx.clearRect(0,0,cv.width,cv.height);parts=parts.filter(p=>p.life>0);
+    for(const p of parts){p.x+=p.vx;p.y+=p.vy;p.vy+=.16;p.rot+=p.vr;p.life--;
+      cx.save();cx.translate(p.x,p.y);cx.rotate(p.rot);cx.globalAlpha=Math.min(1,p.life/22);
+      cx.fillStyle=p.c;cx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.62);cx.restore();}
+    if(parts.length)raf=requestAnimationFrame(loop);else{raf=null;cx.clearRect(0,0,cv.width,cv.height)}}
+  return{burst(n=90,y=innerHeight*.35){if(REDUCE)return;
+    const cols=['#ffd54a','#2ee6ff','#ff3b5c','#ffc233','#31f28b'];
+    for(let i=0;i<n;i++)parts.push({x:innerWidth/2+(Math.random()-.5)*260,y:y+(Math.random()-.5)*60,
+      vx:(Math.random()-.5)*11,vy:-4-Math.random()*7,vr:(Math.random()-.5)*.3,rot:Math.random()*6,
+      s:5+Math.random()*7,c:cols[i%cols.length],life:60+Math.random()*40});
+    if(!raf)raf=requestAnimationFrame(loop);},
+  shake(){if(REDUCE)return;document.body.classList.remove('shake');void document.body.offsetWidth;document.body.classList.add('shake');}};
+})();
+
+/* ---------------- the 100 fans: named avatars (skills VRF-seeded) ---------------- */
+const NA=['Atlas','Zizou','Casa','Bleu','Rabat','Paris','Fennec','Desert','Riad','Kylian','Petit','Grand','Nord','Ultra','Vrai','Magic','Turbo','Cosmic','Lucky','Souk'];
+const NB=['Lion','Fox','Eagle','Baller','Keeper','Winger','Nutmeg','Panenka','Rocket','Maestro','Tifo','Drum','Chant','Flare','Scarf','Boot','Volley','Header','Whistle','Casque'];
+const fanName=i=>i===44?(FAN&&FAN.handle||'YOU'):'@'+NA[i%20]+NB[(i*7+3)%20]+(i%4===0?String(i):'');
+let bots=[];
+for(let i=0;i<100;i++){
+  const d=document.createElement('div');d.className='dot'+(i===44?' me':'');d.title=fanName(i);
+  $('crowd').appendChild(d);
+  bots.push({el:d,name:fanName(i),alive:true,skill:.45+rng()*.25,isMe:i===44});
+}
+const me={alive:true,streak:0,outlivedAtDeath:null};
+function aliveTotal(){return bots.filter(b=>b.alive).length}
+function othersAlive(){return bots.filter(b=>b.alive&&!b.isMe).length}
+function updateAlive(){const a=aliveTotal();$('alivecount').textContent=a;$('glcount').textContent=a+' alive'}
+
+/* ---------------- ladder + top-10 wall ---------------- */
+const WALL=[
+  {name:'@CasaLionne',points:2140,crowns:4},{name:'@PanenkaPriest',points:1980,crowns:3},
+  {name:'@TifoTitan',points:1725,crowns:3},{name:'@BleuBaller',points:1510,crowns:2},
+  {name:'@AtlasUltra',points:1340,crowns:2},{name:'@NutmegNadia',points:1105,crowns:1},
+  {name:'@DrumOfRabat',points:930,crowns:1},{name:'@WoodworkWes',points:740,crowns:1},
+  {name:'@StoppageSam',points:520,crowns:0},{name:'@VARsighted',points:310,crowns:0},
+];
+const ladder={points:store.get('ladder',0),crowns:store.get('crowns',0),matches:store.get('matches',0),best:store.get('best',0)};
+function renderLadder(){
+  $('lpts').textContent=ladder.points;$('lcrowns').textContent=ladder.crowns;
+  $('lmatches').textContent=ladder.matches;$('beststreak').textContent=ladder.best;
+  const rank=HiLoLogic.ladderRank(WALL,ladder.points);
+  $('lrank').textContent='#'+rank;
+  const rows=WALL.map(w=>({...w,you:false}));
+  rows.push({name:FAN&&FAN.handle||'YOU',points:ladder.points,crowns:ladder.crowns,you:true});
+  rows.sort((a,b)=>b.points-a.points);
+  $('wall').innerHTML=rows.slice(0,10).map((r,i)=>{
+    const crowns=r.crowns?`<span class="cr">${icon('i-crown').repeat(Math.min(3,r.crowns))}</span>`:'';
+    return `<div class="wrow${r.you?' you':''}"><span>#${i+1} <b>${r.name}</b> ${crowns}</span><span class="pts">${r.points}</span></div>`;
+  }).join('');
+}
+renderLadder();
+
+/* ---------------- solora-style event lifecycle ----------------
+   Each round mirrors meditatingsloth/solora-anchor's solora-pyth-price
+   machine: create_event (open) → orders until lock_time → wait → settle.
+   Outcome names kept 1:1 (Undrawn/Invalid/Up/Down/Same). */
+const OUTCOME={UNDRAWN:'Undrawn',INVALID:'Invalid',UP:'Up',DOWN:'Down',SAME:'Same'};
+let curEvent=null;
+function createEvent(q,answerMs){curEvent={q,state:'OPEN',startTime:Date.now(),lockTime:Date.now()+answerMs,waitPeriod:650,outcome:OUTCOME.UNDRAWN};paintEv();return curEvent;}
+function lockEvent(){if(curEvent){curEvent.state='LOCKED';paintEv();}}
+function settleEvent(answer){if(!curEvent)return;
+  curEvent.outcome=answer==='hi'?OUTCOME.UP:answer==='lo'?OUTCOME.DOWN:OUTCOME.SAME;
+  curEvent.state='SETTLED';paintEv();}
+function paintEv(){const el=$('evstate');if(!curEvent){el.style.display='none';return;}
+  el.style.display='inline-flex';el.textContent=curEvent.state;el.className='chip '+curEvent.state.toLowerCase();}
+
+/* ---------------- game state ---------------- */
+const SCHEDULE=HiLoLogic.buildSchedule(E,FIXTURE);
+let scheduleIdx=0,pending=null,buffer=[],running=false,gameOver=false;
+
+/* timer driven by rAF (near-death + heartbeat pacing) */
+const QMS=6000;
+let timerRaf=null,nextBeat=0;
+function runTimer(onDone){
+  const t0=performance.now();nextBeat=t0;
+  $('timerbar').classList.remove('panic','pulse');
+  cancelAnimationFrame(timerRaf);
+  (function frame(now){
+    const rem=Math.max(0,QMS-(now-t0));
+    if(pending)pending.msRemaining=rem;
+    $('timer').style.width=(rem/QMS*100)+'%';
+    if(rem<2200){$('timerbar').classList.add('panic','pulse');
+      if(now>=nextBeat){AudioFX.heartbeat();nextBeat=now+Math.max(280,rem/2200*820);}}
+    if(rem<=0){onDone();return;}
+    timerRaf=requestAnimationFrame(frame);
+  })(t0);
+}
+
+/* crowd bar: bot picks revealed progressively before the lock */
+function updateCrowdBar(revealed){
+  const s=HiLoLogic.crowdSplit(revealed);
+  const hp=Math.round(s.hi*100);
+  $('cbhi').style.width=Math.max(8,Math.min(92,hp))+'%';
+  $('cblo').style.width=Math.max(8,Math.min(92,100-hp))+'%';
+  $('cbhi').innerHTML=`${icon('i-up')}&nbsp;${hp}%`;$('cblo').innerHTML=`${100-hp}%&nbsp;${icon('i-down')}`;
+  $('crowdlbl').textContent=`${s.n} of ${aliveTotal()} fans locked in…`;
+}
+
+function startQuestion(q){
+  const outcome={val:q.val??0,answer:q.answer??'push'};
+  const picks=[];
+  for(const b of bots){if(!b.alive||b.isMe)continue;
+    picks.push({bot:b,pick:HiLoLogic.botPick(b.skill,outcome.answer,rng()),at:400+rng()*(QMS-1200)});}
+  pending={q,outcome,botPicks:picks,myPick:null,myPickAtMs:null,msRemaining:QMS,revealed:[]};
+  createEvent(q,QMS);
+  const isSidePick=q.kind==='side_pick';
+  $('qnum').textContent=`ROUND ${q.n}/${SCHEDULE.length} · ${q.fromMin}–${q.fromMin+q.windowLen}'`;
+  $('question').innerHTML=qIcon(q)+' '+(q.promptText?stripEmoji(q.promptText):`Will there be <b>MORE or FEWER ${q.label}</b> in the next ${q.windowLen} minutes than the last ${q.windowLen}?`);
+  $('lastval').innerHTML=(q.kind==='compare_window'||!q.kind)&&q.prevVal!=null?`last ${q.windowLen} min: <b>${q.prevVal}</b> ${q.key}`:'';
+  $('hitxt').textContent=q.hiLabel||'HIGHER';$('lotxt').textContent=q.loLabel||'LOWER';
+  $('hi').classList.toggle('sidepick',isSidePick);$('cbhi').classList.toggle('sidepick',isSidePick);
+  $('verdict').textContent='';$('neardeath').textContent='';$('neardeath').classList.remove('show');
+  $('hi').disabled=$('lo').disabled=!me.alive;
+  $('hi').classList.remove('picked');$('lo').classList.remove('picked');
+  $('cbhi').classList.remove('winside');$('cblo').classList.remove('winside');
+  updateCrowdBar([]);
+  const t0=performance.now();
+  (function crowdTick(){if(!pending||pending.q!==q)return;
+    const el=performance.now()-t0;
+    for(const p of picks){if(!p.shown&&p.at<=el){p.shown=true;pending.revealed.push(p.pick);}}
+    updateCrowdBar(pending.revealed);
+    if(el<QMS)requestAnimationFrame(crowdTick);})();
+  runTimer(()=>{lockEvent();setTimeout(()=>resolveRound(),curEvent?curEvent.waitPeriod:650);});
+}
+$('hi').onclick=()=>pickSide('hi');$('lo').onclick=()=>pickSide('lo');
+function pickSide(p){if(!pending||!me.alive||pending.myPick)return;
+  pending.myPick=p;pending.myPickAtMs=pending.msRemaining;
+  pending.revealed.push(p);updateCrowdBar(pending.revealed);
+  $(p).classList.add('picked');$('hi').disabled=$('lo').disabled=true;AudioFX.lock();}
+
+function resolveRound(){
+  if(!pending)return;const P=pending;pending=null;cancelAnimationFrame(timerRaf);
+  $('timerbar').classList.remove('pulse');
+  $('hi').disabled=$('lo').disabled=true;
+  const {val,answer}=P.outcome;const q=P.q;
+  settleEvent(answer);
+  const allPicks=P.botPicks.map(p=>p.pick).concat(P.myPick?[P.myPick]:[]);
+  updateCrowdBar(allPicks);
+  const s=HiLoLogic.crowdSplit(allPicks);
+  $('cbhi').classList.toggle('winside',answer==='hi');$('cblo').classList.toggle('winside',answer==='lo');
+  $('crowdlbl').textContent=answer==='push'?'dead heat — the stat tied':
+    `the crowd ${((answer==='hi'?s.hi:s.lo)>=.5?'was RIGHT':'was WRONG')}`;
+  const verdict=HiLoLogic.judge(answer,P.myPick);
+  const hadPick=P.myPick!=null;
+  const prevStreak=me.streak;
+  me.streak=HiLoLogic.nextStreak(me.streak,verdict,hadPick);
+  const dying=[];
+  for(const p of P.botPicks){if(!HiLoLogic.survives(HiLoLogic.judge(answer,p.pick))){p.bot.alive=false;dying.push(p.bot);}}
+  const myDot=bots[44];
+  if(me.alive){
+    if(HiLoLogic.survives(verdict)){
+      const isHiLoKind=q.kind==='compare_window'||!q.kind;
+      if(verdict==='correct'){
+        $('verdict').innerHTML=icon('i-check')+' CORRECT — '+(isHiLoKind?`it was ${val} (${answer==='hi'?'higher':'lower'})`:(answer==='hi'?q.hiLabel:q.loLabel));
+        $('verdict').className='verdict ok';
+        AudioFX.correct();FX.burst(45);
+        const byTime=HiLoLogic.isNearDeathTime(P.myPickAtMs);
+        const byMargin=isHiLoKind&&q.prevVal!=null&&HiLoLogic.isNearDeathMargin(val,q.prevVal);
+        if(byTime||byMargin){
+          $('neardeath').innerHTML=icon('i-heart')+' '+(byTime?`SURVIVED BY ${(P.myPickAtMs/1000).toFixed(1)}s`:`SURVIVED BY A SINGLE ${q.key.replace(/s$/,'').toUpperCase()}`);
+          $('neardeath').classList.add('show');FX.burst(70);
+        }
+      }else{$('verdict').textContent='PUSH — the whole lobby breathes';$('verdict').className='verdict';AudioFX.push();
+        if(hadPick&&me.streak>prevStreak)$('neardeath').textContent='push with a pick still feeds the streak';}
+    }else{
+      me.alive=false;myDot.alive=false;me.outlivedAtDeath=HiLoLogic.outlived(100,othersAlive());
+      const why=verdict==='timeout'?icon('i-clock')+' TOO SLOW':icon('i-x')+' WRONG';
+      $('verdict').innerHTML=`${why}. Eliminated at streak ${me.streak} — you outlived ${me.outlivedAtDeath} of 99 fans`;
+      $('verdict').className='verdict out';AudioFX.wrong();FX.shake();
+      myDot.el.classList.add('justdead');setTimeout(()=>{myDot.el.classList.remove('justdead');myDot.el.classList.add('dead')},450);
+    }
+  }
+  $('streak').textContent=me.streak;
+  if(me.streak>ladder.best){ladder.best=me.streak;store.set('best',ladder.best);$('beststreak').textContent=ladder.best;}
+  dying.sort(()=>rng()-.5);
+  dying.forEach((b,i)=>setTimeout(()=>{
+    b.el.classList.add('justdead');AudioFX.tick();
+    setTimeout(()=>{b.el.classList.remove('justdead');b.el.classList.add('dead')},260);
+    updateAlive();
+  },120+i*36));
+  const names=dying.slice(0,3).map(b=>`<b>${b.name}</b>`).join(', ');
+  $('ticker').innerHTML=dying.length?`${icon('i-x','color:var(--lo)')} ${names}${dying.length>3?` +${dying.length-3} more`:''} eliminated${me.alive?' — you outlived them':''}`:
+    (answer==='push'?'nobody eliminated this round':'');
+  setTimeout(()=>{updateAlive();
+    if(scheduleIdx>=SCHEDULE.length||aliveTotal()<=1||othersAlive()===0){endGame();}
+    else flushBuffer();
+  },1400+Math.min(1200,dying.length*36));
+}
+
+/* ---------------- event pump: buffer feed during questions so reveals can't be spoiled ---------------- */
+function handleEvent(e){
+  if(pending){buffer.push(e);return;}
+  $('score').textContent=`${e.stats.g1} – ${e.stats.g2}`;
+  $('g1').textContent=e.stats.g1;$('g2').textContent=e.stats.g2;
+  $('minute').textContent=e.minute+"'";
+  if(KEY_ICON[e.type]){
+    const d=document.createElement('div');d.className='ev';
+    d.innerHTML=`<span class="evi">${icon(KEY_ICON[e.type])}</span><b>${e.minute}'</b> ${e.type}${e.team===1?' — '+FIXTURE.Participant1:e.team===2?' — '+FIXTURE.Participant2:''}`;
+    $('feed').prepend(d);
+  }
+  const next=SCHEDULE[scheduleIdx];
+  if(next&&e.minute>=next.fromMin&&!pending&&!gameOver){scheduleIdx++;startQuestion(next);}
+}
+function flushBuffer(){const q=buffer;buffer=[];for(const e of q){if(pending){buffer.push(e);}else handleEvent(e);}}
+
+/* ---------------- endgame + streak card ---------------- */
+function endGame(){
+  if(gameOver)return;gameOver=true;curEvent=null;paintEv();
+  const oa=othersAlive();
+  const won=me.alive&&oa===0;
+  const outlivedCount=me.alive?100-aliveTotal():me.outlivedAtDeath??0;
+  const pts=HiLoLogic.ladderPoints({streak:me.streak,outlivedCount,won});
+  ladder.points+=pts;ladder.matches++;if(won)ladder.crowns++;
+  store.set('ladder',ladder.points);store.set('matches',ladder.matches);store.set('crowns',ladder.crowns);
+  renderLadder();
+  const rank=HiLoLogic.ladderRank(WALL,ladder.points);
+  setTimeout(()=>{
+    $('wtitle').innerHTML=won?icon('i-crown','color:var(--gold)')+' LAST FAN STANDING':me.alive?`TOP ${aliveTotal()} FINISH`:'ELIMINATED';
+    $('wsub').textContent=won?`You outlived all 99 fans across ${scheduleIdx} questions. +${pts} ladder points, crown stamped on-chain (devnet).`:
+      me.alive?`You survived all ${scheduleIdx} questions (streak ${me.streak}) with ${aliveTotal()-1} others. +${pts} ladder points.`:
+      `Streak ${me.streak}. You outlived ${outlivedCount} of 99 fans. +${pts} ladder points. Next lobby starts in 3 minutes.`;
+    drawStreakCard({streak:me.streak,best:ladder.best,outlivedCount,won,rank,pts});
+    $('winner').classList.add('open');
+    if(won){AudioFX.fanfare();FX.burst(160,innerHeight*.3);setTimeout(()=>FX.burst(120),500);}
+    else if(me.alive){AudioFX.correct();FX.burst(80);}
+  },900);
+}
+
+/* collectible-ticket streak card (canvas → PNG) */
+const DFONT='"Cabinet Grotesk","DM Sans","Segoe UI",sans-serif';
+const BFONT='"DM Sans","Segoe UI",sans-serif';
+function drawCrown(c,x,y,s){
+  c.save();c.translate(x,y);c.scale(s/24,s/24);
+  c.beginPath();c.moveTo(3,7);c.lineTo(7,11);c.lineTo(12,4);c.lineTo(17,11);c.lineTo(21,7);c.lineTo(19.5,19);c.lineTo(4.5,19);c.closePath();
+  c.fillStyle='#ffd54a';c.fill();c.restore();
+}
+function drawStreakCard(o){
+  const cv=$('cardcanvas'),c=cv.getContext('2d'),W=1000,H=1400;
+  const g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,'#0a0d13');g.addColorStop(.55,'#050608');g.addColorStop(1,'#101623');
+  c.fillStyle=g;c.fillRect(0,0,W,H);
+  c.strokeStyle='#ffd54a';c.lineWidth=6;roundRect(c,34,34,W-68,H-68,36);c.stroke();
+  c.strokeStyle='rgba(255,213,74,.4)';c.lineWidth=2;roundRect(c,52,52,W-104,H-104,28);c.stroke();
+  c.fillStyle='#050608';
+  for(const y of [H*.62]){c.beginPath();c.arc(34,y,26,0,7);c.fill();c.beginPath();c.arc(W-34,y,26,0,7);c.fill();}
+  c.setLineDash([10,12]);c.strokeStyle='rgba(147,161,181,.5)';c.beginPath();c.moveTo(80,H*.62);c.lineTo(W-80,H*.62);c.stroke();c.setLineDash([]);
+  c.textAlign='center';
+  c.fillStyle='#f4f7fb';c.font=`italic 900 64px ${DFONT}`;c.fillText('HI-LO',W/2-92,150);
+  c.fillStyle='#ffd54a';c.fillText('ROYALE',W/2+110,150);
+  c.fillStyle='#93a1b5';c.font=`600 30px ${BFONT}`;
+  c.fillText(('SURVIVAL TICKET · '+FIXTURE.Competition).toUpperCase(),W/2,205);
+  if(o.won){drawCrown(c,W/2-60,240,120);
+    c.fillStyle='#ffd54a';c.font=`italic 900 44px ${DFONT}`;c.fillText('LOBBY CHAMPION',W/2,428);}
+  const grad=c.createLinearGradient(0,430,0,760);grad.addColorStop(0,'#ffd54a');grad.addColorStop(1,'#ff3b5c');
+  c.fillStyle=grad;c.font=`italic 900 300px ${DFONT}`;c.fillText(String(o.streak),W/2,o.won?744:700);
+  c.fillStyle='#93a1b5';c.font=`600 34px ${BFONT}`;c.fillText('QUESTION STREAK',W/2,o.won?792:756);
+  c.fillStyle='rgba(46,230,255,.14)';roundRect(c,W/2-330,H*.62+40,660,86,43);c.fill();
+  c.fillStyle='#2ee6ff';c.font=`italic 900 40px ${DFONT}`;
+  c.fillText(`OUTLIVED ${o.outlivedCount} OF 99 FANS`,W/2,H*.62+98);
+  c.fillStyle='#f4f7fb';c.font=`italic 700 38px ${DFONT}`;
+  c.fillText(`${CODE1} ${FINAL_SCORE.g1} – ${FINAL_SCORE.g2} ${CODE2} · ${FIXTURE.Competition}`,W/2,H*.62+190);
+  c.fillStyle='#93a1b5';c.font=`500 28px ${BFONT}`;
+  c.fillText(`lobby ${LOBBY_ID} · ladder rank #${o.rank} · +${o.pts} pts`,W/2,H*.62+240);
+  c.fillText(new Date().toISOString().slice(0,10)+' · stats + fairness proof-anchored on Solana',W/2,H*.62+286);
+  const seedHash=TxMock.hash(`card:${o.streak}:${o.outlivedCount}:${o.rank}`);
+  let x=W/2-260;c.fillStyle='#f4f7fb';
+  for(let i=0;i<40;i++){const wdt=2+(parseInt(seedHash[i%8],16)+i)%6;c.fillRect(x,H-160,wdt,70);x+=wdt+6;}
+  c.fillStyle='#93a1b5';c.font=`500 24px ${BFONT}`;c.fillText('hi-lo royale · txline × solana',W/2,H-62);
+}
+function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+$('dl').onclick=()=>{const a=document.createElement('a');a.download='hilo-royale-streak.png';a.href=$('cardcanvas').toDataURL('image/png');a.click();};
+$('share').onclick=async()=>{
+  const cv=$('cardcanvas');
+  try{
+    const blob=await new Promise(r=>cv.toBlob(r,'image/png'));
+    const file=new File([blob],'hilo-royale-streak.png',{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:'Hi-Lo Royale',text:`I outlived ${me.alive?100-aliveTotal():me.outlivedAtDeath??0} of 99 fans on Hi-Lo Royale`});return;}
+  }catch(e){}
+  $('dl').click();
+};
+
+/* ---------------- kickoff ---------------- */
+$('start').onclick=()=>{
+  if(running)return;running=true;AudioFX.init();
+  $('start').disabled=true;$('start').innerHTML='LOBBY LIVE';
+  const cd=$('count'),cn=$('countn');cd.classList.add('open');
+  let n=3;cn.textContent=n;AudioFX.tick();
+  const iv=setInterval(()=>{n--;
+    if(n>0){cn.textContent=n;cn.style.animation='none';void cn.offsetWidth;cn.style.animation='';AudioFX.tick();}
+    else{clearInterval(iv);cd.classList.remove('open');AudioFX.lock();
+      TxMock.stream({speed:5,onEvent:handleEvent,onDone:()=>{if(pending){/* let the running round settle */}else if(!gameOver)endGame();}});}
+  },800);
+};
+</script>
+</body></html>

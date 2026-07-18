@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Claim your handle — Hi-Lo Royale</title>
+<meta name="description" content="Pick your fan handle and step into the arena.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,800,900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#050608;--panel:#0b0e14;--panel2:#080b10;--ink:#07090d;--line:#1c2433;--line2:#334057;
+  --text:#f4f7fb;--muted:#93a1b5;--faint:#5f6d82;
+  --gold:#ffd54a;--accent:#ffc233;--accent2:#ff9f1a;--hi:#2ee6ff;--lo:#ff3b5c;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:radial-gradient(900px 520px at 85% -10%,rgba(46,230,255,.07),transparent 55%),radial-gradient(800px 500px at -5% 110%,rgba(255,59,92,.06),transparent 52%),var(--bg);color:var(--text);font-family:"DM Sans",system-ui,sans-serif;min-height:100vh;display:grid;place-items:center;padding:1.2rem;-webkit-font-smoothing:antialiased}
+svg.ic{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.125em;flex:none}
+svg.ic.fill{fill:currentColor;stroke:none}
+button{font-family:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+/* the input's focus indicator is the wrapper's gold border (.inwrap:focus-within) */
+.card{width:min(430px,100%);background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line2);border-radius:22px;padding:2rem 1.7rem;box-shadow:0 24px 80px -30px rgba(0,0,0,.9),0 0 40px rgba(255,213,74,.05);text-align:center}
+.brand{display:inline-flex;align-items:center;gap:.55rem;font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:1.1rem;letter-spacing:.02em;text-decoration:none;color:var(--text)}
+.brand .mark{display:grid;place-items:center;width:29px;height:29px;border-radius:8px;background:linear-gradient(140deg,var(--accent),var(--accent2));color:#231703;box-shadow:0 0 14px rgba(255,194,51,.35)}
+.brand em{font-style:italic;color:var(--gold)}
+h1{font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:clamp(1.6rem,6vw,2.1rem);margin:1.2rem 0 .4rem;letter-spacing:.01em}
+.sub{color:var(--muted);font-size:.92rem;margin-bottom:1.5rem;line-height:1.5}
+/* the arena preview: your gold dot among 99 */
+.dots{display:grid;grid-template-columns:repeat(20,1fr);gap:.24rem;margin:0 auto 1.5rem;max-width:300px}
+.dots i{aspect-ratio:1;border-radius:50%;background:#232d3f;display:block}
+.dots i.you{background:var(--gold);box-shadow:0 0 10px rgba(255,213,74,.7);outline:1.5px solid var(--gold);outline-offset:1.5px}
+/* handle input */
+.inrow{display:flex;gap:.55rem;margin-bottom:.9rem}
+.inwrap{flex:1;display:flex;align-items:center;background:var(--ink);border:1.5px solid var(--line);border-radius:13px;padding:0 .9rem;transition:border-color .15s}
+.inwrap:focus-within{border-color:var(--gold)}
+.inwrap .at{color:var(--gold);font-family:"Cabinet Grotesk";font-weight:900;font-size:1.1rem}
+input{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:"Cabinet Grotesk","DM Sans",sans-serif;font-weight:800;font-size:1.05rem;padding:.95rem .4rem;letter-spacing:.02em;min-width:0}
+input::placeholder{color:var(--faint);font-weight:600}
+.dice{display:grid;place-items:center;width:52px;border-radius:13px;background:var(--ink);border:1.5px solid var(--line);color:var(--muted);font-size:1.1rem;transition:.15s}
+.dice:hover{color:var(--hi);border-color:rgba(46,230,255,.4)}
+.err{min-height:1.1rem;font-size:.78rem;color:var(--lo);margin-bottom:.5rem;font-weight:600}
+.btn{width:100%;display:inline-flex;align-items:center;justify-content:center;gap:.5rem;background:linear-gradient(120deg,var(--accent),var(--accent2));color:#231703;font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;border:none;border-radius:13px;padding:1rem;font-size:1.05rem;box-shadow:0 0 24px rgba(255,194,51,.3);transition:.15s}
+.btn:hover{filter:brightness(1.08)}
+.btn:active{transform:translateY(1px)}
+.alt{margin-top:.7rem;width:100%;background:var(--ink);color:var(--faint);border:1px solid var(--line);border-radius:13px;padding:.85rem;font-size:.85rem;font-weight:600;cursor:not-allowed;display:inline-flex;align-items:center;justify-content:center;gap:.5rem}
+.note{color:var(--faint);font-size:.73rem;line-height:1.55;margin-top:1.2rem}
+.note a{color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style></head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-crown" viewBox="0 0 24 24"><path d="M3 7l4 4 5-7 5 7 4-4-1.5 12H4.5L3 7z"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></symbol>
+  <symbol id="i-dice" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.2" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-g" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M21 12h-9v3.5h5A5.2 5.2 0 0112 17"/></symbol>
+</svg>
+
+<main class="card">
+  <a class="brand" href="/"><span class="mark"><svg class="ic fill"><use href="#i-crown"/></svg></span>HI-LO <em>ROYALE</em></a>
+  <h1>Claim your handle</h1>
+  <p class="sub">100 fans enter every lobby. This is how the arena knows which dot is yours.</p>
+  <div class="dots" id="dots" aria-hidden="true"></div>
+  <div class="inrow">
+    <div class="inwrap"><span class="at">@</span><input id="handle" maxlength="18" placeholder="YourHandle" autocomplete="off" spellcheck="false" autofocus></div>
+    <button class="dice" id="dice" title="Random handle" aria-label="Random handle"><svg class="ic"><use href="#i-dice"/></svg></button>
+  </div>
+  <div class="err" id="err"></div>
+  <button class="btn" id="enter"><svg class="ic"><use href="#i-bolt"/></svg>ENTER THE ARENA</button>
+  <div class="alt" title="Google sign-in ships with the mobile release"><svg class="ic"><use href="#i-g"/></svg>Google sign-in — coming with the app</div>
+  <p class="note"><svg class="ic" style="color:#2ee6ff"><use href="#i-shield"/></svg> Guest identity, stored on this device only — same model as the iOS app. Lobby fairness is <a href="https://solscan.io/tx/4Fn4icgVJEftWm5TuWKWejY3p1adboCydqvragTyEXrsN6yBPx12bdeynrsW6pkuFR3xgMYovV3bXp7DTEuuwikH?cluster=devnet" target="_blank" rel="noopener">ORAO-VRF-seeded on Solana</a>.</p>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const store={get(k,d){try{const v=localStorage.getItem('hilo.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('hilo.'+k,JSON.stringify(v))}catch(e){}}};
+/* already claimed → straight to the arena */
+const existing=store.get('fan',null);
+if(existing&&existing.handle){location.replace('/play'+location.search);}
+/* arena preview: 100 dots, yours gold at seat 44 */
+$('dots').innerHTML=Array.from({length:100},(_,i)=>`<i${i===44?' class="you"':''}></i>`).join('');
+/* random handle from the arena's fan-name parts */
+const NA=['Atlas','Zizou','Casa','Bleu','Rabat','Paris','Fennec','Desert','Riad','Kylian','Petit','Grand','Nord','Ultra','Vrai','Magic','Turbo','Cosmic','Lucky','Souk'];
+const NB=['Lion','Fox','Eagle','Baller','Keeper','Winger','Nutmeg','Panenka','Rocket','Maestro','Tifo','Drum','Chant','Flare','Scarf','Boot','Volley','Header','Whistle','Casque'];
+$('dice').onclick=()=>{$('handle').value=NA[Math.floor(Math.random()*20)]+NB[Math.floor(Math.random()*20)]+(Math.random()<.4?Math.floor(Math.random()*90)+10:'');$('err').textContent='';$('handle').focus();};
+function enter(){
+  const raw=$('handle').value.trim().replace(/^@+/,'');
+  if(raw.length<3){$('err').textContent='At least 3 characters — the crowd needs to chant it.';return;}
+  if(!/^[A-Za-z0-9_]+$/.test(raw)){$('err').textContent='Letters, numbers and _ only.';return;}
+  store.set('fan',{handle:'@'+raw,createdAt:new Date().toISOString()});
+  location.href='/play'+location.search;
+}
+$('enter').onclick=enter;
+$('handle').addEventListener('keydown',e=>{if(e.key==='Enter')enter();});
+</script>
+</body></html>
