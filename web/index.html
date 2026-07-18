@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hi-Lo Royale — 100 fans enter, one survives the stats</title>
+<style>
+:root{--bg:#0e0a14;--panel:#181022;--line:#2a1d3a;--text:#f3edfa;--muted:#a291bd;--accent:#f59e0b;--hi:#34d399;--lo:#fb7185;--gold:#fbbf24;--teamblue:#38bdf8}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+header{padding:1.3rem 5vw;display:flex;justify-content:space-between;align-items:center;gap:.8rem;flex-wrap:wrap}
+.logo{font-weight:800;font-size:1.25rem}.logo b{color:var(--accent)}
+.hdr-r{display:flex;gap:.6rem;align-items:center}
+.alive{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:.5rem 1.1rem;font-size:.9rem}
+.alive b{color:var(--accent);font-variant-numeric:tabular-nums}
+.sndbtn{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:.5rem .85rem;color:var(--text);cursor:pointer;font-size:.95rem;transition:border-color .15s,background .15s}
+.sndbtn:hover{border-color:var(--accent);background:#1f1530}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{display:grid;grid-template-columns:1fr minmax(300px,380px);gap:1.4rem;padding:0 5vw 2.5rem;align-items:start}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:1.8rem;text-align:center;position:relative;overflow:hidden}
+.qnum{color:var(--muted);font-size:.8rem;letter-spacing:.15em;text-transform:uppercase}
+.question{font-size:clamp(1.2rem,2.6vw,1.7rem);margin:1rem auto;max-width:34ch;line-height:1.45;min-height:4.2rem}
+.question b{color:var(--accent)}
+.lastval{color:var(--muted);font-size:.95rem;margin-bottom:1rem}
+.lastval b{color:var(--text);font-size:1.3rem;font-variant-numeric:tabular-nums}
+/* crowd bar — social proof before the lock */
+.crowdwrap{max-width:440px;margin:0 auto .9rem}
+.crowdlbl{font-size:.72rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.35rem}
+.crowdbar{display:flex;height:22px;border-radius:99px;overflow:hidden;border:1px solid var(--line);background:#120c1c}
+.cb{display:flex;align-items:center;font-size:.72rem;font-weight:800;transition:width .35s ease;white-space:nowrap;overflow:hidden}
+.cb-hi{background:rgba(52,211,153,.28);color:var(--hi);justify-content:flex-start;padding-left:.6rem;width:50%}
+.cb-lo{background:rgba(251,113,133,.28);color:var(--lo);justify-content:flex-end;padding-right:.6rem;width:50%}
+.cb.winside{filter:brightness(1.6)}
+.timerbar{height:8px;background:#241833;border-radius:99px;overflow:hidden;margin-bottom:1rem;max-width:440px;margin-inline:auto}
+.timerbar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--lo));width:100%}
+.timerbar.panic i{background:var(--lo)}
+@keyframes tpulse{0%,100%{opacity:1}50%{opacity:.45}}
+.timerbar.panic.pulse i{animation:tpulse .42s infinite}
+.answers{display:flex;gap:1rem;justify-content:center;margin-bottom:1.1rem}
+.abtn{flex:1;max-width:210px;padding:1.2rem;border-radius:16px;border:2px solid var(--line);background:#120c1c;color:var(--text);font-size:1.15rem;font-weight:800;cursor:pointer;transition:all .15s;letter-spacing:.04em}
+.abtn.hi:hover,.abtn.hi.picked{border-color:var(--hi);background:rgba(52,211,153,.1)}
+.abtn.lo:hover,.abtn.lo.picked{border-color:var(--lo);background:rgba(251,113,133,.1)}
+/* side-pick questions (Team A or Team B) use team-blue instead of green for the hi/team1 side */
+.abtn.hi.sidepick{color:var(--teamblue)}
+.abtn.hi.sidepick:hover,.abtn.hi.sidepick.picked{border-color:var(--teamblue);background:rgba(56,189,248,.1)}
+.cb-hi.sidepick{background:rgba(56,189,248,.28);color:var(--teamblue)}
+.abtn:disabled:not(.picked){opacity:.5;cursor:default}
+.abtn.picked:disabled{cursor:default}
+.verdict{min-height:2.2rem;font-size:1.15rem;font-weight:700}
+.verdict.ok{color:var(--hi)}.verdict.out{color:var(--lo)}
+.neardeath{min-height:1.5rem;font-size:.9rem;font-weight:700;color:var(--gold);letter-spacing:.04em}
+@keyframes ndpop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+.neardeath.show{animation:ndpop .5s ease}
+.streak{margin-top:.4rem;color:var(--muted)}.streak b{color:var(--accent);font-size:1.4rem;font-variant-numeric:tabular-nums}
+.streak .best{font-size:.78rem;margin-left:.6rem}
+.grid{display:grid;grid-template-columns:repeat(10,1fr);gap:.35rem;margin-top:1.4rem}
+.dot{aspect-ratio:1;border-radius:50%;background:#31214a;transition:all .4s;position:relative}
+.dot.me{outline:2px solid var(--accent);outline-offset:2px}
+.dot.dead{background:#1c1229;transform:scale(.55)}
+.dot.justdead{background:var(--lo);transform:scale(1.25)}
+.ticker{margin-top:.8rem;min-height:1.3rem;font-size:.78rem;color:var(--muted)}
+.ticker b{color:var(--lo)}
+.side{display:grid;gap:1.4rem}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.2rem}
+.card h3{font-size:.85rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.9rem}
+.feed{max-height:210px;overflow-y:auto;display:flex;flex-direction:column-reverse;gap:.4rem;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.feed::-webkit-scrollbar{width:8px}
+.feed::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
+.feed::-webkit-scrollbar-track{background:transparent}
+.feed:empty::before{content:"⏱ waiting for kickoff — join the lobby to roll the tape";font-size:.78rem;color:var(--muted);padding:.45rem .2rem;font-style:italic}
+.ev{font-size:.82rem;padding:.45rem .7rem;background:#120c1c;border-radius:8px;border:1px solid var(--line);color:var(--muted)}
+.ev b{color:var(--text)}
+.scoreline{font-size:1.3rem;font-weight:700;text-align:center;padding:.4rem 0;font-variant-numeric:tabular-nums}
+.btn{width:100%;background:linear-gradient(120deg,var(--accent),#f97316);color:#160f07;font-weight:800;border:none;border-radius:12px;padding:1rem;font-size:1.05rem;cursor:pointer;transition:filter .15s,transform .12s}
+.btn:hover:not(:disabled){filter:brightness(1.1)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.ghost{background:#120c1c;color:var(--text);border:1px solid var(--line)}
+.btn.ghost:hover:not(:disabled){filter:none;border-color:var(--accent)}
+/* ladder */
+.ladstats{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;text-align:center;margin-bottom:.9rem}
+.lad{background:#120c1c;border-radius:10px;padding:.55rem .2rem}
+.lad b{display:block;font-size:1.15rem;color:var(--accent);font-variant-numeric:tabular-nums}
+.lad span{font-size:.66rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.wall{display:flex;flex-direction:column;gap:.3rem}
+.wrow{display:flex;justify-content:space-between;align-items:center;font-size:.8rem;padding:.38rem .6rem;background:#120c1c;border-radius:8px;color:var(--muted);border:1px solid transparent}
+.wrow b{color:var(--text);font-weight:600}
+.wrow .pts{color:var(--accent);font-variant-numeric:tabular-nums;font-weight:700}
+.wrow.you{border:1px solid var(--accent)}
+.wrow.you b{color:var(--accent)}
+/* end modal */
+.winner{position:fixed;inset:0;background:rgba(10,6,16,.94);display:none;align-items:center;justify-content:center;z-index:20;backdrop-filter:blur(8px);text-align:center;padding:1rem;overflow-y:auto}
+.winner.open{display:flex}
+.wcard{max-width:560px;width:100%}
+.wcard h1{font-size:clamp(1.7rem,5.5vw,3.2rem);color:var(--gold);text-shadow:0 0 32px rgba(251,191,36,.35);margin-bottom:.7rem;letter-spacing:.01em}
+.wcard p{color:var(--muted);margin-bottom:1.1rem;line-height:1.5}
+#cardcanvas{width:min(300px,72vw);border-radius:14px;border:1px solid var(--line);display:block;margin:0 auto 1.1rem;box-shadow:0 18px 60px rgba(245,158,11,.15)}
+.wbtns{display:flex;gap:.7rem;justify-content:center;flex-wrap:wrap}
+.wbtns .btn{width:auto;padding:.9rem 1.6rem}
+/* juice */
+@keyframes shakeX{10%,90%{transform:translate(-2px,1px)}20%,80%{transform:translate(5px,-2px)}30%,50%,70%{transform:translate(-9px,3px)}40%,60%{transform:translate(9px,-3px)}}
+body.shake{animation:shakeX .5s both}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:30}
+/* countdown */
+.count{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:25;background:rgba(10,6,16,.85);font-size:clamp(4rem,18vw,9rem);font-weight:800;color:var(--accent)}
+.count.open{display:flex}
+@keyframes czoom{0%{transform:scale(1.6);opacity:0}30%{transform:scale(1);opacity:1}100%{opacity:.9}}
+.count span{animation:czoom .9s ease}
+@media (prefers-reduced-motion: reduce){
+  body.shake,.count span,.neardeath.show,.timerbar.panic.pulse i{animation:none}
+  .dot,.cb{transition:none}
+}
+footer{padding:0 5vw 2rem;color:var(--muted);font-size:.75rem;line-height:1.6}
+</style></head>
+<body>
+<header>
+  <div class="logo">HI-LO <b>ROYALE</b> <span style="font-size:.75rem;color:var(--muted);font-weight:400">· lobby #<span id="lobbyid">…</span> · replay lobby</span></div>
+  <div class="hdr-r">
+    <button class="sndbtn" id="snd" title="sound">🔊</button>
+    <div class="alive">🔥 <b id="alivecount">100</b> fans alive</div>
+  </div>
+</header>
+<main>
+  <div class="stage">
+    <div class="qnum" id="qnum">GET READY</div>
+    <div class="question" id="question">100 fans. One match. Every TxLINE stat window is a question. Wrong answer = eliminated. <b>Last fan standing takes the crown.</b></div>
+    <div class="lastval" id="lastval"></div>
+    <div class="crowdwrap">
+      <div class="crowdlbl" id="crowdlbl">the lobby is deciding…</div>
+      <div class="crowdbar">
+        <div class="cb cb-hi" id="cbhi">▲ 50%</div>
+        <div class="cb cb-lo" id="cblo">50% ▼</div>
+      </div>
+    </div>
+    <div class="timerbar" id="timerbar"><i id="timer"></i></div>
+    <div class="answers">
+      <button class="abtn hi" id="hi" disabled>▲ HIGHER</button>
+      <button class="abtn lo" id="lo" disabled>▼ LOWER</button>
+    </div>
+    <div class="verdict" id="verdict"></div>
+    <div class="neardeath" id="neardeath"></div>
+    <div class="streak">your streak: <b id="streak">0</b><span class="best">best ever: <b id="beststreak" style="font-size:.9rem">0</b></span></div>
+    <div class="grid" id="crowd"></div>
+    <div class="ticker" id="ticker"></div>
+  </div>
+  <div class="side">
+    <div class="card"><h3>Live match — TxLINE scores stream</h3>
+      <div class="scoreline" id="score">– 0 – 0 –</div>
+      <div class="feed" id="feed"></div></div>
+    <div class="card"><h3>👑 Royale ladder — all 104 matches</h3>
+      <div class="ladstats">
+        <div class="lad"><b id="lpts">0</b><span>points</span></div>
+        <div class="lad"><b id="lrank">—</b><span>rank</span></div>
+        <div class="lad"><b id="lcrowns">0</b><span>crowns</span></div>
+        <div class="lad"><b id="lmatches">0</b><span>lobbies</span></div>
+      </div>
+      <div class="wall" id="wall"></div></div>
+    <div class="card"><button class="btn" id="start">▶ Join lobby & start</button>
+      <p style="color:var(--muted);font-size:.8rem;margin-top:.8rem;line-height:1.5">Replay lobbies run on real, finished World Cup matches pulled from the live TxLINE feed. Sign-in with Solana stamps your streak record on-chain.</p></div>
+  </div>
+</main>
+<div class="winner" id="winner"><div class="wcard">
+  <h1 id="wtitle">👑 LAST FAN STANDING</h1>
+  <p id="wsub"></p>
+  <canvas id="cardcanvas" width="1000" height="1400"></canvas>
+  <div class="wbtns">
+    <button class="btn" id="dl">⬇ Save streak card</button>
+    <button class="btn ghost" id="share">Share</button>
+    <button class="btn ghost" onclick="location.reload()">Play another lobby</button>
+  </div>
+</div></div>
+<div class="count" id="count"><span id="countn">3</span></div>
+<canvas id="fx"></canvas>
+<footer><b>PLACEHOLDERS →</b> this lobby replays a real recorded match (<code>GET /api/scores/historical/{fixtureId}</code>, pulled and compacted into <code>shared/real-data/*.tape.js</code>); questions are a precomputed schedule of occurrence bets, team head-to-heads, and one real VAR call (<code>HiLoLogic.buildSchedule</code>); streak records stamp via wallet memo. Bot opponents simulate the 99 other fans. Core rules live in <code>game-logic.js</code> (shared with the iOS app) and are unit-tested by <code>node test.js</code>.</footer>
+<!-- LIVE TxLINE data: real Argentina vs Switzerland (World Cup, fixtureId 18222446), pulled from the API and compacted by build-real-tapes.js. txline-real.js auto-boots from window.TXLINE_TAPE and aliases window.TxMock. Offline/fallback: comment these two out and restore <script src="../shared/txline-mock.js">. -->
+<script src="../shared/real-data/18222446.tape.js"></script>
+<script src="../shared/txline-real.js"></script>
+<script src="game-logic.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const store={get(k,d){try{const v=localStorage.getItem('hilo.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('hilo.'+k,JSON.stringify(v))}catch(e){}}};
+
+/* ---------------- sound design: synthesized WebAudio stingers ---------------- */
+const AudioFX=(()=>{
+  let ctx=null,muted=store.get('muted',false);
+  function ensure(){if(!ctx){try{ctx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(ctx&&ctx.state==='suspended')ctx.resume();}
+  function tone(f,dur,type='sine',gain=.14,when=0,slideTo=null){
+    if(muted||!ctx)return;const t=ctx.currentTime+when;
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.type=type;o.frequency.setValueAtTime(f,t);
+    if(slideTo)o.frequency.exponentialRampToValueAtTime(Math.max(20,slideTo),t+dur);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(gain,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g).connect(ctx.destination);o.start(t);o.stop(t+dur+.05);
+  }
+  return{
+    init(){ensure()},
+    get muted(){return muted},
+    toggle(){muted=!muted;store.set('muted',muted);return muted},
+    click(){tone(660,.06,'square',.07)},
+    lock(){tone(520,.05,'square',.09);tone(780,.07,'square',.07,.05)},
+    correct(){tone(523,.11,'triangle',.14);tone(659,.11,'triangle',.14,.09);tone(784,.2,'triangle',.16,.18)},
+    push(){tone(440,.12,'sine',.1);tone(440,.12,'sine',.1,.16)},
+    wrong(){tone(190,.4,'sawtooth',.16,0,80)},
+    heartbeat(){tone(58,.09,'sine',.32);tone(52,.11,'sine',.26,.13)},
+    tick(){tone(300+Math.random()*80,.04,'square',.05)},
+    fanfare(){[523,659,784,1047].forEach((f,i)=>tone(f,.32,'triangle',.16,i*.12));tone(1319,.55,'triangle',.18,.5)},
+  };
+})();
+$('snd').textContent=AudioFX.muted?'🔇':'🔊';
+$('snd').onclick=()=>{$('snd').textContent=AudioFX.toggle()?'🔇':'🔊'};
+
+/* ---------------- confetti + shake ---------------- */
+const FX=(()=>{
+  const cv=$('fx'),cx=cv.getContext('2d');let parts=[],raf=null;
+  function fit(){cv.width=innerWidth;cv.height=innerHeight}fit();addEventListener('resize',fit);
+  function loop(){cx.clearRect(0,0,cv.width,cv.height);parts=parts.filter(p=>p.life>0);
+    for(const p of parts){p.x+=p.vx;p.y+=p.vy;p.vy+=.16;p.rot+=p.vr;p.life--;
+      cx.save();cx.translate(p.x,p.y);cx.rotate(p.rot);cx.globalAlpha=Math.min(1,p.life/22);
+      cx.fillStyle=p.c;cx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.62);cx.restore();}
+    if(parts.length)raf=requestAnimationFrame(loop);else{raf=null;cx.clearRect(0,0,cv.width,cv.height)}}
+  return{burst(n=90,y=innerHeight*.35){if(REDUCE)return;
+    const cols=['#f59e0b','#34d399','#fb7185','#fbbf24','#a78bfa'];
+    for(let i=0;i<n;i++)parts.push({x:innerWidth/2+(Math.random()-.5)*260,y:y+(Math.random()-.5)*60,
+      vx:(Math.random()-.5)*11,vy:-4-Math.random()*7,vr:(Math.random()-.5)*.3,rot:Math.random()*6,
+      s:5+Math.random()*7,c:cols[i%cols.length],life:60+Math.random()*40});
+    if(!raf)raf=requestAnimationFrame(loop);},
+  shake(){if(REDUCE)return;document.body.classList.remove('shake');void document.body.offsetWidth;document.body.classList.add('shake');}};
+})();
+
+/* ---------------- the 100 fans: named avatars ---------------- */
+const NA=['Atlas','Zizou','Casa','Bleu','Rabat','Paris','Fennec','Desert','Riad','Kylian','Petit','Grand','Nord','Ultra','Vrai','Magic','Turbo','Cosmic','Lucky','Souk'];
+const NB=['Lion','Fox','Eagle','Baller','Keeper','Winger','Nutmeg','Panenka','Rocket','Maestro','Tifo','Drum','Chant','Flare','Scarf','Boot','Volley','Header','Whistle','Casque'];
+const fanName=i=>i===44?'YOU':'@'+NA[i%20]+NB[(i*7+3)%20]+(i%4===0?String(i):'');
+let bots=[];
+for(let i=0;i<100;i++){
+  const d=document.createElement('div');d.className='dot'+(i===44?' me':'');d.title=fanName(i);
+  $('crowd').appendChild(d);
+  bots.push({el:d,name:fanName(i),alive:true,skill:.45+Math.random()*.25,isMe:i===44});
+}
+const me={alive:true,streak:0,outlivedAtDeath:null};
+function aliveTotal(){return bots.filter(b=>b.alive).length}
+function othersAlive(){return bots.filter(b=>b.alive&&!b.isMe).length}
+function updateAlive(){$('alivecount').textContent=aliveTotal()}
+
+/* ---------------- ladder + top-10 wall ---------------- */
+const WALL=[
+  {name:'@CasaLionne',points:2140,crowns:4},{name:'@PanenkaPriest',points:1980,crowns:3},
+  {name:'@TifoTitan',points:1725,crowns:3},{name:'@BleuBaller',points:1510,crowns:2},
+  {name:'@AtlasUltra',points:1340,crowns:2},{name:'@NutmegNadia',points:1105,crowns:1},
+  {name:'@DrumOfRabat',points:930,crowns:1},{name:'@WoodworkWes',points:740,crowns:1},
+  {name:'@StoppageSam',points:520,crowns:0},{name:'@VARsighted',points:310,crowns:0},
+];
+const ladder={points:store.get('ladder',0),crowns:store.get('crowns',0),matches:store.get('matches',0),best:store.get('best',0)};
+function renderLadder(){
+  $('lpts').textContent=ladder.points;$('lcrowns').textContent=ladder.crowns;
+  $('lmatches').textContent=ladder.matches;$('beststreak').textContent=ladder.best;
+  const rank=HiLoLogic.ladderRank(WALL,ladder.points);
+  $('lrank').textContent='#'+rank;
+  const rows=WALL.map(w=>({...w,you:false}));
+  rows.push({name:'YOU',points:ladder.points,crowns:ladder.crowns,you:true});
+  rows.sort((a,b)=>b.points-a.points);
+  $('wall').innerHTML=rows.slice(0,10).map((r,i)=>
+    `<div class="wrow${r.you?' you':''}"><span>#${i+1} <b>${r.name}</b> ${'👑'.repeat(Math.min(3,r.crowns))}</span><span class="pts">${r.points}</span></div>`).join('');
+}
+renderLadder();
+
+/* ---------------- game state ---------------- */
+const E=TxMock.EVENTS;
+const teamCode=n=>String(n||'').slice(0,3).toUpperCase();
+const CODE1=teamCode(TxMock.FIXTURE.Participant1),CODE2=teamCode(TxMock.FIXTURE.Participant2);
+const LOBBY_ID=`${CODE1}-${CODE2}-${String(TxMock.FIXTURE.FixtureId).slice(-3)}`;
+const lastEv=E[E.length-1]||{stats:{g1:0,g2:0}};
+const FINAL_SCORE={g1:lastEv.stats.g1,g2:lastEv.stats.g2};
+$('lobbyid').textContent=LOBBY_ID;
+$('score').textContent=`${CODE1} 0 – 0 ${CODE2}`;
+// Precomputed once: every question's minute, kind, and correct answer is known
+// up front (this is a replay, not a live feed), so the VAR-reactive slot, the
+// pregame prop, and the halftime special are just entries in this ordered
+// array — no runtime special-casing needed. Mirrors src/lib/game-logic.ts's
+// buildSchedule() in the iOS app (same shared game-logic.js, tested by test.js).
+const SCHEDULE=HiLoLogic.buildSchedule(E,TxMock.FIXTURE);
+let scheduleIdx=0,pending=null,buffer=[],running=false,gameOver=false;
+
+/* timer driven by rAF so we know exact ms remaining (near-death + heartbeat pacing) */
+const QMS=6000;
+let timerRaf=null,nextBeat=0;
+function runTimer(onDone){
+  const t0=performance.now();nextBeat=t0;
+  $('timerbar').classList.remove('panic','pulse');
+  cancelAnimationFrame(timerRaf);
+  (function frame(now){
+    const rem=Math.max(0,QMS-(now-t0));
+    if(pending)pending.msRemaining=rem;
+    $('timer').style.width=(rem/QMS*100)+'%';
+    if(rem<2200){$('timerbar').classList.add('panic','pulse');
+      if(now>=nextBeat){AudioFX.heartbeat();nextBeat=now+Math.max(280,rem/2200*820);}}
+    if(rem<=0){onDone();return;}
+    timerRaf=requestAnimationFrame(frame);
+  })(t0);
+}
+
+/* crowd bar: bot picks revealed progressively before the lock */
+function updateCrowdBar(revealed){
+  const s=HiLoLogic.crowdSplit(revealed);
+  const hp=Math.round(s.hi*100);
+  $('cbhi').style.width=Math.max(8,Math.min(92,hp))+'%';
+  $('cblo').style.width=Math.max(8,Math.min(92,100-hp))+'%';
+  $('cbhi').textContent=`▲ ${hp}%`;$('cblo').textContent=`${100-hp}% ▼`;
+  $('crowdlbl').textContent=`${s.n} of ${aliveTotal()} fans locked in…`;
+}
+
+function startQuestion(q){
+  const outcome={val:q.val??0,answer:q.answer??'push'};
+  // bot picks decided now; revealed over the timer for the crowd bar
+  const picks=[];
+  for(const b of bots){if(!b.alive||b.isMe)continue;
+    picks.push({bot:b,pick:HiLoLogic.botPick(b.skill,outcome.answer,Math.random()),at:400+Math.random()*(QMS-1200)});}
+  pending={q,outcome,botPicks:picks,myPick:null,myPickAtMs:null,msRemaining:QMS,revealed:[]};
+  const isSidePick=q.kind==='side_pick';
+  $('qnum').textContent=`ROUND ${q.n}/${SCHEDULE.length} · window ${q.fromMin}–${q.fromMin+q.windowLen}'`;
+  $('question').innerHTML=q.promptText||`${q.emoji} Will there be <b>MORE or FEWER ${q.label}</b> in the next ${q.windowLen} minutes than the last ${q.windowLen}?`;
+  $('lastval').innerHTML=(q.kind==='compare_window'||!q.kind)&&q.prevVal!=null?`last ${q.windowLen} min: <b>${q.prevVal}</b> ${q.key}`:'';
+  $('hi').textContent=`▲ ${q.hiLabel||'HIGHER'}`;$('lo').textContent=`▼ ${q.loLabel||'LOWER'}`;
+  $('hi').classList.toggle('sidepick',isSidePick);$('cbhi').classList.toggle('sidepick',isSidePick);
+  $('verdict').textContent='';$('neardeath').textContent='';$('neardeath').classList.remove('show');
+  $('hi').disabled=$('lo').disabled=!me.alive;
+  $('hi').classList.remove('picked');$('lo').classList.remove('picked');
+  $('cbhi').classList.remove('winside');$('cblo').classList.remove('winside');
+  updateCrowdBar([]);
+  const t0=performance.now();
+  (function crowdTick(){if(!pending||pending.q!==q)return;
+    const el=performance.now()-t0;
+    for(const p of picks){if(!p.shown&&p.at<=el){p.shown=true;pending.revealed.push(p.pick);}}
+    updateCrowdBar(pending.revealed);
+    if(el<QMS)requestAnimationFrame(crowdTick);})();
+  runTimer(()=>resolveRound());
+}
+$('hi').onclick=()=>pickSide('hi');$('lo').onclick=()=>pickSide('lo');
+function pickSide(p){if(!pending||!me.alive||pending.myPick)return;
+  pending.myPick=p;pending.myPickAtMs=pending.msRemaining;
+  pending.revealed.push(p);updateCrowdBar(pending.revealed);
+  $(p).classList.add('picked');$('hi').disabled=$('lo').disabled=true;AudioFX.lock();}
+
+function resolveRound(){
+  if(!pending)return;const P=pending;pending=null;cancelAnimationFrame(timerRaf);
+  $('timerbar').classList.remove('pulse');
+  $('hi').disabled=$('lo').disabled=true;
+  const {val,answer}=P.outcome;const q=P.q;
+  // crowd bar final: full split + highlight the surviving side
+  const allPicks=P.botPicks.map(p=>p.pick).concat(P.myPick?[P.myPick]:[]);
+  updateCrowdBar(allPicks);
+  const s=HiLoLogic.crowdSplit(allPicks);
+  $('cbhi').classList.toggle('winside',answer==='hi');$('cblo').classList.toggle('winside',answer==='lo');
+  $('crowdlbl').textContent=answer==='push'?'dead heat — the stat tied':
+    `the crowd ${((answer==='hi'?s.hi:s.lo)>=.5?'was RIGHT':'was WRONG')}`;
+  // my verdict + streak (shared logic)
+  const verdict=HiLoLogic.judge(answer,P.myPick);
+  const hadPick=P.myPick!=null;
+  const prevStreak=me.streak;
+  me.streak=HiLoLogic.nextStreak(me.streak,verdict,hadPick);
+  // bot eliminations (cascade with names)
+  const dying=[];
+  for(const p of P.botPicks){if(!HiLoLogic.survives(HiLoLogic.judge(answer,p.pick))){p.bot.alive=false;dying.push(p.bot);}}
+  const myDot=bots[44];
+  if(me.alive){
+    if(HiLoLogic.survives(verdict)){
+      const isHiLoKind=q.kind==='compare_window'||!q.kind;
+      if(verdict==='correct'){
+        $('verdict').textContent=isHiLoKind?`✓ CORRECT — it was ${val} (${answer==='hi'?'higher':'lower'})`:`✓ CORRECT — ${answer==='hi'?q.hiLabel:q.loLabel}`;
+        $('verdict').className='verdict ok';
+        AudioFX.correct();FX.burst(45);
+        const byTime=HiLoLogic.isNearDeathTime(P.myPickAtMs);
+        const byMargin=isHiLoKind&&q.prevVal!=null&&HiLoLogic.isNearDeathMargin(val,q.prevVal);
+        if(byTime||byMargin){
+          $('neardeath').textContent=byTime?`💓 SURVIVED BY ${(P.myPickAtMs/1000).toFixed(1)}s`:`💓 SURVIVED BY A SINGLE ${q.key.replace(/s$/,'').toUpperCase()}`;
+          $('neardeath').classList.add('show');FX.burst(70);
+        }
+      }else{$('verdict').textContent=`— PUSH — the whole lobby breathes`;$('verdict').className='verdict';AudioFX.push();
+        if(hadPick&&me.streak>prevStreak)$('neardeath').textContent='push with a pick still feeds the streak';}
+    }else{
+      me.alive=false;myDot.alive=false;me.outlivedAtDeath=HiLoLogic.outlived(100,othersAlive());
+      const why=verdict==='timeout'?'⏱ TOO SLOW':'✗ WRONG';
+      $('verdict').textContent=`${why}. Eliminated at streak ${me.streak} — you outlived ${me.outlivedAtDeath} of 99 fans`;
+      $('verdict').className='verdict out';AudioFX.wrong();FX.shake();
+      myDot.el.classList.add('justdead');setTimeout(()=>{myDot.el.classList.remove('justdead');myDot.el.classList.add('dead')},450);
+    }
+  }
+  $('streak').textContent=me.streak;
+  if(me.streak>ladder.best){ladder.best=me.streak;store.set('best',ladder.best);$('beststreak').textContent=ladder.best;}
+  // staggered elimination cascade
+  dying.sort(()=>Math.random()-.5);
+  dying.forEach((b,i)=>setTimeout(()=>{
+    b.el.classList.add('justdead');AudioFX.tick();
+    setTimeout(()=>{b.el.classList.remove('justdead');b.el.classList.add('dead')},260);
+    updateAlive();
+  },120+i*36));
+  const names=dying.slice(0,3).map(b=>`<b>${b.name}</b>`).join(', ');
+  $('ticker').innerHTML=dying.length?`💀 ${names}${dying.length>3?` +${dying.length-3} more`:''} eliminated${me.alive?' — you outlived them':''}`:
+    (answer==='push'?'🤝 nobody eliminated this round':'');
+  setTimeout(()=>{updateAlive();
+    if(scheduleIdx>=SCHEDULE.length||aliveTotal()<=1||othersAlive()===0){endGame();}
+    else flushBuffer();
+  },1400+Math.min(1200,dying.length*36));
+}
+
+/* ---------------- event pump: buffer the feed during questions so reveals can't be spoiled ---------------- */
+function handleEvent(e){
+  if(pending){buffer.push(e);return;}
+  $('score').textContent=`${CODE1} ${e.stats.g1} – ${e.stats.g2} ${CODE2}`;
+  const icons={goal:'⚽',corner:'🚩',card:'🟨',shot:'🎯',var:'📺',penalty:'⚽'};
+  if(icons[e.type]){const d=document.createElement('div');d.className='ev';d.innerHTML=`${icons[e.type]} <b>${e.minute}'</b> ${e.type} — ${e.teamName}`;$('feed').appendChild(d);}
+  const next=SCHEDULE[scheduleIdx];
+  if(next&&e.minute>=next.fromMin&&!pending&&!gameOver){scheduleIdx++;startQuestion(next);}
+}
+function flushBuffer(){const q=buffer;buffer=[];for(const e of q){if(pending){buffer.push(e);}else handleEvent(e);}}
+
+/* ---------------- endgame + streak card ---------------- */
+function endGame(){
+  if(gameOver)return;gameOver=true;
+  const oa=othersAlive();
+  const won=me.alive&&oa===0;
+  const outlivedCount=me.alive?100-aliveTotal():me.outlivedAtDeath??0;
+  const pts=HiLoLogic.ladderPoints({streak:me.streak,outlivedCount,won});
+  ladder.points+=pts;ladder.matches++;if(won)ladder.crowns++;
+  store.set('ladder',ladder.points);store.set('matches',ladder.matches);store.set('crowns',ladder.crowns);
+  renderLadder();
+  const rank=HiLoLogic.ladderRank(WALL,ladder.points);
+  setTimeout(()=>{
+    $('wtitle').textContent=won?'👑 LAST FAN STANDING':me.alive?`🏅 TOP ${aliveTotal()} FINISH`:'💀 ELIMINATED';
+    $('wsub').textContent=won?`You outlived all 99 fans across ${scheduleIdx} questions. +${pts} ladder points, crown stamped on-chain (devnet).`:
+      me.alive?`You survived all ${scheduleIdx} questions (streak ${me.streak}) with ${aliveTotal()-1} others. +${pts} ladder points.`:
+      `Streak ${me.streak}. You outlived ${outlivedCount} of 99 fans. +${pts} ladder points. Next lobby starts in 3 minutes.`;
+    drawStreakCard({streak:me.streak,best:ladder.best,outlivedCount,won,rank,pts});
+    $('winner').classList.add('open');
+    if(won){AudioFX.fanfare();FX.burst(160,innerHeight*.3);setTimeout(()=>FX.burst(120),500);}
+    else if(me.alive){AudioFX.correct();FX.burst(80);}
+  },900);
+}
+
+/* collectible-ticket streak card (canvas → PNG) */
+function drawStreakCard(o){
+  const cv=$('cardcanvas'),c=cv.getContext('2d'),W=1000,H=1400;
+  const g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,'#140b20');g.addColorStop(.55,'#0e0a14');g.addColorStop(1,'#1c0f2c');
+  c.fillStyle=g;c.fillRect(0,0,W,H);
+  // ticket frame + notches
+  c.strokeStyle='#f59e0b';c.lineWidth=6;roundRect(c,34,34,W-68,H-68,36);c.stroke();
+  c.strokeStyle='rgba(245,158,11,.35)';c.lineWidth=2;roundRect(c,52,52,W-104,H-104,28);c.stroke();
+  c.fillStyle='#0e0a14';
+  for(const y of [H*.62]){c.beginPath();c.arc(34,y,26,0,7);c.fill();c.beginPath();c.arc(W-34,y,26,0,7);c.fill();}
+  c.setLineDash([10,12]);c.strokeStyle='rgba(162,145,189,.5)';c.beginPath();c.moveTo(80,H*.62);c.lineTo(W-80,H*.62);c.stroke();c.setLineDash([]);
+  c.textAlign='center';
+  c.fillStyle='#f3edfa';c.font='800 64px "Segoe UI",system-ui,sans-serif';c.fillText('HI-LO',W/2-92,150);
+  c.fillStyle='#f59e0b';c.fillText('ROYALE',W/2+110,150);
+  c.fillStyle='#a291bd';c.font='600 30px "Segoe UI",system-ui,sans-serif';
+  c.fillText('SURVIVAL TICKET · FIFA WORLD CUP 2026',W/2,205);
+  if(o.won){c.font='120px "Segoe UI",system-ui,sans-serif';c.fillText('👑',W/2,340);
+    c.fillStyle='#fbbf24';c.font='800 44px "Segoe UI",system-ui,sans-serif';c.fillText('LOBBY CHAMPION',W/2,404);}
+  const grad=c.createLinearGradient(0,430,0,760);grad.addColorStop(0,'#f59e0b');grad.addColorStop(1,'#fb7185');
+  c.fillStyle=grad;c.font='800 300px "Segoe UI",system-ui,sans-serif';c.fillText(String(o.streak),W/2,o.won?740:700);
+  c.fillStyle='#a291bd';c.font='600 34px "Segoe UI",system-ui,sans-serif';c.fillText('QUESTION STREAK',W/2,o.won?790:756);
+  // outlived pill
+  c.fillStyle='rgba(52,211,153,.14)';roundRect(c,W/2-330,H*.62+40,660,86,43);c.fill();
+  c.fillStyle='#34d399';c.font='800 40px "Segoe UI",system-ui,sans-serif';
+  c.fillText(`OUTLIVED ${o.outlivedCount} OF 99 FANS`,W/2,H*.62+98);
+  c.fillStyle='#f3edfa';c.font='700 38px "Segoe UI",system-ui,sans-serif';
+  c.fillText(`${CODE1} ${FINAL_SCORE.g1} – ${FINAL_SCORE.g2} ${CODE2} · ${TxMock.FIXTURE.Competition}`,W/2,H*.62+190);
+  c.fillStyle='#a291bd';c.font='500 28px "Segoe UI",system-ui,sans-serif';
+  c.fillText(`lobby #${LOBBY_ID} · ladder rank #${o.rank} · +${o.pts} pts`,W/2,H*.62+240);
+  c.fillText(new Date().toISOString().slice(0,10)+' · every stat proof-anchored on Solana',W/2,H*.62+286);
+  // deterministic pseudo-barcode from the mock's hash fn
+  const seedHash=TxMock.hash(`card:${o.streak}:${o.outlivedCount}:${o.rank}`);
+  let x=W/2-260;c.fillStyle='#f3edfa';
+  for(let i=0;i<40;i++){const wdt=2+(parseInt(seedHash[i%8],16)+i)%6;c.fillRect(x,H-160,wdt,70);x+=wdt+6;}
+  c.fillStyle='#a291bd';c.font='500 24px "Segoe UI",system-ui,sans-serif';c.fillText('hi-lo royale · txline × solana',W/2,H-62);
+}
+function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+$('dl').onclick=()=>{const a=document.createElement('a');a.download='hilo-royale-streak.png';a.href=$('cardcanvas').toDataURL('image/png');a.click();};
+$('share').onclick=async()=>{
+  const cv=$('cardcanvas');
+  try{
+    const blob=await new Promise(r=>cv.toBlob(r,'image/png'));
+    const file=new File([blob],'hilo-royale-streak.png',{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:'Hi-Lo Royale',text:`I outlived ${me.alive?100-aliveTotal():me.outlivedAtDeath??0} of 99 fans on Hi-Lo Royale 👑`});return;}
+  }catch(e){}
+  $('dl').click();
+};
+
+/* ---------------- kickoff ---------------- */
+$('start').onclick=()=>{
+  if(running)return;running=true;AudioFX.init();
+  $('start').disabled=true;$('start').textContent='LOBBY LIVE';
+  const cd=$('count'),cn=$('countn');cd.classList.add('open');
+  let n=3;cn.textContent=n;AudioFX.tick();
+  const iv=setInterval(()=>{n--;
+    if(n>0){cn.textContent=n;cn.style.animation='none';void cn.offsetWidth;cn.style.animation='';AudioFX.tick();}
+    else{clearInterval(iv);cd.classList.remove('open');AudioFX.lock();
+      TxMock.stream({speed:5,onEvent:handleEvent,onDone:()=>{if(pending)resolveRound();else if(!gameOver)endGame();}});}
+  },800);
+};
+</script>
+</body></html>
