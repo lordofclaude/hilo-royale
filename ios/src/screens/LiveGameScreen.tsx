@@ -7,18 +7,23 @@ import type { ScoreEvent, StreamHandle } from "../lib/txline-mock";
 import { C, FANS, ME_INDEX, fanName, displayFont, glow } from "../theme";
 import { GameSettings } from "../lib/settings";
 import { DeathMoment, GameResult, RoundRecord } from "../types";
+import { lobbyRng } from "../lib/vrf";
 
 interface Bot { alive: boolean; isMe: boolean; name: string; }
 interface LivePending { question: L.Question; myPick: L.Side | null; botPicks: Array<{ index: number; pick: L.Side }>; deadline: number; }
 interface Props { settings: GameSettings; onEnd: (result: GameResult) => void; }
 
 const WINDOW_MINUTES = 5;
-const TEAM_1 = process.env.EXPO_PUBLIC_LIVE_TEAM_1 || "TEAM A";
-const TEAM_2 = process.env.EXPO_PUBLIC_LIVE_TEAM_2 || "TEAM B";
+// Defaults match live-service's default fixture (France v England, 18257865).
+const TEAM_1 = process.env.EXPO_PUBLIC_LIVE_TEAM_1 || "France";
+const TEAM_2 = process.env.EXPO_PUBLIC_LIVE_TEAM_2 || "England";
 const CODE_1 = TEAM_1.slice(0, 3).toUpperCase();
 const CODE_2 = TEAM_2.slice(0, 3).toUpperCase();
 
 export default function LiveGameScreen({ settings, onEnd }: Props) {
+  // Provably fair: live-lobby bot picks draw from the ORAO-VRF-seeded PRNG.
+  const rngRef = useRef(lobbyRng());
+  const rng = rngRef.current;
   const botsRef = useRef<Bot[]>(Array.from({ length: FANS }, (_, index) => ({ alive: true, isMe: index === ME_INDEX, name: fanName(index) })));
   const meRef = useRef({ alive: true, streak: 0, outlivedAtDeath: null as number | null });
   const eventsRef = useRef<ScoreEvent[]>([]);
@@ -99,7 +104,7 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
     q.promptText = `${q.emoji} MORE or FEWER ${q.label} in the next ${WINDOW_MINUTES} min than the last ${WINDOW_MINUTES}?`;
     q.hiLabel = "HIGHER";
     q.loLabel = "LOWER";
-    const botPicks = botsRef.current.flatMap((bot, index) => !bot.alive || bot.isMe ? [] : [{ index, pick: (Math.random() < 0.5 ? "hi" : "lo") as L.Side }]);
+    const botPicks = botsRef.current.flatMap((bot, index) => !bot.alive || bot.isMe ? [] : [{ index, pick: (rng() < 0.5 ? "hi" : "lo") as L.Side }]);
     const split = L.crowdSplit(botPicks.map(entry => entry.pick));
     const answerMs = L.answerWindowMs(settings.answerSeconds * 1000, aliveTotal());
     pendingRef.current = { question: q, myPick: null, botPicks, deadline: Date.now() + answerMs };

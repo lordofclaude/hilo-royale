@@ -8,6 +8,7 @@ import { Profile } from "../lib/storage";
 import { encodeGhostPicks, ladderRank } from "../lib/game-logic";
 import { ReplayFixture, teamCode } from "../lib/txline-real";
 import { badgeDef } from "../lib/badges";
+import { VRF_EXPLORER_URL } from "../lib/vrf";
 
 interface Props {
   result: GameResult;
@@ -153,6 +154,15 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
       >
         <Text style={styles.chainPillTxt}>⛓  VERIFIED ON SOLANA — VIEW TX  ↗</Text>
       </Pressable>}
+
+      {/* provably fair lobby: bots/tie-breaks seeded by a real ORAO VRF
+          randomness request on devnet (lib/vrf.ts) — tap to view on Solscan */}
+      <Pressable
+        style={({ pressed }) => [styles.chainPill, glow(C.hi, 8, 0.35), pressed && { opacity: 0.85 }]}
+        onPress={() => Linking.openURL(VRF_EXPLORER_URL).catch(() => {})}
+      >
+        <Text style={styles.chainPillTxt}>🎲  PROVABLY FAIR — ORAO VRF SEED  ↗</Text>
+      </Pressable>
 
       {/* share */}
       <Text style={styles.shareLbl}>—  SHARE THE {survived ? "WIN" : "RUN"}  —</Text>

@@ -1,0 +1,13 @@
+{
+  "name": "hilo-royale-onchain",
+  "private": true,
+  "description": "Devnet scripts producing the on-chain proofs shipped as data in web/ and ios/ (ORAO VRF lobby seed).",
+  "scripts": {
+    "vrf": "node request-vrf.js"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "0.30.1",
+    "@orao-network/solana-vrf": "^0.8.0",
+    "@solana/web3.js": "1.95.8"
+  }
+}

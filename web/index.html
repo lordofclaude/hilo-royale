@@ -187,6 +187,7 @@ body.shake{animation:shk .4s}
   <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M22 9l-6 6M16 9l6 6"/></symbol>
   <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></symbol>
   <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0112 0M16 5.5a3.2 3.2 0 010 6M21 20a6 6 0 00-4-5.6"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></symbol>
 </svg>
 
 <header><div class="wrap hrow">
@@ -256,6 +257,7 @@ body.shake{animation:shk .4s}
         <button class="btn" id="start"><svg class="ic"><use href="#i-bolt"/></svg>Join lobby & play</button>
         <button class="btn ghost" id="refresh" style="margin-top:.6rem"><svg class="ic"><use href="#i-refresh"/></svg>Refresh live odds</button>
         <div class="note">Rounds replay the <b style="color:var(--muted)">real</b> France v England win-probability swing. Survive every read to take the crown.</div>
+        <div class="note" id="vrfnote" style="display:none"><svg class="ic" style="color:var(--up)"><use href="#i-shield"/></svg> <b style="color:var(--muted)">Provably fair</b> — this lobby's bots and tie-breaks are seeded by <a id="vrflink" href="#" target="_blank" rel="noopener">ORAO VRF randomness on Solana</a>.</div>
       </div>
     </aside>
   </main>
@@ -263,7 +265,9 @@ body.shake{animation:shk .4s}
   <footer>
     <b>Live data.</b> France v England (fixture 18257865), FIFA World Cup 2026, pulled from the TxLINE feed
     (<code>GET /api/odds/updates/{id}</code> for the 1X2 win-probability series, <code>/api/scores/updates/{id}</code> for goals).
-    The odds swing drives every Hi-Lo round; the 99 other fans are simulated. Captured <span id="capts">live</span>.
+    The odds swing drives every Hi-Lo round; the 99 other fans are simulated.<span id="vrffootwrap" style="display:none"> Their skills, picks and tie-breaks
+    are seeded by <b>ORAO VRF</b> verifiable randomness requested on Solana devnet (<a id="vrffoot" href="#" target="_blank" rel="noopener" style="color:var(--muted)">view the request tx</a>),
+    so the lobby is provably fair.</span> Captured <span id="capts">live</span>.
   </footer>
 </div>
 
@@ -285,6 +289,7 @@ body.shake{animation:shk .4s}
 <div class="count" id="count"><div class="n"><span id="countn">3</span></div></div>
 
 <script src="france-england-live.js"></script>
+<script src="vrf-proof.js"></script>
 <script>
 const $=id=>document.getElementById(id);
 const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -318,10 +323,18 @@ function buildRounds(){
 }
 const ROUNDS=buildRounds();
 
+/* ---------- provably fair lobby seed (ORAO VRF, Solana devnet) ----------
+   All lobby "luck" — bot skills, bot picks, tie-breaks — derives from real
+   on-chain verifiable randomness through a deterministic PRNG, so every fan
+   can audit the same lobby from the request tx. */
+const VRF=window.FE_VRF||null;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const rng=VRF?mulberry32(parseInt(VRF.randomness.slice(0,8),16)^parseInt(VRF.randomness.slice(8,16),16)):Math.random;
+
 /* ---------- crowd (99 bots) ---------- */
 const N=100;let alive=N,myAlive=true,streak=0,best=+(localStorage.getItem('fe.best')||0),survived=0;
-const bots=Array.from({length:N-1},()=>({alive:true,skill:.45+Math.random()*.4}));
-function botPick(skill,ans){if(ans==='push')return Math.random()<.5?'hi':'lo';return Math.random()<skill?ans:(ans==='hi'?'lo':'hi');}
+const bots=Array.from({length:N-1},()=>({alive:true,skill:.45+rng()*.4}));
+function botPick(skill,ans){if(ans==='push')return rng()<.5?'hi':'lo';return rng()<skill?ans:(ans==='hi'?'lo':'hi');}
 
 /* ---------- render helpers ---------- */
 function spark(){
@@ -357,6 +370,12 @@ function initHero(){
   $('best').textContent=best;
 }
 initHero();
+if(VRF){
+  $('vrfnote').style.display='block';
+  $('vrffootwrap').style.display='inline';
+  $('vrflink').href=VRF.explorerTx;
+  $('vrffoot').href=VRF.explorerTx;
+}
 
 /* ---------- round loop ---------- */
 let ri=0,locked=false,pick=null,tInt,tLeft;

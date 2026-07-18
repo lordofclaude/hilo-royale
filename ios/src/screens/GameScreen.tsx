@@ -7,6 +7,7 @@ import { C, FANS, ME_INDEX, fanName, glow, displayFont } from "../theme";
 import { ChallengeRun, DeathMoment, GameResult, RoundRecord } from "../types";
 import { notifySurvival } from "../lib/notifications";
 import { GameSettings } from "../lib/settings";
+import { lobbyRng } from "../lib/vrf";
 
 
 // Precomputed once (in txline-real.ts) from the static real-match tape: every
@@ -51,9 +52,13 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
   const CODE2 = TxMock.teamCode(replay.fixture.Participant2);
   const SCHEDULE = replay.schedule;
   // ----- mutable game state (refs: game runs on timers, not renders) -----
+  // Provably fair: all lobby luck (bot skills/picks/timing, cascade order)
+  // draws from a PRNG seeded by real ORAO VRF randomness (see lib/vrf.ts).
+  const rngRef = useRef(lobbyRng());
+  const rng = rngRef.current;
   const botsRef = useRef<Bot[]>(
     Array.from({ length: FANS }, (_, i) => ({
-      name: fanName(i), alive: true, skill: 0.45 + Math.random() * 0.25, isMe: i === ME_INDEX,
+      name: fanName(i), alive: true, skill: 0.45 + rng() * 0.25, isMe: i === ME_INDEX,
     }))
   );
   const meRef = useRef({ alive: true, streak: 0, outlivedAtDeath: null as number | null });
@@ -156,7 +161,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
     const botPicks: BotPickEntry[] = [];
     botsRef.current.forEach((b, idx) => {
       if (!b.alive || b.isMe) return;
-      botPicks.push({ idx, pick: L.botPick(b.skill, outcome.answer, Math.random()), at: 250 + Math.random() * Math.max(400, durationMs - 700) });
+      botPicks.push({ idx, pick: L.botPick(b.skill, outcome.answer, rng()), at: 250 + rng() * Math.max(400, durationMs - 700) });
     });
     const now = Date.now();
     pendingRef.current = {
@@ -314,7 +319,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
     }
 
     // staggered elimination cascade with haptic ticks
-    const order = [...dying].sort(() => Math.random() - 0.5);
+    const order = [...dying].sort(() => rng() - 0.5);
     order.forEach((idx, i) => {
       later(() => {
         setDead(d => { const nd = [...d]; nd[idx] = true; return nd; });
