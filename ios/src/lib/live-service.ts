@@ -16,9 +16,13 @@ const EMPTY_STATS: StatMap = { c1: 0, c2: 0, s1: 0, s2: 0, y1: 0, y2: 0, r1: 0, 
 
 function environment(): LiveEnvironment {
   return {
-    baseUrl: (process.env.EXPO_PUBLIC_TXLINE_BASE_URL || "https://txline.txodds.com").replace(/\/$/, ""),
+    // Devnet host matches the guest/token auth used for the World Cup free tier.
+    baseUrl: (process.env.EXPO_PUBLIC_TXLINE_BASE_URL || "https://txline-dev.txodds.com").replace(/\/$/, ""),
     token: process.env.EXPO_PUBLIC_TXLINE_TOKEN || "",
-    fixtureId: process.env.EXPO_PUBLIC_TXLINE_FIXTURE_ID || "",
+    // Default to the featured France v England fixture. NOTE: live in-play data
+    // comes from /api/scores/stream (SSE) or /api/scores/updates — NOT
+    // /api/scores/historical, which stays locked until ~6h after kickoff.
+    fixtureId: process.env.EXPO_PUBLIC_TXLINE_FIXTURE_ID || "18257865",
   };
 }
 

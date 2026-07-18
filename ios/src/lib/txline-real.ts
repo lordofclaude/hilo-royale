@@ -15,6 +15,7 @@
    at GET /api/scores/stream?fixtureId=… over SSE instead — see the
    ⟨REAL⟩ note in txline-mock.ts and shared/txline-real.js's streamLive().
    ============================================================ */
+import { FIXTURE as FIXTURE_18257865, EVENTS as EVENTS_18257865 } from "./real-data/18257865";
 import { FIXTURE as FIXTURE_18222446, EVENTS as EVENTS_18222446 } from "./real-data/18222446";
 import { FIXTURE as FIXTURE_18237038, EVENTS as EVENTS_18237038 } from "./real-data/18237038";
 import { FIXTURE as FIXTURE_18241006, EVENTS as EVENTS_18241006 } from "./real-data/18241006";
@@ -68,8 +69,12 @@ function makeReplay(
   };
 }
 
-/** Named real replays bundled for the backend-free Daily Lobby rotation. */
+/** Named real replays bundled for the backend-free Daily Lobby rotation.
+ *  France v England (18257865) is featured first — captured live from the
+ *  TxLINE /api/scores/updates feed while the match was in play (historical is
+ *  locked ~6h post-kickoff), so it is the app's default lobby. */
 export const REPLAYS: ReplayFixture[] = [
+  makeReplay(FIXTURE_18257865, EVENTS_18257865),
   makeReplay(FIXTURE_18222446, EVENTS_18222446, ONCHAIN_PROOF),
   makeReplay(FIXTURE_18237038, EVENTS_18237038),
   makeReplay(FIXTURE_18241006, EVENTS_18241006),
