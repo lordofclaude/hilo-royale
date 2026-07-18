@@ -90,6 +90,35 @@ goals > 0) against the Merkle root TxODDS publishes on-chain. The transaction
 signature ships inside the app as data — no wallet or keys in the bundle — and
 renders as a tappable Solscan link on every result ticket.
 
+**Provably fair lobbies (ORAO VRF)**: every piece of lobby "luck" — the 99
+bots' skills, their picks and timing, elimination-cascade order, tie-breaks —
+derives from a real [ORAO VRF](https://github.com/orao-network/solana-vrf)
+verifiable-randomness request fulfilled on Solana devnet
+(`onchain/request-vrf.js` makes the request; the fulfilled randomness seeds a
+deterministic PRNG shared by both apps). The request transaction is a tappable
+Solscan link in both UIs, so the same lobby is reproducible and auditable by
+anyone.
+
+**Round lifecycle = Solora's lock→settle state machine**: each round runs the
+exact event lifecycle of
+[meditatingsloth/solora-anchor](https://github.com/meditatingsloth/solora-anchor)'s
+`solora-pyth-price` program, with the TxLINE StablePrice win-probability
+standing in for the Pyth feed:
+
+| solora-anchor (on-chain) | Hi-Lo round (in-app today) |
+|---|---|
+| `create_event` (start/lock time, wait period) | round opens, pick window starts |
+| `create_order` Up/Down before `lock_time` | your hi/lo pick before the timer |
+| `set_lock_price` from Pyth at lock | win-% reading frozen at lock |
+| wait period → `settle_event` | window plays out → settle from the feed |
+| `Outcome::Up / Down / Same` | hi / lo / push (push = everyone survives) |
+| `Outcome::Invalid` (oracle unavailable) | round voided, nobody eliminated |
+| `up_count` / `down_count` | the crowd split bar |
+
+Field and outcome names are kept 1:1 in the web engine (`createEvent`,
+`lockEvent`, `settleEvent`, `Undrawn/Invalid/Up/Down/Same`), so taking rounds
+on-chain is a program deployment, not a rewrite.
+
 **Identity & social rails**: guest sign-in (Google OAuth is code-complete,
 pending client IDs), squad rooms with `hiloroyale://squad/CODE` invite deep
 links, ghost-challenge deep links, and a zero-dependency room/presence server
@@ -99,7 +128,7 @@ links, ghost-challenge deep links, and a zero-dependency room/presence server
 
 | Real | Simulated (for now) |
 |---|---|
-| Match events, timings, scores (TxLINE feed) | The other 99 fans (skill-varied bots) |
+| Match events, timings, scores (TxLINE feed) | The other 99 fans (bots — but ORAO-VRF-seeded, so provably fair) |
 | On-chain data subscription + API token | Global leaderboard (local + this-lobby only) |
 | On-chain final-score proof (Solscan-verifiable) | Squad presence (needs the room server running) |
 | Question schedule derived from real events | "Live mode" (wired, needs a match in play + token) |
@@ -120,6 +149,16 @@ links, ghost-challenge deep links, and a zero-dependency room/presence server
   stat-window engine generalizes.
 - **On-chain crowns** — settle each lobby winner's crown as its own
   transaction so every crown in a profile is independently verifiable.
+- **Rounds on-chain** — deploy the solora-anchor `solora-pyth-price` program
+  (the in-app engine already mirrors its state machine 1:1, see "The tech")
+  with a TxLINE-oracle adapter in place of Pyth, so locks and settlements are
+  themselves on-chain transactions.
+- **Staked lobbies** — when lobbies carry real stakes, escrow the pot per
+  lobby and pay the survivors from it on settlement, following the
+  [dariusjvc/solana-escrow-gambling](https://github.com/dariusjvc/solana-escrow-gambling)
+  escrow pattern (deposit → locked pot → programmatic payout). Deliberately a
+  roadmap item: Hi-Lo is stakes-free today, and stays that way until the
+  multiplayer + compliance story is real.
 
 ## Try it / see it
 

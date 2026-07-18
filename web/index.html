@@ -70,6 +70,11 @@ main{display:grid;grid-template-columns:1fr minmax(290px,350px);gap:1.2rem;paddi
 .rnd .tag{display:inline-flex;gap:.35rem;align-items:center;color:var(--gold)}
 .qmeta{display:flex;align-items:center;justify-content:center;gap:.5rem;margin:1.1rem 0 .5rem}
 .qmeta .chip{display:inline-flex;gap:.4rem;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:.3rem .7rem;font-size:.76rem;color:var(--muted);font-weight:500}
+/* solora-style event lifecycle chip */
+#evstate{font-weight:700;letter-spacing:.08em;font-size:.68rem}
+#evstate.open{color:var(--up);border-color:rgba(61,220,151,.35)}
+#evstate.locked{color:var(--gold);border-color:rgba(246,184,63,.4)}
+#evstate.settled{color:var(--muted)}
 .question{font-family:"Cabinet Grotesk";font-weight:800;font-size:clamp(1.35rem,3.4vw,1.9rem);text-align:center;max-width:22ch;margin:.2rem auto .3rem;line-height:1.12}
 .question .hl{color:var(--gold)}
 .reading{text-align:center;margin:.7rem auto 1rem}
@@ -221,7 +226,7 @@ body.shake{animation:shk .4s}
   <main>
     <section class="stage">
       <div class="rnd"><span id="rndlbl">GET READY</span><span class="tag"><svg class="ic"><use href="#i-bolt"/></svg>ODDS-DRIVEN</span></div>
-      <div class="qmeta" id="qmeta" style="visibility:hidden"><span class="chip"><svg class="ic"><use href="#i-chart"/></svg><span id="qwindow">next window</span></span></div>
+      <div class="qmeta" id="qmeta" style="visibility:hidden"><span class="chip"><svg class="ic"><use href="#i-chart"/></svg><span id="qwindow">next window</span></span><span class="chip" id="evstate">OPEN</span></div>
       <div class="question" id="question">100 fans read the same live market. Call the swing <span class="hl">higher or lower</span> — one wrong read and you're out.</div>
       <div class="reading" id="reading" style="display:none"><div class="val" id="rval">–</div><div class="sub" id="rsub"></div></div>
       <div class="crowd" id="crowdwrap" style="visibility:hidden">
@@ -265,6 +270,7 @@ body.shake{animation:shk .4s}
   <footer>
     <b>Live data.</b> France v England (fixture 18257865), FIFA World Cup 2026, pulled from the TxLINE feed
     (<code>GET /api/odds/updates/{id}</code> for the 1X2 win-probability series, <code>/api/scores/updates/{id}</code> for goals).
+    Each round runs a solora-anchor-style on-chain event lifecycle (create → lock → wait → settle, with Invalid = voided round).
     The odds swing drives every Hi-Lo round; the 99 other fans are simulated.<span id="vrffootwrap" style="display:none"> Their skills, picks and tie-breaks
     are seeded by <b>ORAO VRF</b> verifiable randomness requested on Solana devnet (<a id="vrffoot" href="#" target="_blank" rel="noopener" style="color:var(--muted)">view the request tx</a>),
     so the lobby is provably fair.</span> Captured <span id="capts">live</span>.
@@ -301,6 +307,40 @@ const SFX=(()=>{let ctx,muted=false;
   const beep=(f,d,t,g=.05)=>{if(muted||!ctx)return;const o=ctx.createOscillator(),v=ctx.createGain();o.type=t;o.frequency.value=f;o.connect(v);v.connect(ctx.destination);v.gain.setValueAtTime(g,ctx.currentTime);v.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+d);o.start();o.stop(ctx.currentTime+d);};
   return{on,tick(){beep(880,.05,'square',.02)},pick(){beep(520,.08,'triangle')},good(){on();beep(660,.09,'sine');setTimeout(()=>beep(990,.14,'sine'),90)},bad(){on();beep(200,.3,'sawtooth',.06)},win(){on();[523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.2,'sine'),i*130))},toggle(){muted=!muted;return muted}};
 })();
+
+/* ---------- Solora-style event state machine ----------
+   Each Hi-Lo round is an Event mirroring meditatingsloth/solora-anchor's
+   solora-pyth-price program (create_event → orders until lock_time →
+   set_lock_price → wait_period → settle_event), with the TxLINE StablePrice
+   win-probability standing in for the Pyth feed. Field/outcome names are kept
+   1:1 so the on-chain swap is a deploy, not a rewrite. */
+const OUTCOME={UNDRAWN:'Undrawn',INVALID:'Invalid',UP:'Up',DOWN:'Down',SAME:'Same'};
+const EVENT_STATE={OPEN:'OPEN',LOCKED:'LOCKED',SETTLED:'SETTLED'};
+function createEvent(r,answerMs){
+  return {
+    state:EVENT_STATE.OPEN,
+    startTime:Date.now(), lockTime:Date.now()+answerMs, waitPeriod:900,
+    lockPrice:r.from, settlePrice:null, outcome:OUTCOME.UNDRAWN,
+    upCount:0, downCount:0,           // crowd split (UI, like the program's counters)
+    round:r,
+  };
+}
+function lockEvent(ev){ ev.state=EVENT_STATE.LOCKED; ev.lockTime=Date.now(); }
+function settleEvent(ev){
+  const r=ev.round;
+  // Oracle read: settle price from the captured series. If the feed had no
+  // reading for the window, the event settles Invalid (round voided — the
+  // same escape hatch solora uses when the Pyth read fails).
+  if(r.to==null||!Number.isFinite(r.to)){ ev.outcome=OUTCOME.INVALID; }
+  else{
+    ev.settlePrice=r.to;
+    ev.outcome=r.to>ev.lockPrice?OUTCOME.UP:r.to<ev.lockPrice?OUTCOME.DOWN:OUTCOME.SAME;
+  }
+  ev.state=EVENT_STATE.SETTLED;
+  return ev.outcome;
+}
+/* Outcome → hi/lo answer space used by the judge (Same/Invalid = push: nobody dies). */
+function outcomeToAnswer(o){ return o===OUTCOME.UP?'hi':o===OUTCOME.DOWN?'lo':'push'; }
 
 /* ---------- build odds-driven schedule from the real win% series ---------- */
 const S=D.winpct;                 // [{m,fra,draw,eng}]
@@ -387,9 +427,12 @@ function crowd(ans){
   $('chi').style.width=p+'%';$('clo').style.width=(100-p)+'%';$('chip').textContent=p+'%';$('clop').textContent=(100-p)+'%';
   return p;
 }
+let curEvent=null;
+function setStateChip(s){const el=$('evstate');el.textContent=s;el.className='chip '+s.toLowerCase();}
 function showRound(){
   if(ri>=ROUNDS.length||!myAlive||alive<=1)return endGame();
   const r=ROUNDS[ri];locked=false;pick=null;
+  curEvent=createEvent(r,7000);setStateChip(EVENT_STATE.OPEN);
   $('rndlbl').textContent='ROUND '+r.n+' / '+ROUNDS.length;
   $('qmeta').style.visibility='visible';
   $('qwindow').textContent="minute "+r.fromMin+" → "+r.toMin;
@@ -419,20 +462,29 @@ AB.hi.onclick=()=>choose('hi');AB.lo.onclick=()=>choose('lo');
 function lockIn(r,p){
   if(locked)return;locked=true;SFX.on();
   AB.hi.disabled=true;AB.lo.disabled=true;
+  // solora lifecycle: lock the event (no more orders), hold the wait period,
+  // then settle from the oracle series and judge everyone on the outcome.
+  lockEvent(curEvent);setStateChip(EVENT_STATE.LOCKED);
+  setTimeout(()=>{
+    const outcome=settleEvent(curEvent);setStateChip(EVENT_STATE.SETTLED);
+    resolveRound(r,p,outcomeToAnswer(outcome));
+  },curEvent.waitPeriod);
+}
+function resolveRound(r,p,ans){
   // reveal
-  const winSeg=r.ans==='hi'?'chi':'clo';$(winSeg).classList.add('win');
+  const winSeg=ans==='hi'?'chi':'clo';if(ans!=='push')$(winSeg).classList.add('win');
   $('rval').textContent=r.to+'%';
-  $('rval').style.color=r.ans==='hi'?'var(--up)':r.ans==='lo'?'var(--down)':'var(--push)';
+  $('rval').style.color=ans==='hi'?'var(--up)':ans==='lo'?'var(--down)':'var(--push)';
   $('rsub').textContent='by minute '+r.toMin+' · '+(r.to>r.from?'+':'')+(r.to-r.from)+' pts';
   market(r.toMin);$('minute').textContent=r.toMin+"'";
   // resolve bots
   let justDead=null;
-  bots.forEach((b,i)=>{if(!b.alive)return;const bp=botPick(b.skill,r.ans);if(r.ans!=='push'&&bp!==r.ans){b.alive=false;alive--;if(justDead==null)justDead=i+1;}});
+  bots.forEach((b,i)=>{if(!b.alive)return;const bp=botPick(b.skill,ans);if(ans!=='push'&&bp!==ans){b.alive=false;alive--;if(justDead==null)justDead=i+1;}});
   // resolve me
   let verdict;
-  if(r.ans==='push'){verdict='push';}
+  if(ans==='push'){verdict='push';}
   else if(p==null){verdict='timeout';}
-  else{verdict=p===r.ans?'correct':'wrong';}
+  else{verdict=p===ans?'correct':'wrong';}
   const V=$('verdict');
   if(verdict==='correct'){streak++;survived++;V.textContent='Correct — you read the swing';V.className='verdict ok';SFX.good();}
   else if(verdict==='push'){survived++;V.textContent='Push — market held, everyone survives';V.className='verdict push';}
