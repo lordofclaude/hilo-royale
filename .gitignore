@@ -9,3 +9,4 @@ ios/android/
 .txline.json
 fixtures-cache/
 _keys/
+shared/real-data/*.scores-raw.txt
