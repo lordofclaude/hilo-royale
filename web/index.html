@@ -12,7 +12,10 @@
   --gold:#ffd54a;--accent:#ffc233;--accent2:#ff9f1a;--hi:#2ee6ff;--lo:#ff3b5c;--success:#31f28b;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;scroll-snap-type:y mandatory}
+/* snap only makes sense when a fold fits the screen — release it on short viewports
+   so tall content can never be trapped mid-section */
+@media (max-height:620px){html{scroll-snap-type:none}}
 body{background:var(--bg);color:var(--text);font-family:"DM Sans",system-ui,sans-serif;min-height:100vh;overflow-x:hidden;line-height:1.5;-webkit-font-smoothing:antialiased}
 svg.ic{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.125em;flex:none}
 svg.ic.fill{fill:currentColor;stroke:none}
@@ -31,7 +34,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:10;padding:.9rem 0;background:li
 .navcta:hover{border-color:var(--gold);color:var(--gold)}
 
 /* ---------- hero: the arena at night ---------- */
-.hero{position:relative;min-height:100svh;display:grid;place-items:center;text-align:center;overflow:hidden}
+.hero{position:relative;min-height:100svh;display:grid;place-items:center;text-align:center;overflow:hidden;scroll-snap-align:start;scroll-snap-stop:always}
 #arena{position:absolute;inset:0;width:100%;height:100%}
 .hero .veil{position:absolute;inset:0;background:radial-gradient(900px 600px at 50% 42%,transparent 0%,rgba(5,6,8,.72) 68%,var(--bg) 100%)}
 .hcontent{position:relative;z-index:2;padding:5.5rem 1.2rem 4rem;max-width:820px}
@@ -53,8 +56,8 @@ h1 .r{color:var(--lo);text-shadow:0 0 46px rgba(255,59,92,.35)}
 .herofoot{position:absolute;bottom:1.4rem;left:0;right:0;z-index:2;display:flex;justify-content:center;gap:1.6rem;flex-wrap:wrap;color:var(--faint);font-size:.78rem;font-weight:600;letter-spacing:.04em}
 .herofoot span{display:inline-flex;align-items:center;gap:.4rem}
 
-/* ---------- sections ---------- */
-section{padding:clamp(3.5rem,9vw,6.5rem) 0}
+/* ---------- sections: one fold each, snap-scrolled ---------- */
+section{min-height:100svh;display:grid;align-content:center;padding:clamp(2.5rem,6vw,4rem) 0;scroll-snap-align:start;scroll-snap-stop:always}
 .kick{font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:clamp(1.7rem,5vw,2.6rem);line-height:1.05;margin-bottom:.6rem;text-wrap:balance}
 .kicksub{color:var(--muted);max-width:58ch;line-height:1.65;margin-bottom:2.4rem}
 .beats{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem}
@@ -93,9 +96,16 @@ section{padding:clamp(3.5rem,9vw,6.5rem) 0}
 .prow p{color:var(--muted);font-size:.85rem;line-height:1.6}
 .prow a{color:var(--muted)}
 
-.final{text-align:center;padding-bottom:clamp(4rem,10vw,7rem)}
+/* icon snap-nav: tracks the active fold */
+.snapnav{position:fixed;right:1rem;top:50%;transform:translateY(-50%);z-index:12;display:flex;flex-direction:column;gap:.55rem}
+.snapnav a{display:grid;place-items:center;width:34px;height:34px;border-radius:999px;background:rgba(7,9,13,.72);border:1px solid var(--line);color:var(--faint);font-size:.9rem;transition:.15s}
+.snapnav a:hover{color:var(--muted);border-color:var(--line2)}
+.snapnav a.on{color:var(--gold);border-color:rgba(255,213,74,.45);box-shadow:0 0 12px rgba(255,213,74,.25)}
+@media(max-width:760px){.snapnav{display:none}}
+.kick .ki{font-size:.72em;vertical-align:-.06em;margin-right:.35rem}
+.final{text-align:center}
 .final .kick{font-size:clamp(2rem,6.5vw,3.4rem)}
-footer{border-top:1px solid var(--line);padding:1.4rem 0 2.4rem;color:var(--faint);font-size:.75rem;line-height:1.65}
+footer{border-top:1px solid var(--line);padding:1.4rem 0 2.4rem;color:var(--faint);font-size:.75rem;line-height:1.65;scroll-snap-align:end}
 footer b{color:var(--muted)}
 
 /* reveal on scroll (enhance-only: content visible by default) */
@@ -125,7 +135,15 @@ footer b{color:var(--muted)}
   <a class="navcta" href="/login"><svg class="ic"><use href="#i-bolt"/></svg>ENTER</a>
 </div></nav>
 
-<header class="hero">
+<aside class="snapnav" aria-label="Sections">
+  <a href="#top" title="Arena" aria-label="Arena"><svg class="ic"><use href="#i-crown"/></svg></a>
+  <a href="#how" title="How you survive" aria-label="How you survive"><svg class="ic"><use href="#i-timer"/></svg></a>
+  <a href="#lobbies-sec" title="Tonight's lobbies" aria-label="Tonight's lobbies"><svg class="ic"><use href="#i-ball"/></svg></a>
+  <a href="#proof-sec" title="Receipts" aria-label="Receipts"><svg class="ic"><use href="#i-shield"/></svg></a>
+  <a href="#enter-sec" title="Enter" aria-label="Enter"><svg class="ic"><use href="#i-bolt"/></svg></a>
+</aside>
+
+<header class="hero" id="top">
   <canvas id="arena" aria-hidden="true"></canvas>
   <div class="veil"></div>
   <div class="hcontent">
@@ -145,7 +163,7 @@ footer b{color:var(--muted)}
 </header>
 
 <section id="how"><div class="wrap">
-  <h2 class="kick rv">How you survive</h2>
+  <h2 class="kick rv"><svg class="ic ki" style="color:var(--lo)"><use href="#i-timer"/></svg>How you survive</h2>
   <p class="kicksub rv">The match plays. The feed rolls. Roughly every ten minutes of match time, the arena asks one question with a hard lock — and the whole lobby answers at once.</p>
   <div class="beats">
     <div class="beat b1 rv">
@@ -167,15 +185,15 @@ footer b{color:var(--muted)}
   </div>
 </div></section>
 
-<section><div class="wrap">
-  <h2 class="kick rv">Tonight's lobbies</h2>
+<section id="lobbies-sec"><div class="wrap">
+  <h2 class="kick rv"><svg class="ic ki" style="color:var(--hi)"><use href="#i-ball"/></svg>Tonight's lobbies</h2>
   <p class="kicksub rv">Every lobby replays a real FIFA World Cup 2026 fixture pulled from the live TxLINE feed. A new featured lobby rotates in daily — same match for everyone, no spoilers.</p>
   <div class="lobbies" id="lobbies"></div>
 </div></section>
 
-<section><div class="wrap">
+<section id="proof-sec"><div class="wrap">
   <div class="proof rv">
-    <h2 class="kick" style="font-size:clamp(1.4rem,4vw,2rem)">Rigged is impossible. Here are the receipts.</h2>
+    <h2 class="kick" style="font-size:clamp(1.4rem,4vw,2rem)"><svg class="ic ki" style="color:var(--success)"><use href="#i-shield"/></svg>Rigged is impossible. Here are the receipts.</h2>
     <div class="prows">
       <div class="prow p1"><div class="pi"><svg class="ic"><use href="#i-check"/></svg></div>
         <div><h4>Real data, proven on-chain</h4><p>Match events come from TxODDS's TxLINE feed via an on-chain Solana subscription. The featured fixture's final score is proven by a real <a href="https://solscan.io/tx/47rYc5tphp3y3MuyCfr4KSgHLtCYZfCVknhZB57SzTPVpyWSkVUgkkvmw4kS4nGyzN2Eb49oyAUYkPJsiX4uRdhA?cluster=devnet" target="_blank" rel="noopener">validateStatV2 transaction</a> against the Merkle root published on-chain.</p></div></div>
@@ -187,8 +205,8 @@ footer b{color:var(--muted)}
   </div>
 </div></section>
 
-<section class="final"><div class="wrap">
-  <h2 class="kick rv">The arena is open.</h2>
+<section class="final" id="enter-sec"><div class="wrap">
+  <h2 class="kick rv"><svg class="ic ki" style="color:var(--gold)"><use href="#i-crown"/></svg>The arena is open.</h2>
   <p class="kicksub rv" style="margin-left:auto;margin-right:auto;max-width:44ch;text-align:center">Claim a handle, take your seat among the hundred, and try to be the dot that never goes dark.</p>
   <a class="cta rv" href="/login"><svg class="ic"><use href="#i-bolt"/></svg>ENTER THE ARENA</a>
 </div></section>
@@ -256,7 +274,8 @@ function dailyIdx(n){const k=new Date().toISOString().slice(0,10);let h=0;for(co
 const LOBBIES=window.LOBBIES||[];
 $('lobbies').innerHTML=LOBBIES.map((l,i)=>{
   const today=i===dailyIdx(LOBBIES.length);
-  const meta=today?'<b>TONIGHT\'S LOBBY</b>':(l.tag||'REPLAY LOBBY');
+  const mic=today?'<svg class="ic" style="color:var(--gold)"><use href="#i-crown"/></svg> ':'<svg class="ic"><use href="#i-ball"/></svg> ';
+  const meta=mic+(today?'<b>TONIGHT\'S LOBBY</b>':(l.tag||'REPLAY LOBBY'));
   return `<a class="lob rv" href="/login?fixture=${l.fixtureId}">
     <div class="vs"><span class="tc home">${code(l.fixture.Participant1)}</span><span class="x">VS</span><span class="tc away">${code(l.fixture.Participant2)}</span></div>
     <div class="meta">${meta} · ${l.fixture.Competition}</div>
@@ -276,6 +295,17 @@ $('lobbies').innerHTML=LOBBIES.map((l,i)=>{
   if(REDUCE||!('IntersectionObserver' in window)){els.forEach(e=>e.classList.add('in'));return;}
   const io=new IntersectionObserver(es=>{for(const e of es)if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}},{threshold:.12});
   els.forEach(e=>io.observe(e));
+})();
+
+/* snap-nav: highlight the active fold */
+(function(){
+  const links=[...document.querySelectorAll('.snapnav a')];
+  const map=new Map(links.map(a=>[a.getAttribute('href').slice(1),a]));
+  const io=new IntersectionObserver(es=>{
+    for(const e of es){const a=map.get(e.target.id);if(!a)continue;
+      if(e.isIntersecting){links.forEach(l=>l.classList.remove('on'));a.classList.add('on');}}
+  },{threshold:.55});
+  for(const id of map.keys()){const el=document.getElementById(id);if(el)io.observe(el);}
 })();
 
 /* already in the arena? nav + CTAs skip login */
