@@ -1050,10 +1050,15 @@ $('share').onclick=async()=>{
 $('copychal').onclick=async()=>{
   if(!chalUrl)return;
   let ok=false;
-  try{await navigator.clipboard.writeText(chalUrl);ok=true;}catch(e){
-    try{const ta=document.createElement('textarea');ta.value=chalUrl;document.body.appendChild(ta);ta.select();ok=document.execCommand('copy');ta.remove();}catch(e2){}
+  /* execCommand stays synchronous inside the click gesture and is the most
+     reliable fallback in presentation browsers that stall Clipboard API
+     permission prompts. The modern path gets a short deadline so the button
+     always returns visible feedback. */
+  try{const ta=document.createElement('textarea');ta.value=chalUrl;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();ok=document.execCommand('copy');ta.remove();}catch(e){}
+  if(!ok&&navigator.clipboard&&navigator.clipboard.writeText){
+    try{await Promise.race([navigator.clipboard.writeText(chalUrl),new Promise((_,reject)=>setTimeout(()=>reject(new Error('clipboard timeout')),800))]);ok=true;}catch(e){}
   }
-  $('copychal').innerHTML=icon(ok?'i-check':'i-x')+(ok?'Challenge link copied':'Copy failed — open the challenge instead');
+  $('copychal').innerHTML=icon(ok?'i-check':'i-x')+(ok?'Challenge link copied':'Copy blocked — use Open challenge');
 };
 
 /* ---------------- kickoff: replay tape or LIVE lobby ---------------- */
