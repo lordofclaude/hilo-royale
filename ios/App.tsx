@@ -158,6 +158,7 @@ export default function App() {
 
   const joinGame = async () => {
     if (!identity) return;
+    if (settings.mode === "live" && !liveStatus().ready) return;
     const now = new Date();
     const dailyReplay = replayForDate(now);
     const replay = settings.mode === "live"
@@ -189,7 +190,10 @@ export default function App() {
             onSettings={() => setScreen("settings")}
           />
         )}
-        {screen === "game" && (settings.mode === "live" ? <LiveGameScreen settings={settings} onEnd={onGameEnd} /> : <GameScreen settings={settings} replay={activeReplay} dailyKey={todayKey} challenge={challenge} onEnd={onGameEnd} />)}
+        {/* True live only when a real fixture is in its window — otherwise the
+            join runs SIM LIVE (the real replay presented as if live), so the
+            arena is never dead. */}
+        {screen === "game" && (settings.mode === "live" && liveStatus().ready ? <LiveGameScreen settings={settings} onEnd={onGameEnd} /> : <GameScreen settings={settings} replay={activeReplay} dailyKey={todayKey} challenge={challenge} onEnd={onGameEnd} />)}
         {screen === "result" && lastResult && (
           <ResultScreen
             result={lastResult}

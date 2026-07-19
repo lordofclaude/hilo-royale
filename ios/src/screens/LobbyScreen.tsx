@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { C, glow, displayFont, hairline, type } from "../theme";
 import { FadeIn, Tap } from "../components/Motion";
 import { ReplayFixture, teamCode } from "../lib/txline-real";
@@ -14,10 +14,12 @@ import { getRoom, roomServiceStatus, RoomPlayer, watchRoom } from "../lib/room-s
 
 const FRIENDS = ["L", "K", "O", "R", "J"];
 
-function secondsUntilMidnight(): number {
-  const now = new Date();
-  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  return Math.max(0, Math.floor((midnight.getTime() - now.getTime()) / 1000));
+/** SIM LIVE kickoff cycle: a lobby "kicks off" every 2 minutes, so the arena
+ *  never looks dead — there is always a kick-off imminent. The replay tape is
+ *  the real fixture, presented as if the match were starting now. */
+const KICKOFF_CYCLE_S = 120;
+function secondsToKickoff(): number {
+  return KICKOFF_CYCLE_S - (Math.floor(Date.now() / 1000) % KICKOFF_CYCLE_S);
 }
 
 function clock(value: number): string {
@@ -40,13 +42,13 @@ interface Props {
 
 export default function LobbyScreen({ profile, identity, settings, replay, dailyKey, onJoin, onProfile, onSettings }: Props) {
   const [reminder, setReminder] = useState<"idle" | "set" | "denied">("idle");
-  const [secs, setSecs] = useState(secondsUntilMidnight);
+  const [secs, setSecs] = useState(secondsToKickoff);
   const [roomPlayers, setRoomPlayers] = useState<RoomPlayer[]>([]);
   const live = liveStatus();
   const roomService = roomServiceStatus();
 
   useEffect(() => {
-    const iv = setInterval(() => setSecs(value => (value <= 1 ? secondsUntilMidnight() : value - 1)), 1000);
+    const iv = setInterval(() => setSecs(secondsToKickoff), 1000);
     return () => clearInterval(iv);
   }, []);
 
@@ -64,7 +66,11 @@ export default function LobbyScreen({ profile, identity, settings, replay, daily
     setReminder("set");
   };
 
-  const modeReady = settings.mode === "replay" || live.ready;
+  // The arena is ALWAYS joinable. True live only when a real fixture is in its
+  // window; otherwise the lobby runs SIM LIVE — the real captured fixture
+  // replayed as if it were kicking off now. No dead lobbies, ever.
+  const trulyLive = settings.mode === "live" && live.ready;
+  const modeReady = true;
   const fixture = replay.fixture;
   const schedule = replay.schedule;
   const code1 = teamCode(fixture.Participant1);
@@ -83,14 +89,20 @@ export default function LobbyScreen({ profile, identity, settings, replay, daily
       <BrandHeader eyebrow={settings.mode === "replay" ? `DAILY LOBBY · ${dailyKey}` : playbackLabel(settings)} />
 
       <View style={styles.statusRow}>
-        <View style={[styles.livePill, settings.mode === "replay" && styles.replayPill]}>
-          <View style={[styles.liveDot, { backgroundColor: settings.mode === "live" ? C.lo : C.hi }]} />
-          <Text style={styles.liveTxt}>{settings.mode === "live" ? "LIVE MATCH" : "REAL MATCH REPLAY"}</Text>
+        <View style={[styles.livePill, !trulyLive && styles.replayPill]}>
+          <View style={[styles.liveDot, { backgroundColor: trulyLive ? C.lo : C.hi }]} />
+          <Text style={styles.liveTxt}>{trulyLive ? "LIVE MATCH" : "SIM LIVE · REAL FIXTURE"}</Text>
         </View>
         <Text style={styles.lobbyId}>#{replay.lobbyId}</Text>
       </View>
 
       <FadeIn dy={12} style={[styles.matchCard, glow(C.hi, 12, 0.22)]}>
+        <Image
+          source={require("../../assets/world-football/stadium-night.jpg")}
+          resizeMode="cover"
+          style={styles.matchArt}
+          accessibilityIgnoresInvertColors
+        />
         <View style={styles.lightLeft} /><View style={styles.lightRight} />
         <Text style={styles.competition} numberOfLines={1}>{fixture.Competition}</Text>
         <View style={styles.matchRow}>
@@ -106,12 +118,18 @@ export default function LobbyScreen({ profile, identity, settings, replay, daily
         </View>
 
         <View style={styles.nextCard}>
-          <Text style={styles.nextLbl}>{settings.mode === "live" ? "LIVE ARENA" : "DAILY LOBBY RESETS IN"}</Text>
-          <Text style={styles.countdown}>{settings.mode === "live" ? <Text style={{ color: C.lo }}>LIVE NOW</Text> : <><Text style={{ color: C.hi }}>{clock(secs).slice(0, 3)}</Text><Text style={{ color: C.lo }}>{clock(secs).slice(3)}</Text></>}</Text>
-          <Tap disabled={!modeReady} scaleTo={0.97} accessibilityRole="button" style={[styles.join, glow(C.gold, 10, 0.4), !modeReady && styles.disabled]} onPress={onJoin}>
-            <Text style={styles.joinTxt}>JOIN {Math.max(1, 100 - roomPlayers.length)} FANS  →</Text>
+          <Text style={styles.nextLbl}>{trulyLive ? "LIVE ARENA" : "NEXT KICK-OFF IN"}</Text>
+          <Text style={styles.countdown}>{trulyLive ? <Text style={{ color: C.lo }}>LIVE NOW</Text> : <><Text style={{ color: C.hi }}>{clock(secs).slice(3, 6)}</Text><Text style={{ color: C.lo }}>{clock(secs).slice(6)}</Text></>}</Text>
+          <Tap scaleTo={0.97} accessibilityRole="button" style={[styles.join, glow(C.gold, 10, 0.4)]} onPress={onJoin}>
+            <Text style={styles.joinTxt}>JOIN {Math.max(1, 100 - roomPlayers.length)} FANS NOW  →</Text>
           </Tap>
-          {!modeReady && <Text style={styles.notReady}>{live.message}</Text>}
+          {!trulyLive && (
+            <Text style={styles.simNote}>
+              {settings.mode === "live"
+                ? `${live.message} Joining runs SIM LIVE on the real ${teamCode(fixture.Participant1)}–${teamCode(fixture.Participant2)} data.`
+                : "SIM LIVE — the real Jul 18 fixture, replayed as if kicking off now."}
+            </Text>
+          )}
         </View>
       </FadeIn>
 
@@ -174,13 +192,14 @@ const styles = StyleSheet.create({
   livePill: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: C.loSoft, borderColor: C.lo, borderWidth: 1, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4 },
   replayPill: { backgroundColor: C.hiSoft, borderColor: C.hi }, liveDot: { width: 7, height: 7, borderRadius: 4 }, liveTxt: { color: C.text, fontSize: 9, fontWeight: "900", letterSpacing: 1 }, lobbyId: { color: C.muted, fontSize: 9, fontWeight: "800" },
   matchCard: { backgroundColor: C.panel, borderColor: C.hi, borderWidth: 1, borderRadius: 20, padding: 16, overflow: "hidden", marginBottom: 16 },
+  matchArt: { ...StyleSheet.absoluteFillObject, width: undefined, height: undefined, opacity: 0.22 },
   lightLeft: { position: "absolute", width: 140, height: 140, borderRadius: 70, left: -90, top: -40, backgroundColor: C.hiSoft }, lightRight: { position: "absolute", width: 150, height: 150, borderRadius: 75, right: -95, top: -35, backgroundColor: C.loSoft },
   competition: { color: C.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1, textAlign: "center", marginBottom: 12 },
   matchRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 14 }, teamBlock: { width: 92, alignItems: "center" },
   teamBadge: { width: 66, height: 66, borderRadius: 18, borderWidth: 2, backgroundColor: C.panelDeep, alignItems: "center", justifyContent: "center", transform: [{ rotate: "-2deg" }] }, teamBadgeTxt: { fontSize: 18, ...displayFont }, teamName: { color: C.text, fontSize: 10, fontWeight: "800", marginTop: 6 },
   vsBlock: { alignItems: "center" }, vs: { color: C.muted, fontSize: 10, fontWeight: "900", letterSpacing: 1.4, marginTop: 3 },
   nextCard: { borderColor: C.line, borderWidth: hairline, borderRadius: 16, backgroundColor: C.panelDeep, padding: 14, alignItems: "center" }, nextLbl: { ...type.caption, letterSpacing: 1.6 },
-  countdown: { fontSize: 48, ...displayFont, fontVariant: ["tabular-nums"], marginVertical: 1 }, join: { alignSelf: "stretch", backgroundColor: C.gold, borderRadius: 13, minHeight: 50, alignItems: "center", justifyContent: "center" }, joinTxt: { color: "#130e03", fontSize: 15, fontWeight: "800", letterSpacing: 0.4 }, disabled: { opacity: 0.35 }, notReady: { color: C.lo, fontSize: 11, lineHeight: 15, marginTop: 8, textAlign: "center" },
+  countdown: { fontSize: 48, ...displayFont, fontVariant: ["tabular-nums"], marginVertical: 1 }, join: { alignSelf: "stretch", backgroundColor: C.gold, borderRadius: 13, minHeight: 50, alignItems: "center", justifyContent: "center" }, joinTxt: { color: "#130e03", fontSize: 15, fontWeight: "800", letterSpacing: 0.4 }, disabled: { opacity: 0.35 }, notReady: { color: C.lo, fontSize: 11, lineHeight: 15, marginTop: 8, textAlign: "center" }, simNote: { color: C.muted, fontSize: 10, lineHeight: 15, marginTop: 8, textAlign: "center" },
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }, sectionLblRow: { flexDirection: "row", alignItems: "center" }, sectionLbl: { ...type.section }, sectionMeta: { ...type.caption, fontSize: 10 },
   hotRow: { flexDirection: "row", gap: 8, marginBottom: 16 }, hotCard: { flex: 1, backgroundColor: C.panelDeep, borderColor: C.line, borderWidth: hairline, borderRadius: 16, padding: 8, paddingVertical: 10, alignItems: "center" }, hotLabel: { fontSize: 9, fontWeight: "800", letterSpacing: 0.5, marginTop: 3 }, hotDuel: { flexDirection: "row", alignItems: "center", gap: 3, marginVertical: 7 }, hotHi: { color: C.hi, fontSize: 11, ...displayFont, maxWidth: 34 }, hotVs: { color: C.muted, fontSize: 7 }, hotLo: { color: C.lo, fontSize: 11, ...displayFont, maxWidth: 34 }, hotPlay: { alignSelf: "stretch", borderWidth: 1, borderRadius: 9, paddingVertical: 7, alignItems: "center" }, hotPlayTxt: { fontSize: 10, fontWeight: "800" },
   controlCard: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: C.panel, borderColor: C.line, borderWidth: hairline, borderRadius: 16, padding: 14, marginBottom: 12 }, controlLabel: { ...type.caption, color: C.gold, letterSpacing: 1.1 }, controlValue: { ...type.footnote, fontSize: 11, lineHeight: 16, marginTop: 3 }, controlBtn: { borderColor: C.gold, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, minHeight: 36, justifyContent: "center" }, controlBtnTxt: { color: C.gold, fontSize: 11, fontWeight: "700" },

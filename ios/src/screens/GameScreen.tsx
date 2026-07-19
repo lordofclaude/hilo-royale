@@ -436,7 +436,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
       <View style={styles.topBar}>
         <View style={styles.livePill}>
           <View style={styles.liveDot} />
-          <Text style={styles.liveTxt}>{challenge ? "GHOST CHALLENGE" : "DAILY REPLAY"} · {settings.playbackRate}x</Text>
+          <Text style={styles.liveTxt}>{challenge ? "GHOST CHALLENGE" : "SIM LIVE"} · {settings.playbackRate}x</Text>
         </View>
         <Text style={styles.roundTitle}>{q ? `ROUND ${q.n} / ${SCHEDULE.length}` : "GET READY"}</Text>
         <View style={styles.leftPillRow}>
