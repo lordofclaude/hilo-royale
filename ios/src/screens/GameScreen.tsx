@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ImageBackground, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import * as TxMock from "../lib/txline-real";
 import * as L from "../lib/game-logic";
@@ -413,10 +413,21 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
   // ----- render -----
   if (countdown > 0) {
     return (
-      <View style={styles.countWrap}>
+      <ImageBackground
+        source={require("../../assets/world-football/tunnel-final.jpg")}
+        resizeMode="cover"
+        style={styles.countWrap}
+        imageStyle={styles.countArt}
+        accessible={false}
+        accessibilityIgnoresInvertColors
+      >
+        <View style={styles.countShade} />
+        <Text style={styles.countKicker}>TXLINE MATCH TAPE · WORLD FOOTBALL ARENA</Text>
         <Pulse trigger={countdown}><Text style={styles.countNum}>{countdown}</Text></Pulse>
         <Text style={styles.countSub}>entering lobby #{replay.lobbyId} — 100 fans locked in</Text>
-      </View>
+        <View style={styles.countRule} />
+        <Text style={styles.countHint}>READ THE WINDOW · PICK HI OR LO · SURVIVE</Text>
+      </ImageBackground>
     );
   }
 
@@ -638,9 +649,14 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   content: { padding: 16, paddingBottom: 40 },
-  countWrap: { flex: 1, backgroundColor: C.bg, alignItems: "center", justifyContent: "center" },
+  countWrap: { flex: 1, backgroundColor: C.bg, alignItems: "center", justifyContent: "center", paddingHorizontal: 24, overflow: "hidden" },
+  countArt: { opacity: 0.72 },
+  countShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(5,6,8,0.64)" },
+  countKicker: { color: C.hi, fontSize: 10, fontWeight: "900", letterSpacing: 1.5, textAlign: "center", marginBottom: 12 },
   countNum: { color: C.gold, fontSize: 120, ...displayFont },
-  countSub: { color: C.muted, marginTop: 12 },
+  countSub: { color: C.text, marginTop: 12, fontWeight: "800", textAlign: "center", textTransform: "uppercase", letterSpacing: 0.6 },
+  countRule: { width: 46, height: 2, backgroundColor: C.gold, borderRadius: 99, marginTop: 18, marginBottom: 10 },
+  countHint: { color: C.muted, fontSize: 9, fontWeight: "700", letterSpacing: 1.1, textAlign: "center" },
   topBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   livePill: {
     flexDirection: "row", alignItems: "center", gap: 6,

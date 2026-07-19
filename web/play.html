@@ -65,7 +65,7 @@ header{position:sticky;top:0;z-index:15;padding:.6rem 0;padding-top:calc(.6rem +
 }
 
 /* ---------- match hero ---------- */
-.hero{background:linear-gradient(180deg,rgba(244,247,251,.035),rgba(244,247,251,0) 46%),var(--panel);border:1px solid var(--line);border-radius:20px;padding:1.15rem clamp(1rem,3vw,1.8rem) 1.05rem;box-shadow:var(--shadow);margin-top:.85rem}
+.hero{background:linear-gradient(180deg,rgba(8,11,16,.82),rgba(8,11,16,.96) 78%),url('assets/world-football/stadium-night.webp') center 58%/cover no-repeat;border:1px solid rgba(46,230,255,.16);border-radius:20px;padding:1.15rem clamp(1rem,3vw,1.8rem) 1.05rem;box-shadow:var(--shadow);margin-top:.85rem}
 .comp{display:flex;justify-content:center;gap:.5rem;align-items:center;color:var(--muted);font-size:.73rem;letter-spacing:.15em;text-transform:uppercase;font-weight:600}
 .matchrow{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:.6rem;margin:.8rem 0 .2rem}
 .team{display:flex;flex-direction:column;align-items:center;gap:.42rem}
@@ -96,7 +96,7 @@ main{display:grid;grid-template-columns:1fr minmax(285px,340px);gap:1.15rem;padd
 @media(max-width:900px){main{grid-template-columns:1fr}}
 
 /* ---------- stage ---------- */
-.stage{background:linear-gradient(180deg,rgba(8,11,16,.88),rgba(8,11,16,.96) 48%),url('assets/world-football/penalty-spot.webp') center 68%/cover no-repeat;border:1px solid var(--line);border-radius:20px;padding:clamp(1.1rem,2.6vw,1.7rem);position:relative;overflow:hidden;box-shadow:var(--shadow-1)}
+.stage{background:linear-gradient(180deg,rgba(8,11,16,.76),rgba(8,11,16,.92) 52%,rgba(8,11,16,.98)),url('assets/world-football/penalty-spot.webp') center 62%/cover no-repeat;border:1px solid var(--line);border-radius:20px;padding:clamp(1.1rem,2.6vw,1.7rem);position:relative;overflow:hidden;box-shadow:var(--shadow-1)}
 .rndrow{display:flex;justify-content:center;align-items:center;gap:.5rem;flex-wrap:wrap}
 .chip{display:inline-flex;gap:.4rem;align-items:center;background:rgba(244,247,251,.05);border:1px solid var(--line);border-radius:999px;padding:.28rem .7rem;font-size:.72rem;color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
 #evstate{font-size:.66rem;letter-spacing:.1em;font-weight:700}
@@ -186,9 +186,13 @@ main{display:grid;grid-template-columns:1fr minmax(285px,340px);gap:1.15rem;padd
 .note b{color:var(--muted)}
 
 /* ---------- winner modal ---------- */
-.winner{position:fixed;inset:0;background:rgba(4,5,8,.6);-webkit-backdrop-filter:blur(22px) saturate(140%);backdrop-filter:blur(22px) saturate(140%);display:none;align-items:center;justify-content:center;z-index:20;text-align:center;padding:calc(1rem + env(safe-area-inset-top)) 1rem calc(1rem + env(safe-area-inset-bottom));overflow-y:auto;-webkit-overflow-scrolling:touch}
+.winner{position:fixed;inset:0;background:rgba(4,5,8,.6);-webkit-backdrop-filter:blur(22px) saturate(140%);backdrop-filter:blur(22px) saturate(140%);display:none;align-items:flex-start;justify-content:center;z-index:20;text-align:center;padding:calc(1rem + env(safe-area-inset-top)) 1rem calc(1rem + env(safe-area-inset-bottom));overflow-y:auto;-webkit-overflow-scrolling:touch}
 .winner.open{display:flex}
-.wcard{max-width:560px;width:100%;background:linear-gradient(180deg,rgba(8,11,16,.76),rgba(8,11,16,.97) 43%),url('assets/world-football/crown-confetti.webp') center 22%/cover no-repeat;border:1px solid rgba(255,213,74,.42);border-radius:28px;padding:1.75rem clamp(1rem,4vw,1.75rem) 1.5rem;box-shadow:var(--shadow)}
+.wcard{max-width:560px;width:100%;margin:auto 0;background:linear-gradient(180deg,rgba(8,11,16,.76),rgba(8,11,16,.97) 43%),url('assets/world-football/crown-confetti.webp') center 22%/cover no-repeat;border:1px solid rgba(255,213,74,.42);border-radius:28px;padding:1.75rem clamp(1rem,4vw,1.75rem) 1.5rem;box-shadow:var(--shadow)}
+.wcard.won{background-image:linear-gradient(180deg,rgba(8,11,16,.7),rgba(8,11,16,.97) 46%),url('assets/world-football/trophy-lift.webp')}
+.wcard.survived{background-image:linear-gradient(180deg,rgba(8,11,16,.7),rgba(8,11,16,.97) 46%),url('assets/world-football/fans-erupt.webp');border-color:rgba(46,230,255,.38)}
+.wcard.lost{background-image:linear-gradient(180deg,rgba(8,11,16,.72),rgba(8,11,16,.98) 46%),url('assets/world-football/fan-faceoff.webp');border-color:rgba(255,59,92,.38)}
+.wcard.lost h1{color:var(--lo);text-shadow:0 0 32px rgba(255,59,92,.3)}
 .wcard h1{font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:clamp(1.7rem,5.5vw,3rem);letter-spacing:-.02em;color:var(--gold);text-shadow:0 0 32px rgba(255,213,74,.35);margin-bottom:.6rem;display:flex;align-items:center;justify-content:center;gap:.5rem}
 .wcard p{color:var(--muted);margin-bottom:1.1rem;line-height:1.5}
 #cardcanvas{width:min(300px,72vw);border-radius:14px;border:1px solid var(--line);display:block;margin:0 auto 1.1rem;box-shadow:0 18px 60px rgba(255,213,74,.16)}
@@ -205,9 +209,9 @@ main{display:grid;grid-template-columns:1fr minmax(285px,340px);gap:1.15rem;padd
 
 /* ---------- juice ---------- */
 @keyframes shakeX{10%,90%{transform:translate(-2px,1px)}20%,80%{transform:translate(5px,-2px)}30%,50%,70%{transform:translate(-9px,3px)}40%,60%{transform:translate(9px,-3px)}}
-body.shake{animation:shakeX .5s both}
+body.shake{animation:shakeX .5s}
 #fx{position:fixed;inset:0;pointer-events:none;z-index:30}
-.count{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:25;background:rgba(3,4,6,.88);font-family:"Cabinet Grotesk";font-style:italic;font-size:clamp(4rem,18vw,9rem);font-weight:900;color:var(--gold);text-shadow:0 0 60px rgba(255,213,74,.5)}
+.count{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:25;background:linear-gradient(180deg,rgba(3,4,6,.7),rgba(3,4,6,.94)),url('assets/world-football/stadium-night.webp') center/cover no-repeat;font-family:"Cabinet Grotesk";font-style:italic;font-size:clamp(4rem,18vw,9rem);font-weight:900;color:var(--gold);text-shadow:0 0 60px rgba(255,213,74,.5)}
 .count.open{display:flex}
 @keyframes czoom{0%{transform:scale(1.6);opacity:0}30%{transform:scale(1);opacity:1}100%{opacity:.9}}
 .count span{animation:czoom .9s ease}
@@ -276,6 +280,7 @@ body.shake{animation:shakeX .5s both}
   header{background:rgba(5,6,8,.97)}
   .winner,.howto{background:rgba(4,5,8,.94)}
 }
+@media(max-width:600px){.hero{background-position:center 64%}.stage{background-position:center 78%}}
 footer{padding:0 0 2rem;color:var(--faint);font-size:.74rem;line-height:1.65;border-top:1px solid var(--line);padding-top:1.2rem}
 footer b{color:var(--muted)}
 </style></head>
@@ -415,7 +420,7 @@ footer b{color:var(--muted)}
   </footer>
 </div>
 
-<div class="winner" id="winner" role="dialog" aria-modal="true" aria-labelledby="wtitle"><div class="wcard">
+<div class="winner" id="winner" role="dialog" aria-modal="true" aria-labelledby="wtitle"><div class="wcard" id="resultcard">
   <h1 id="wtitle" tabindex="-1"><svg class="ic fill" style="color:var(--gold)"><use href="#i-crown"/></svg>LAST FAN STANDING</h1>
   <p id="wsub"></p>
   <canvas id="cardcanvas" width="1000" height="1400"></canvas>
@@ -630,7 +635,11 @@ const FX=(()=>{
       vx:(Math.random()-.5)*11,vy:-4-Math.random()*7,vr:(Math.random()-.5)*.3,rot:Math.random()*6,
       s:5+Math.random()*7,c:cols[i%cols.length],life:60+Math.random()*40});
     if(!raf)raf=requestAnimationFrame(loop);},
-  shake(){if(REDUCE)return;document.body.classList.remove('shake');void document.body.offsetWidth;document.body.classList.add('shake');}};
+  shake(){
+    if(REDUCE)return;
+    document.body.classList.remove('shake');void document.body.offsetWidth;document.body.classList.add('shake');
+    setTimeout(()=>document.body.classList.remove('shake'),550);
+  }};
 })();
 
 /* ---------------- the 100 fans: named avatars (skills VRF-seeded) ---------------- */
@@ -946,13 +955,15 @@ function endGame(){
     try{lastCaption=SHARE.caption({won,streak:me.streak,outlived:outlivedCount,lobbyId:LOBBY_ID,nearDeath:hadNearDeath});}catch(e){lastCaption=null}
   }
   setTimeout(()=>{
+    const resultState=won?'won':me.alive?'survived':'lost';
+    setResultArt(resultState);
     $('wtitle').innerHTML=won?icon('i-crown','color:var(--gold)')+' LAST FAN STANDING':me.alive?`TOP ${aliveTotal()} FINISH`:'ELIMINATED';
     $('wsub').textContent=(won?`You outlived all 99 bots across ${scheduleIdx} questions. +${pts} points on this device's ladder.`:
       me.alive?`You survived all ${scheduleIdx} questions (streak ${me.streak}) with ${aliveTotal()-1} others. +${pts} points on this device's ladder.`:
       `Streak ${me.streak}. You outlived ${outlivedCount} of 99 bots. +${pts} points on this device's ladder.`)+
       (chalUrl?' Send a rival the challenge link — your run rides along as their ghost.':'');
     if(chalUrl){$('openchal').href=chalUrl;$('openchal').style.display='inline-flex';$('copychal').style.display='inline-flex';}
-    drawStreakCard({streak:me.streak,best:ladder.best,outlivedCount,won,rank,pts});
+    drawStreakCard({streak:me.streak,best:ladder.best,outlivedCount,won,survived:me.alive,rank,pts});
     $('winner').classList.add('open');
     setTimeout(()=>$('wtitle').focus(),0);
     if(won){AudioFX.fanfare();FX.burst(160,innerHeight*.3);setTimeout(()=>FX.burst(120),500);}
@@ -965,9 +976,15 @@ const DFONT='"Cabinet Grotesk","DM Sans","Segoe UI",sans-serif';
 const BFONT='"DM Sans","Segoe UI",sans-serif';
 const RESULT_CARD_ART=new Image();
 RESULT_CARD_ART.decoding='async';
-RESULT_CARD_ART.src='assets/world-football/crown-confetti.webp';
 let lastCardOptions=null;
-RESULT_CARD_ART.addEventListener('load',()=>{if(lastCardOptions)drawStreakCard(lastCardOptions);},{once:true});
+let resultCardArtSrc='';
+RESULT_CARD_ART.addEventListener('load',()=>{if(lastCardOptions)drawStreakCard(lastCardOptions);});
+function setResultArt(state){
+  const art=state==='won'?'trophy-lift.webp':state==='survived'?'fans-erupt.webp':'fan-faceoff.webp';
+  $('resultcard').className=`wcard ${state}`;
+  const src=`assets/world-football/${art}`;
+  if(resultCardArtSrc!==src){resultCardArtSrc=src;RESULT_CARD_ART.src=src;}
+}
 function drawCrown(c,x,y,s){
   c.save();c.translate(x,y);c.scale(s/24,s/24);
   c.beginPath();c.moveTo(3,7);c.lineTo(7,11);c.lineTo(12,4);c.lineTo(17,11);c.lineTo(21,7);c.lineTo(19.5,19);c.lineTo(4.5,19);c.closePath();
@@ -985,9 +1002,10 @@ function drawStreakCard(o){
     const shade=c.createLinearGradient(0,0,0,artH);shade.addColorStop(0,'rgba(5,6,8,.36)');shade.addColorStop(.5,'rgba(5,6,8,.28)');shade.addColorStop(1,'#050608');
     c.fillStyle=shade;c.fillRect(0,0,W,artH);
   }
-  const spotlight=c.createRadialGradient(W/2,360,30,W/2,360,520);spotlight.addColorStop(0,'rgba(255,213,74,.12)');spotlight.addColorStop(1,'rgba(255,213,74,0)');
+  const accent=o.won?'#ffd54a':o.survived?'#2ee6ff':'#ff3b5c';
+  const spotlight=c.createRadialGradient(W/2,360,30,W/2,360,520);spotlight.addColorStop(0,o.won?'rgba(255,213,74,.12)':o.survived?'rgba(46,230,255,.12)':'rgba(255,59,92,.12)');spotlight.addColorStop(1,'rgba(5,6,8,0)');
   c.fillStyle=spotlight;c.fillRect(0,0,W,900);
-  c.strokeStyle='#ffd54a';c.lineWidth=6;roundRect(c,34,34,W-68,H-68,36);c.stroke();
+  c.strokeStyle=accent;c.lineWidth=6;roundRect(c,34,34,W-68,H-68,36);c.stroke();
   c.strokeStyle='rgba(255,213,74,.4)';c.lineWidth=2;roundRect(c,52,52,W-104,H-104,28);c.stroke();
   c.fillStyle='#050608';
   for(const y of [H*.62]){c.beginPath();c.arc(34,y,26,0,7);c.fill();c.beginPath();c.arc(W-34,y,26,0,7);c.fill();}
@@ -996,7 +1014,7 @@ function drawStreakCard(o){
   c.fillStyle='#f4f7fb';c.font=`italic 900 64px ${DFONT}`;c.fillText('HI-LO',W/2-92,150);
   c.fillStyle='#ffd54a';c.fillText('ROYALE',W/2+110,150);
   c.fillStyle='#93a1b5';c.font=`600 30px ${BFONT}`;
-  c.fillText(('SURVIVAL TICKET · '+FIXTURE.Competition).toUpperCase(),W/2,205);
+  c.fillText(((o.won?'CROWN TICKET':o.survived?'SURVIVAL TICKET':'DEATH REPLAY')+' · '+FIXTURE.Competition).toUpperCase(),W/2,205);
   if(o.won){drawCrown(c,W/2-60,240,120);
     c.fillStyle='#ffd54a';c.font=`italic 900 44px ${DFONT}`;c.fillText('LOBBY CHAMPION',W/2,428);}
   const grad=c.createLinearGradient(0,430,0,760);grad.addColorStop(0,'#ffd54a');grad.addColorStop(1,'#ff3b5c');

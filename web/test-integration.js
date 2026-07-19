@@ -546,8 +546,8 @@ runSection("6 UI STATIC", [p("index.html"), p("login.html"), p("play.html"), p("
   t.ok(/guest/i.test(html["login.html"]), "login.html: has a guest path (mentions 'guest')");
   t.ok(/assets\/world-football\/tunnel-final\.webp/.test(html["login.html"]),
     "login.html: turns the handle gate into a football tunnel moment");
-  t.ok(/RESULT_CARD_ART[\s\S]*crown-confetti\.webp/.test(html["play.html"]),
-    "play.html: paints championship art into the exported streak card");
+  t.ok(/setResultArt[\s\S]*trophy-lift\.webp[\s\S]*fans-erupt\.webp[\s\S]*fan-faceoff\.webp/.test(html["play.html"]),
+    "play.html: paints outcome-specific art into the exported result card");
   t.ok(/stadium-night\.webp/.test(html["og.html"]) && /crown-trophy\.webp/.test(html["og.html"]),
     "og.html: uses the stadium and crown-trophy campaign art");
   t.ok(/fixture=18222446[^"']*demo=1/.test(html["demo.html"]),

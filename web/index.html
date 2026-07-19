@@ -83,6 +83,20 @@ h1 .r{color:var(--lo);text-shadow:0 0 46px rgba(255,59,92,.35)}
 .herofoot{position:absolute;bottom:1.4rem;left:0;right:0;z-index:2;display:flex;justify-content:center;gap:1.6rem;flex-wrap:wrap;color:var(--faint);font-size:.78rem;font-weight:600;letter-spacing:.04em}
 .herofoot span{display:inline-flex;align-items:center;gap:.4rem}
 
+/* ---------- product proof: show the game before explaining it ---------- */
+.product-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:clamp(1.4rem,4vw,3.2rem);align-items:center}
+.product-frame{position:relative;border:1px solid rgba(46,230,255,.25);border-radius:24px;padding:.7rem;background:linear-gradient(145deg,rgba(46,230,255,.08),rgba(255,213,74,.04)),var(--panel);box-shadow:0 30px 90px -45px rgba(46,230,255,.55),var(--shadow-2)}
+.product-frame:before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:linear-gradient(135deg,rgba(46,230,255,.5),transparent 45%,rgba(255,213,74,.32));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.product-chrome{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.15rem .25rem .65rem;color:var(--faint);font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.product-dots{display:flex;gap:.3rem}.product-dots i{width:6px;height:6px;border-radius:50%;background:var(--line2)}.product-dots i:first-child{background:var(--lo)}.product-dots i:nth-child(2){background:var(--gold)}.product-dots i:last-child{background:var(--success)}
+.product-shot{display:block;width:100%;height:auto;aspect-ratio:1425/891;object-fit:cover;object-position:top;border-radius:16px;border:1px solid var(--line);background:var(--ink)}
+.product-eyebrow{display:inline-flex;align-items:center;gap:.45rem;color:var(--success);font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.8rem}
+.product-copy .kicksub{margin-bottom:1.25rem}
+.product-proofs{display:grid;gap:.6rem;margin:1.1rem 0 1.35rem}
+.product-proof{display:flex;align-items:center;gap:.65rem;min-height:42px;padding:.65rem .8rem;border:1px solid var(--line);border-radius:12px;background:rgba(244,247,251,.025);color:var(--muted);font-size:.82rem}
+.product-proof svg{color:var(--gold)}.product-proof b{color:var(--text)}
+.product-actions{display:flex;gap:.7rem;flex-wrap:wrap}.product-actions .cta,.product-actions .cta2{padding:.85rem 1.15rem;font-size:.9rem}
+
 /* ---------- sections: one fold each, snap-scrolled ---------- */
 section{min-height:100svh;display:grid;align-content:center;padding:clamp(2.5rem,6vw,4rem) 0;scroll-snap-align:start;scroll-snap-stop:always}
 .kick{font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:clamp(1.7rem,5vw,2.6rem);line-height:1.05;letter-spacing:-.015em;margin-bottom:.6rem;text-wrap:balance}
@@ -169,6 +183,7 @@ footer b{color:var(--muted)}
   nav,.snapnav a,.cta2{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(5,6,8,.96)}
 }
 @media(max-width:720px){.world-strip{grid-template-columns:1fr 1fr}.world-shot:first-child{grid-column:1/-1}.world-shot{min-height:130px}.hero-art{object-position:center}.lobby-art{margin-top:0}}
+@media(max-width:820px){#product{align-content:start;padding-top:7.25rem}.product-grid{grid-template-columns:1fr}.product-copy{order:-1}.product-frame{border-radius:18px;padding:.45rem}.product-shot{border-radius:12px}.product-actions{display:grid}.product-actions .cta,.product-actions .cta2{width:100%;justify-content:center}}
 </style></head>
 <body>
 
@@ -192,6 +207,7 @@ footer b{color:var(--muted)}
 
 <aside class="snapnav" aria-label="Sections">
   <a href="#top" title="Arena" aria-label="Arena"><svg class="ic"><use href="#i-crown"/></svg></a>
+  <a href="#product" title="See the product" aria-label="See the product"><svg class="ic"><use href="#i-chart"/></svg></a>
   <a href="#how" title="How you survive" aria-label="How you survive"><svg class="ic"><use href="#i-timer"/></svg></a>
   <a href="#lobbies-sec" title="Tonight's lobbies" aria-label="Tonight's lobbies"><svg class="ic"><use href="#i-ball"/></svg></a>
   <a href="#proof-sec" title="Receipts" aria-label="Receipts"><svg class="ic"><use href="#i-shield"/></svg></a>
@@ -213,10 +229,31 @@ footer b{color:var(--muted)}
   </div>
   <div class="herofoot">
     <span><svg class="ic"><use href="#i-ball"/></svg>6 real fixtures</span>
-    <span><svg class="ic"><use href="#i-shield"/></svg>VRF-seeded bot simulation</span>
+    <span><svg class="ic"><use href="#i-shield"/></svg>ORAO-seeded simulated rivals</span>
     <span><svg class="ic"><use href="#i-check"/></svg>One score proof on Solana devnet</span>
   </div>
 </header>
+
+<section id="product"><div class="wrap product-grid">
+  <div class="product-frame rv">
+    <div class="product-chrome"><span class="product-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>LIVE ARENA · REAL PRODUCT</span><span>100 → 1</span></div>
+    <img class="product-shot" src="assets/product-arena.png" width="1425" height="891" alt="Hi-Lo Royale arena showing a timed prediction, live match score, crowd split, and remaining fans" loading="lazy" decoding="async">
+  </div>
+  <div class="product-copy rv">
+    <span class="product-eyebrow"><svg class="ic"><use href="#i-check"/></svg>Playable now · not a concept</span>
+    <h2 class="kick">One match. One question. One shared reveal.</h2>
+    <p class="kicksub">The entire fan experience fits in one broadcast-native screen: read the TxLINE match window, commit HI or LO, watch the lobby split, then see 100 fans become one.</p>
+    <div class="product-proofs">
+      <div class="product-proof"><svg class="ic"><use href="#i-timer"/></svg><span><b>6-second picks</b> keep every match window tense.</span></div>
+      <div class="product-proof"><svg class="ic"><use href="#i-shield"/></svg><span><b>OPEN → LOCKED → SETTLED</b> makes the data flow visible.</span></div>
+      <div class="product-proof"><svg class="ic"><use href="#i-share"/></svg><span><b>Ghost challenges</b> turn every result into the next rivalry.</span></div>
+    </div>
+    <div class="product-actions">
+      <a class="cta" href="/login?fixture=18222446&amp;demo=1"><svg class="ic"><use href="#i-bolt"/></svg>PLAY JUDGE RUN</a>
+      <a class="cta2" href="/demo">See demo guide</a>
+    </div>
+  </div>
+</div></section>
 
 <section id="how"><div class="wrap">
   <h2 class="kick rv"><svg class="ic ki" style="color:var(--lo)"><use href="#i-timer"/></svg>How you survive</h2>
@@ -280,7 +317,7 @@ footer b{color:var(--muted)}
 
 <footer><div class="wrap">
   <b>Hi-Lo Royale</b> — a prediction battle royale on real World Cup data, built for the TxODDS × Solana hackathon (July 2026).
-  Web arena + iOS app use the same question rules. Match data: six TxLINE fixture captures plus a server-proxied live path when configured. Prototype rivals are 99 VRF-seeded bots. One Argentina–Switzerland final score has a validateStatV2 proof on Solana devnet. Ghost links let friends duel the same tape. <a href="/privacy">Privacy</a>.
+  Web arena + iOS app share canonical match data and core survival rules; web ships additional question types. Match data: six TxLINE fixture captures plus a server-proxied live path when configured. Prototype rivals are 99 ORAO-seeded simulated bots. One Argentina–Switzerland final score has a validateStatV2 proof on Solana devnet. Ghost links let friends duel the same tape. <a href="/privacy">Privacy</a>.
 </div></footer>
 
 <script src="lobbies.js"></script>

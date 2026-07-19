@@ -28,6 +28,12 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
   const rank = ladderRank(WALL, profile.ladderPoints);
   const ticketRef = useRef<ViewShot>(null);
   const survived = r.won || r.survivedToEnd;
+  const resultArt = survived
+    ? require("../../assets/world-football/crown-confetti.jpg")
+    : require("../../assets/world-football/tunnel-final.jpg");
+  const ticketArt = survived
+    ? require("../../assets/world-football/crown-trophy.jpg")
+    : require("../../assets/world-football/tunnel-final.jpg");
   const code1 = teamCode(replay.fixture.Participant1);
   const code2 = teamCode(replay.fixture.Participant2);
   const finalScore = replay.finalScore;
@@ -81,11 +87,12 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
-      <FadeIn dy={8} style={styles.resultHero}>
+      <FadeIn dy={8} style={[styles.resultHero, !survived && styles.resultHeroLost]}>
         <Image
-          source={require("../../assets/world-football/crown-confetti.jpg")}
+          source={resultArt}
           resizeMode="cover"
-          style={styles.resultHeroArt}
+          style={[styles.resultHeroArt, !survived && styles.resultHeroArtLost]}
+          accessible={false}
           accessibilityIgnoresInvertColors
         />
         <Text style={styles.brand}>
@@ -128,11 +135,12 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
 
       {/* survival ticket (captured for image share) */}
       <ViewShot ref={ticketRef} options={{ format: "png", quality: 0.92 }}>
-        <View style={[styles.ticket, glow(C.gold, 10, 0.35)]}>
+        <View style={[styles.ticket, !survived && styles.ticketLost, glow(survived ? C.gold : C.lo, 10, 0.35)]}>
           <Image
-            source={require("../../assets/world-football/crown-trophy.jpg")}
+            source={ticketArt}
             resizeMode="cover"
-            style={styles.ticketArt}
+            style={[styles.ticketArt, !survived && styles.ticketArtLost]}
+            accessible={false}
             accessibilityIgnoresInvertColors
           />
           <Text style={styles.tHead}>
@@ -215,6 +223,7 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
           source={require("../../assets/world-football/fan-faceoff.jpg")}
           resizeMode="cover"
           style={styles.challengeVisualArt}
+          accessible={false}
           accessibilityIgnoresInvertColors
         />
         <View style={styles.challengeVisualShade} />
@@ -273,7 +282,9 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   content: { padding: 20, paddingBottom: 40 },
   resultHero: { position: "relative", overflow: "hidden", borderColor: C.gold, borderWidth: hairline, borderRadius: 22, backgroundColor: C.panel, paddingVertical: 20, paddingHorizontal: 12, marginBottom: 6 },
+  resultHeroLost: { borderColor: C.lo },
   resultHeroArt: { ...StyleSheet.absoluteFillObject, width: undefined, height: undefined, opacity: 0.28 },
+  resultHeroArtLost: { opacity: 0.2 },
   brand: { fontSize: 18, ...displayFont, textAlign: "center", marginTop: 8 },
   title: { color: C.gold, fontSize: 44, ...displayFont, textAlign: "center", lineHeight: 48, marginTop: 10 },
   crownBig: { alignItems: "center", marginVertical: 10 },
@@ -295,7 +306,9 @@ const styles = StyleSheet.create({
     borderColor: C.gold, borderWidth: 2, borderRadius: 20,
     backgroundColor: C.panel, padding: 20, alignItems: "center", marginTop: 8, marginBottom: 18, overflow: "hidden",
   },
+  ticketLost: { borderColor: C.lo },
   ticketArt: { ...StyleSheet.absoluteFillObject, width: undefined, height: undefined, opacity: 0.1 },
+  ticketArtLost: { opacity: 0.07 },
   tHead: { fontSize: 22, ...displayFont },
   tSub: { color: C.muted, fontSize: 10, letterSpacing: 1.5, marginTop: 4, marginBottom: 8 },
   tCrownRow: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
