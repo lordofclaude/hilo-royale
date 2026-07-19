@@ -112,12 +112,12 @@ export default function ProfileScreen({ identity, profile, onBack, onSettings }:
       </View>
 
       <Text style={styles.foot}>
-        Provably-fair lobby: bot behavior is seeded from a real ORAO VRF request on Solana devnet,
+        Verifiable seed source: bot behavior uses a real ORAO VRF request on Solana devnet,
         and daily fixtures replay real TxLINE tapes (one carries a devnet score-proof tx).
         The ladder above is a local demo — cross-device ranking ships with the multiplayer backend.
       </Text>
 
-      <Tap style={[styles.shareProfile, glow(C.hi, 8, 0.2)]} accessibilityRole="button" onPress={() => Share.share({ message: `${identity.name} is level ${level} ${title} on Hi-Lo Royale with ${profile.ladderPoints.toLocaleString()} points. Join the next lobby: hiloroyale://lobby` }).catch(() => {})}>
+      <Tap style={[styles.shareProfile, glow(C.hi, 8, 0.2)]} accessibilityRole="button" onPress={() => Share.share({ message: `${identity.name} is level ${level} ${title} on Hi-Lo Royale with ${profile.ladderPoints.toLocaleString()} points. Join the next lobby: https://hilo-royale.vercel.app/login` }).catch(() => {})}>
         <Text style={styles.shareProfileTxt}>↗  SHARE PROFILE</Text>
       </Tap>
 

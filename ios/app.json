@@ -6,12 +6,14 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#050608",
+    "icon": "./assets/icon.png",
+    "splash": { "image": "./assets/icon.png", "resizeMode": "contain", "backgroundColor": "#050608" },
     "scheme": "hiloroyale",
     "ios": {
       "bundleIdentifier": "com.lordofclaude.hiloroyale",
+      "icon": "./assets/icon.png",
       "supportsTablet": false,
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"],
         "LSApplicationQueriesSchemes": ["whatsapp", "instagram", "instagram-stories"]
       }
     },

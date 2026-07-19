@@ -369,10 +369,11 @@ function validateLobby(lb) {
   const last = ev[ev.length - 1];
   const fin = ev.filter(e => e.type === "game_finalised");
   const ref = fin.length ? fin[fin.length - 1].stats : last.stats;
-  if (lb.finalScore.g1 !== ref.g1 || lb.finalScore.g2 !== ref.g2)
-    errs.push(`finalScore ${lb.finalScore.g1}-${lb.finalScore.g2} != ${fin.length ? "game_finalised" : "last-event"} stats ${ref.g1}-${ref.g2}`);
+  const score = lb.finalScore || lb.observedScore;
+  if (score.g1 !== ref.g1 || score.g2 !== ref.g2)
+    errs.push(`score ${score.g1}-${score.g2} != ${fin.length ? "game_finalised" : "last-event"} stats ${ref.g1}-${ref.g2}`);
   const exp = META[lb.fixtureId].expected;
-  if (exp && (lb.finalScore.g1 !== exp.g1 || lb.finalScore.g2 !== exp.g2))
+  if (exp && lb.finalScore && (lb.finalScore.g1 !== exp.g1 || lb.finalScore.g2 !== exp.g2))
     errs.push(`finalScore ${lb.finalScore.g1}-${lb.finalScore.g2} != known result ${exp.g1}-${exp.g2}`);
   if (!Number.isFinite(lb.kickoffMs)) errs.push("missing kickoffMs");
   if (lb.odds) {
@@ -404,7 +405,7 @@ function buildLobby(fid, messages, fixture, oddsBuilder) {
   for (const w of warnings) console.warn(`  [warn] ${fid}: ${w}`);
 
   const last = events[events.length - 1];
-  const finalScore = { g1: last.stats.g1, g2: last.stats.g2 };
+  const score = { g1: last.stats.g1, g2: last.stats.g2 };
   const odds = oddsBuilder ? oddsBuilder(events, anchors, kickoffMs) : undefined;
 
   const lb = {
@@ -413,9 +414,10 @@ function buildLobby(fid, messages, fixture, oddsBuilder) {
     // goal plus its VAR verdict). Use a strict tape sequence while keeping
     // the upstream sequence number alongside it for audit provenance.
     events: events.map((e, index) => ({ seq: index + 1, sourceSeq: e.seq, minute: e.minute, type: e.type, team: e.team, detail: e.detail, stats: e.stats, teamName: e.teamName })),
-    finalScore,
     stage: meta.stage, tag: meta.tag, kickoffMs,
   };
+  if (meta.captureStatus === "partial") lb.observedScore = score;
+  else lb.finalScore = score;
   if (odds && odds.winpct && odds.winpct.length >= 5) lb.odds = odds;
   if (meta.proof) lb.proof = meta.proof;
   if (meta.captureStatus) lb.captureStatus = meta.captureStatus;
@@ -461,7 +463,8 @@ for (const lb of lobbies) {
   const errs = validateLobby(lb);
   const types = {};
   lb.events.forEach(e => { types[e.type] = (types[e.type] || 0) + 1; });
-  console.log(`${lb.fixtureId} ${lb.fixture.Participant1} ${lb.finalScore.g1}-${lb.finalScore.g2} ${lb.fixture.Participant2} [${lb.tag}] events=${lb.events.length} odds=${lb.odds ? lb.odds.winpct.length + "pts" : "none"}${lb.proof ? " proof" : ""}`);
+  const score = lb.finalScore || lb.observedScore;
+  console.log(`${lb.fixtureId} ${lb.fixture.Participant1} ${score.g1}-${score.g2} ${lb.fixture.Participant2} [${lb.tag}] events=${lb.events.length} odds=${lb.odds ? lb.odds.winpct.length + "pts" : "none"}${lb.proof ? " proof" : ""}`);
   console.log(`  ${JSON.stringify(types)}`);
   for (const e of errs) { console.error(`  [FAIL] ${e}`); bad++; }
 }
@@ -472,7 +475,8 @@ const header = `/* AUTO-GENERATED lobby catalog — REAL TxLINE captures only. D
    Regenerate: node shared/build-lobbies.js
    Sources: shared/real-data/<id>.tape.js (TxLINE pulls), 18257865.scores-raw.txt +
    18257865.odds-live.json (live capture 2026-07-18). Stats are cumulative and
-   validated monotonic; finalScore verified against game_finalised / known results.
+   validated monotonic; complete finalScore values come from game_finalised. Partial
+   captures use observedScore and are never promoted to a final claim.
    odds.winpct = [{m, p1, draw, p2}] — percent 0-100, m = match minute, p1 = Participant1. */
 `;
 const body = "window.LOBBIES = " + JSON.stringify(lobbies) + ";\n" +

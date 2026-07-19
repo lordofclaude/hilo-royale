@@ -96,7 +96,7 @@ main{display:grid;grid-template-columns:1fr minmax(285px,340px);gap:1.15rem;padd
 @media(max-width:900px){main{grid-template-columns:1fr}}
 
 /* ---------- stage ---------- */
-.stage{background:linear-gradient(180deg,rgba(244,247,251,.03),rgba(244,247,251,0) 30%),var(--panel);border:1px solid var(--line);border-radius:20px;padding:clamp(1.1rem,2.6vw,1.7rem);position:relative;overflow:hidden;box-shadow:var(--shadow-1)}
+.stage{background:linear-gradient(180deg,rgba(8,11,16,.88),rgba(8,11,16,.96) 48%),url('assets/world-football/penalty-spot.webp') center 68%/cover no-repeat;border:1px solid var(--line);border-radius:20px;padding:clamp(1.1rem,2.6vw,1.7rem);position:relative;overflow:hidden;box-shadow:var(--shadow-1)}
 .rndrow{display:flex;justify-content:center;align-items:center;gap:.5rem;flex-wrap:wrap}
 .chip{display:inline-flex;gap:.4rem;align-items:center;background:rgba(244,247,251,.05);border:1px solid var(--line);border-radius:999px;padding:.28rem .7rem;font-size:.72rem;color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
 #evstate{font-size:.66rem;letter-spacing:.1em;font-weight:700}
@@ -188,7 +188,7 @@ main{display:grid;grid-template-columns:1fr minmax(285px,340px);gap:1.15rem;padd
 /* ---------- winner modal ---------- */
 .winner{position:fixed;inset:0;background:rgba(4,5,8,.6);-webkit-backdrop-filter:blur(22px) saturate(140%);backdrop-filter:blur(22px) saturate(140%);display:none;align-items:center;justify-content:center;z-index:20;text-align:center;padding:calc(1rem + env(safe-area-inset-top)) 1rem calc(1rem + env(safe-area-inset-bottom));overflow-y:auto;-webkit-overflow-scrolling:touch}
 .winner.open{display:flex}
-.wcard{max-width:560px;width:100%;background:linear-gradient(180deg,rgba(244,247,251,.035),rgba(244,247,251,0) 34%),var(--panel);border:1px solid var(--line2);border-radius:28px;padding:1.75rem clamp(1rem,4vw,1.75rem) 1.5rem;box-shadow:var(--shadow)}
+.wcard{max-width:560px;width:100%;background:linear-gradient(180deg,rgba(8,11,16,.76),rgba(8,11,16,.97) 43%),url('assets/world-football/crown-confetti.webp') center 22%/cover no-repeat;border:1px solid rgba(255,213,74,.42);border-radius:28px;padding:1.75rem clamp(1rem,4vw,1.75rem) 1.5rem;box-shadow:var(--shadow)}
 .wcard h1{font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:clamp(1.7rem,5.5vw,3rem);letter-spacing:-.02em;color:var(--gold);text-shadow:0 0 32px rgba(255,213,74,.35);margin-bottom:.6rem;display:flex;align-items:center;justify-content:center;gap:.5rem}
 .wcard p{color:var(--muted);margin-bottom:1.1rem;line-height:1.5}
 #cardcanvas{width:min(300px,72vw);border-radius:14px;border:1px solid var(--line);display:block;margin:0 auto 1.1rem;box-shadow:0 18px 60px rgba(255,213,74,.16)}
@@ -239,7 +239,7 @@ body.shake{animation:shakeX .5s both}
 /* ---------- how-it-works overlay ---------- */
 .howto{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;background:rgba(4,5,8,.6);-webkit-backdrop-filter:blur(22px) saturate(140%);backdrop-filter:blur(22px) saturate(140%);padding:calc(1rem + env(safe-area-inset-top)) 1rem calc(1rem + env(safe-area-inset-bottom));overflow-y:auto;-webkit-overflow-scrolling:touch}
 .howto.open{display:flex}
-.howcard{max-width:430px;width:100%;background:linear-gradient(180deg,rgba(244,247,251,.035),rgba(244,247,251,0) 34%),var(--panel);border:1px solid var(--line2);border-radius:24px;padding:1.5rem;box-shadow:var(--shadow)}
+.howcard{max-width:430px;width:100%;background:linear-gradient(180deg,rgba(8,11,16,.78),rgba(8,11,16,.98) 46%),url('assets/world-football/tunnel-final.webp') center 28%/cover no-repeat;border:1px solid var(--line2);border-radius:24px;padding:1.5rem;box-shadow:var(--shadow)}
 /* sheet-like modal presentation (rare moments: endgame + first-run) */
 @media (prefers-reduced-motion: no-preference){
   .winner.open,.howto.open{animation:dimIn .3s var(--ease)}
@@ -947,15 +947,30 @@ function endGame(){
 /* collectible-ticket streak card (canvas → PNG) */
 const DFONT='"Cabinet Grotesk","DM Sans","Segoe UI",sans-serif';
 const BFONT='"DM Sans","Segoe UI",sans-serif';
+const RESULT_CARD_ART=new Image();
+RESULT_CARD_ART.decoding='async';
+RESULT_CARD_ART.src='assets/world-football/crown-confetti.webp';
+let lastCardOptions=null;
+RESULT_CARD_ART.addEventListener('load',()=>{if(lastCardOptions)drawStreakCard(lastCardOptions);},{once:true});
 function drawCrown(c,x,y,s){
   c.save();c.translate(x,y);c.scale(s/24,s/24);
   c.beginPath();c.moveTo(3,7);c.lineTo(7,11);c.lineTo(12,4);c.lineTo(17,11);c.lineTo(21,7);c.lineTo(19.5,19);c.lineTo(4.5,19);c.closePath();
   c.fillStyle='#ffd54a';c.fill();c.restore();
 }
 function drawStreakCard(o){
+  lastCardOptions=o;
   const cv=$('cardcanvas'),c=cv.getContext('2d'),W=1000,H=1400;
   const g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,'#0a0d13');g.addColorStop(.55,'#050608');g.addColorStop(1,'#101623');
   c.fillStyle=g;c.fillRect(0,0,W,H);
+  if(RESULT_CARD_ART.complete&&RESULT_CARD_ART.naturalWidth){
+    const artH=900,scale=Math.max(W/RESULT_CARD_ART.naturalWidth,artH/RESULT_CARD_ART.naturalHeight);
+    const dw=RESULT_CARD_ART.naturalWidth*scale,dh=RESULT_CARD_ART.naturalHeight*scale;
+    c.save();c.globalAlpha=.78;c.drawImage(RESULT_CARD_ART,(W-dw)/2,(artH-dh)/2,dw,dh);c.restore();
+    const shade=c.createLinearGradient(0,0,0,artH);shade.addColorStop(0,'rgba(5,6,8,.36)');shade.addColorStop(.5,'rgba(5,6,8,.28)');shade.addColorStop(1,'#050608');
+    c.fillStyle=shade;c.fillRect(0,0,W,artH);
+  }
+  const spotlight=c.createRadialGradient(W/2,360,30,W/2,360,520);spotlight.addColorStop(0,'rgba(255,213,74,.12)');spotlight.addColorStop(1,'rgba(255,213,74,0)');
+  c.fillStyle=spotlight;c.fillRect(0,0,W,900);
   c.strokeStyle='#ffd54a';c.lineWidth=6;roundRect(c,34,34,W-68,H-68,36);c.stroke();
   c.strokeStyle='rgba(255,213,74,.4)';c.lineWidth=2;roundRect(c,52,52,W-104,H-104,28);c.stroke();
   c.fillStyle='#050608';

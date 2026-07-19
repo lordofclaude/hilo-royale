@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { Image, Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import ViewShot, { captureRef } from "react-native-view-shot";
 import { C, WALL, glow, displayFont, hairline, type } from "../theme";
@@ -39,17 +39,17 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
 
   const title = r.won ? "LAST FAN\nSTANDING" : r.survivedToEnd ? "YOU\nSURVIVED" : "ELIMINATED";
   const sub = r.won
-    ? `You outlived all 99 fans across ${r.rounds} questions. Provably-fair lobby · ORAO VRF seed on Solana devnet.`
+    ? `You outlived all 99 bot rivals across ${r.rounds} questions. ORAO VRF seed source on Solana devnet.`
     : r.survivedToEnd
     ? `You survived all ${r.rounds} questions with ${r.aliveAtEnd - 1} others still alive.`
-    : `${r.aliveAtEnd} fans outlasted you.${r.ghostRankAtEnd ? ` In ghost mode, your run would have reached top ${r.ghostRankAtEnd}.` : ""}`;
+    : `${r.aliveAtEnd} bot rivals outlasted you.${r.ghostRankAtEnd ? ` In ghost mode, your run would have reached top ${r.ghostRankAtEnd}.` : ""}`;
 
   const ghostCode = encodeGhostPicks(r.history.map(record => record.pick));
   const challengeUrl = `${WEB_URL}/play?fixture=${encodeURIComponent(r.fixtureId)}` +
     `&p=${ghostCode}&streak=${r.streak}&outlived=${r.outlivedCount}&target=${r.pts}` +
     `&challenger=${encodeURIComponent("A rival")}`;
   const message =
-    `I outlived ${r.outlivedCount} of 99 fans on Hi-Lo Royale ` +
+    `I outlived ${r.outlivedCount} of 99 bot rivals on Hi-Lo Royale ` +
     `(streak ${r.streak}, ${r.predictionPoints} crowd-difficulty points${r.won ? ", LOBBY CHAMPION" : ""}) — ${code1} ${finalScore.g1}–${finalScore.g2} ${code2} (${scoreContext}). ` +
     `${survived ? "Think you can outlast my run? Same match, same questions — prove it." : `I died on round ${r.death?.round || r.rounds}. Beat my ghost if you can.`} ` +
     `Beat my run: ${challengeUrl}`;
@@ -81,7 +81,13 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
-      <FadeIn dy={8}>
+      <FadeIn dy={8} style={styles.resultHero}>
+        <Image
+          source={require("../../assets/world-football/crown-confetti.jpg")}
+          resizeMode="cover"
+          style={styles.resultHeroArt}
+          accessibilityIgnoresInvertColors
+        />
         <Text style={styles.brand}>
           <Text style={{ color: C.text }}>HI-LO </Text>
           <Text style={{ color: C.gold }}>ROYALE</Text>
@@ -107,7 +113,7 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
         </View>
         <View style={[styles.pill, { borderColor: C.hi }]}>
           <Icon name="shield" size={13} color={C.hi} style={{ marginRight: 7 }} />
-          <Text style={styles.pillCyanTxt}>OUTLIVED {r.outlivedCount} OF 99 FANS</Text>
+          <Text style={styles.pillCyanTxt}>OUTLIVED {r.outlivedCount} OF 99 RIVALS</Text>
         </View>
       </FadeIn>
 
@@ -123,6 +129,12 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
       {/* survival ticket (captured for image share) */}
       <ViewShot ref={ticketRef} options={{ format: "png", quality: 0.92 }}>
         <View style={[styles.ticket, glow(C.gold, 10, 0.35)]}>
+          <Image
+            source={require("../../assets/world-football/crown-trophy.jpg")}
+            resizeMode="cover"
+            style={styles.ticketArt}
+            accessibilityIgnoresInvertColors
+          />
           <Text style={styles.tHead}>
             <Text style={{ color: C.text }}>HI-LO </Text>
             <Text style={{ color: C.gold }}>ROYALE</Text>
@@ -194,10 +206,20 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
         onPress={() => Linking.openURL(VRF_EXPLORER_URL).catch(() => {})}
       >
         <Icon name="dice" size={12} color={C.success} style={{ marginRight: 7 }} />
-        <Text style={styles.chainPillTxt}>PROVABLY FAIR — ORAO VRF SEED (DEVNET)  ↗</Text>
+        <Text style={styles.chainPillTxt}>VERIFIABLE SEED SOURCE — ORAO VRF  ↗</Text>
       </Tap>
 
       {/* share */}
+      <View style={styles.challengeVisual}>
+        <Image
+          source={require("../../assets/world-football/fan-faceoff.jpg")}
+          resizeMode="cover"
+          style={styles.challengeVisualArt}
+          accessibilityIgnoresInvertColors
+        />
+        <View style={styles.challengeVisualShade} />
+        <Text style={styles.challengeVisualTxt}>THE NEXT RIVAL IS ONE TAP AWAY</Text>
+      </View>
       <Text style={styles.shareLbl}>—  SHARE THE {survived ? "WIN" : "RUN"}  —</Text>
       <View style={styles.shareRow}>
         <Tap style={[styles.sharePlatform, styles.whatsapp]} onPress={shareWhatsApp}><Text style={[styles.sharePlatformTxt, { color: C.success }]}>WHATSAPP</Text></Tap>
@@ -250,6 +272,8 @@ function Breakdown({ label, value, color }: { label: string; value: string; colo
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   content: { padding: 20, paddingBottom: 40 },
+  resultHero: { position: "relative", overflow: "hidden", borderColor: C.gold, borderWidth: hairline, borderRadius: 22, backgroundColor: C.panel, paddingVertical: 20, paddingHorizontal: 12, marginBottom: 6 },
+  resultHeroArt: { ...StyleSheet.absoluteFillObject, width: undefined, height: undefined, opacity: 0.28 },
   brand: { fontSize: 18, ...displayFont, textAlign: "center", marginTop: 8 },
   title: { color: C.gold, fontSize: 44, ...displayFont, textAlign: "center", lineHeight: 48, marginTop: 10 },
   crownBig: { alignItems: "center", marginVertical: 10 },
@@ -269,8 +293,9 @@ const styles = StyleSheet.create({
   formula: { color: C.muted, fontSize: 8, lineHeight: 12, textAlign: "center", letterSpacing: 0.5, marginBottom: 8 },
   ticket: {
     borderColor: C.gold, borderWidth: 2, borderRadius: 20,
-    backgroundColor: C.panel, padding: 20, alignItems: "center", marginTop: 8, marginBottom: 18,
+    backgroundColor: C.panel, padding: 20, alignItems: "center", marginTop: 8, marginBottom: 18, overflow: "hidden",
   },
+  ticketArt: { ...StyleSheet.absoluteFillObject, width: undefined, height: undefined, opacity: 0.1 },
   tHead: { fontSize: 22, ...displayFont },
   tSub: { color: C.muted, fontSize: 10, letterSpacing: 1.5, marginTop: 4, marginBottom: 8 },
   tCrownRow: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
@@ -299,6 +324,10 @@ const styles = StyleSheet.create({
     borderRadius: 99, paddingHorizontal: 10, paddingVertical: 5,
   },
   badgeLabel: { color: C.gold, fontSize: 10, fontWeight: "800" },
+  challengeVisual: { position: "relative", height: 118, borderRadius: 17, overflow: "hidden", borderColor: C.lineStrong, borderWidth: 1, marginBottom: 14, justifyContent: "flex-end" },
+  challengeVisualArt: { ...StyleSheet.absoluteFillObject, width: undefined, height: undefined },
+  challengeVisualShade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(5,6,8,0.44)" },
+  challengeVisualTxt: { color: C.text, fontSize: 13, ...displayFont, textAlign: "center", padding: 13, letterSpacing: 0.7 },
   shareLbl: { ...type.section, textAlign: "center", marginBottom: 10 },
   shareRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
   sharePlatform: { flex: 1, borderWidth: 1, borderRadius: 12, minHeight: 44, alignItems: "center", justifyContent: "center", backgroundColor: C.panelDeep },

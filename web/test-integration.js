@@ -217,8 +217,9 @@ runSection("1 LOBBIES", [p("lobbies.js")], (t) => {
       }
     }
     const ls = last.stats || {};
-    const fsOk = lb.finalScore && ls.g1 === lb.finalScore.g1 && ls.g2 === lb.finalScore.g2;
-    t.ok(fsOk, `${id}: finalScore ${JSON.stringify(lb.finalScore)} == final stats ${ls.g1}-${ls.g2}`);
+    const score = lb.finalScore || lb.observedScore;
+    const fsOk = score && ls.g1 === score.g1 && ls.g2 === score.g2;
+    t.ok(fsOk, `${id}: ${lb.finalScore ? "finalScore" : "observedScore"} ${JSON.stringify(score)} == final stats ${ls.g1}-${ls.g2}`);
 
     const fx = lb.fixture || {};
     const fxOk = fx.FixtureId != null && fx.Competition && fx.Participant1 && fx.Participant2 && fx.StartTime && typeof fx.Participant1IsHome === "boolean";
@@ -517,7 +518,7 @@ runSection("5 SERVERLESS", [p("api", "txline.js")], (t) => {
    play.html = THE GAME (engine + LiveFeed + share + vrf).
    ============================================================ */
 runSection("6 UI STATIC", [p("index.html"), p("login.html"), p("play.html"), p("pitch.html"), p("privacy.html")], (t) => {
-  const PAGES = ["index.html", "login.html", "play.html", "pitch.html", "privacy.html"];
+  const PAGES = ["index.html", "login.html", "play.html", "pitch.html", "privacy.html", "og.html"];
   const html = {};
   for (const f of PAGES) html[f] = readText(p(f));
 
@@ -543,9 +544,25 @@ runSection("6 UI STATIC", [p("index.html"), p("login.html"), p("play.html"), p("
   t.ok(/location\.(href|replace)\s*[=(]\s*['"`]\/play['"`]\s*\+\s*location\.search|['"`]\/play['"`]\s*\+\s*location\.search/.test(html["login.html"]),
     "login.html: forwards location.search to /play");
   t.ok(/guest/i.test(html["login.html"]), "login.html: has a guest path (mentions 'guest')");
+  t.ok(/assets\/world-football\/tunnel-final\.webp/.test(html["login.html"]),
+    "login.html: turns the handle gate into a football tunnel moment");
+  t.ok(/RESULT_CARD_ART[\s\S]*crown-confetti\.webp/.test(html["play.html"]),
+    "play.html: paints championship art into the exported streak card");
+  t.ok(/stadium-night\.webp/.test(html["og.html"]) && /crown-trophy\.webp/.test(html["og.html"]),
+    "og.html: uses the stadium and crown-trophy campaign art");
   t.ok(/fixture=18222446[^"']*demo=1/.test(html["pitch.html"]), "pitch.html: judge CTA uses the complete proof-backed fixture");
   t.ok(/REAL[\s\S]*SIMULATED[\s\S]*NEXT/.test(html["pitch.html"]), "pitch.html: distinguishes shipped, simulated, and next");
   t.ok(/Delete local data|Clear the site's storage/i.test(html["privacy.html"]), "privacy.html: explains local-data deletion");
+
+  const worldArt = [
+    "stadium-night", "crown-trophy", "fans-erupt", "tunnel-final", "penalty-spot",
+    "trophy-lift", "global-football-network", "fan-faceoff", "live-data-pitch", "crown-confetti",
+  ];
+  const visualPages = html["index.html"] + html["play.html"] + html["pitch.html"];
+  t.ok(worldArt.every(name => exists(p("assets", "world-football", `${name}.webp`))),
+    "all ten original world-football WebP assets exist");
+  t.ok(worldArt.every(name => visualPages.includes(`assets/world-football/${name}.webp`)),
+    "all ten world-football assets have an intentional web placement");
 
   // og:image must reference /og.png and the file must exist on disk
   let ogRefs = 0, ogBad = null;

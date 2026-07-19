@@ -1,7 +1,7 @@
 // Server-side TxLINE SSE bridge for the native app. Credentials remain in
 // Vercel environment variables and never ship in the Expo bundle.
 const HOST = process.env.TXLINE_HOST || "https://txline-dev.txodds.com";
-const FIXTURES = new Set(["18257865", "18241006", "18237038", "18222446", "18213979", "17588232"].concat(String(process.env.TXLINE_FIXTURE_ALLOWLIST || "").split(",").map(v => v.trim()).filter(Boolean)));
+const FIXTURES = new Set(["18257865", "18241006", "18237038", "18222446", "18213979", "17588232", "18257739"].concat(String(process.env.TXLINE_FIXTURE_ALLOWLIST || "").split(",").map(v => v.trim()).filter(Boolean)));
 
 export default async function handler(req, res) {
   if (req.method !== "GET") { res.setHeader("Allow", "GET"); res.status(405).json({ ok: false, reason: "method-not-allowed" }); return; }

@@ -16,9 +16,11 @@ interface LivePending { question: L.Question; myPick: L.Side | null; botPicks: A
 interface Props { settings: GameSettings; onEnd: (result: GameResult) => void; }
 
 const WINDOW_MINUTES = 5;
-// Defaults match live-service's default fixture (France v England, 18257865).
-const TEAM_1 = process.env.EXPO_PUBLIC_LIVE_TEAM_1 || "France";
-const TEAM_2 = process.env.EXPO_PUBLIC_LIVE_TEAM_2 || "England";
+// The lobby only enables Live after fixture, kickoff, and team metadata agree.
+// Generic labels are a defensive fallback, never a fixture claim.
+const LIVE = liveStatus();
+const TEAM_1 = LIVE.team1 || "Team 1";
+const TEAM_2 = LIVE.team2 || "Team 2";
 const CODE_1 = TEAM_1.slice(0, 3).toUpperCase();
 const CODE_2 = TEAM_2.slice(0, 3).toUpperCase();
 
@@ -95,7 +97,7 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
       return;
     }
     if (!pending && nextWindowRef.current != null && event.minute >= nextWindowRef.current) startWindow(nextWindowRef.current);
-    if (/game_finalised|fulltime/i.test(event.type)) endGame();
+    if (/game_finalised/i.test(event.type)) endGame();
   }
 
   function startWindow(fromMinute: number) {

@@ -3,81 +3,57 @@
 <meta name="viewport" content="width=1200,initial-scale=1">
 <title>Hi-Lo Royale — social card 1200x630</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
 <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,800,900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:1200px;height:630px;background:#050608;overflow:hidden}
-#card{position:absolute;top:0;left:0;width:1200px;height:630px;background:#050608;overflow:hidden;font-family:"DM Sans",system-ui,sans-serif;color:#f4f7fb}
-
-/* glows */
-.glow{position:absolute;border-radius:50%;filter:blur(2px)}
-#glow-gold{top:-320px;left:-220px;width:760px;height:760px;background:radial-gradient(circle,rgba(255,213,74,.20) 0%,rgba(255,213,74,.06) 45%,rgba(255,213,74,0) 70%)}
-#glow-cyan{bottom:-340px;right:-240px;width:820px;height:820px;background:radial-gradient(circle,rgba(46,230,255,.16) 0%,rgba(46,230,255,.05) 45%,rgba(46,230,255,0) 70%)}
-#glow-red{top:-260px;right:-160px;width:560px;height:560px;background:radial-gradient(circle,rgba(255,59,92,.12) 0%,rgba(255,59,92,0) 65%)}
-#grid{position:absolute;top:0;left:0;width:1200px;height:630px;background:
-  repeating-linear-gradient(0deg,rgba(28,36,51,.35) 0 1px,transparent 1px 60px),
-  repeating-linear-gradient(90deg,rgba(28,36,51,.35) 0 1px,transparent 1px 60px)}
-#vignette{position:absolute;top:0;left:0;width:1200px;height:630px;background:radial-gradient(ellipse 900px 520px at 600px 300px,transparent 55%,rgba(5,6,8,.85) 100%)}
-
-/* frame ticks (ticket feel) */
-.tick{position:absolute;background:#334057}
-#tick-tl-h{top:36px;left:36px;width:34px;height:2px}#tick-tl-v{top:36px;left:36px;width:2px;height:34px}
-#tick-tr-h{top:36px;right:36px;width:34px;height:2px}#tick-tr-v{top:36px;right:36px;width:2px;height:34px}
-#tick-bl-h{bottom:36px;left:36px;width:34px;height:2px}#tick-bl-v{bottom:36px;left:36px;width:2px;height:34px}
-#tick-br-h{bottom:36px;right:36px;width:34px;height:2px}#tick-br-v{bottom:36px;right:36px;width:2px;height:34px}
-
-/* crown */
-#crown{position:absolute;top:74px;left:558px;width:84px;height:84px;filter:drop-shadow(0 0 26px rgba(255,213,74,.55))}
-
-/* wordmark */
-#title{position:absolute;top:168px;left:0;width:1200px;text-align:center;font-family:"Cabinet Grotesk","DM Sans",sans-serif;font-weight:900;font-style:italic;font-size:118px;line-height:1;letter-spacing:-.01em;white-space:nowrap}
-#title .g{color:#ffd54a;text-shadow:0 0 52px rgba(255,213,74,.45)}
-
-/* tagline */
-#tag{position:absolute;top:318px;left:0;width:1200px;text-align:center;font-size:34px;font-weight:600;color:#f4f7fb;letter-spacing:.01em}
-#tag b{color:#ffd54a;font-weight:700}
-
-/* HI / LO chips */
-.chip{position:absolute;top:398px;width:170px;height:64px;border-radius:16px;background:rgba(7,9,13,.82);text-align:center;line-height:60px;font-family:"Cabinet Grotesk","DM Sans",sans-serif;font-weight:900;font-style:italic;font-size:30px;letter-spacing:.06em}
-#chip-hi{left:416px;border:2px solid #2ee6ff;color:#2ee6ff;box-shadow:0 0 30px rgba(46,230,255,.28)}
-#chip-lo{left:614px;border:2px solid #ff3b5c;color:#ff3b5c;box-shadow:0 0 30px rgba(255,59,92,.28)}
-.chip svg{width:22px;height:22px;vertical-align:-2px;margin-right:10px}
-
-/* divider + footer */
-#rule{position:absolute;top:522px;left:200px;width:800px;height:1px;background:linear-gradient(90deg,rgba(51,64,87,0),#334057 20%,#334057 80%,rgba(51,64,87,0))}
-#foot{position:absolute;top:552px;left:0;width:1200px;text-align:center;font-size:22px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#93a1b5;white-space:nowrap}
-#foot .dot{color:#ffd54a;padding:0 18px}
+#card{position:relative;width:1200px;height:630px;overflow:hidden;font-family:"DM Sans",system-ui,sans-serif;color:#f4f7fb;background:#050608}
+.stadium{position:absolute;inset:0;background:url('assets/world-football/stadium-night.webp') 50% 56%/cover no-repeat;filter:saturate(.88) contrast(1.05);transform:scale(1.015)}
+.wash{position:absolute;inset:0;background:linear-gradient(90deg,rgba(3,5,8,.97) 0%,rgba(3,5,8,.91) 39%,rgba(3,5,8,.56) 65%,rgba(3,5,8,.23) 100%),linear-gradient(180deg,rgba(3,5,8,.35),rgba(3,5,8,.03) 48%,rgba(3,5,8,.8)),radial-gradient(circle at 83% 44%,rgba(255,213,74,.18),transparent 31%)}
+.grain{position:absolute;inset:0;opacity:.22;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.16'/%3E%3C/svg%3E")}
+.trophy{position:absolute;top:-48px;right:-38px;width:570px;height:720px;background:linear-gradient(180deg,rgba(5,6,8,.02),rgba(5,6,8,.1) 64%,rgba(5,6,8,.88)),url('assets/world-football/crown-trophy.webp') center 42%/cover no-repeat;clip-path:polygon(18% 0,100% 0,100% 100%,0 100%);filter:saturate(.98) contrast(1.05)}
+.trophy::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(5,6,8,.65),transparent 30%)}
+.frame{position:absolute;inset:24px;border:1px solid rgba(244,247,251,.18);border-radius:22px}
+.frame::before,.frame::after{content:"";position:absolute;width:96px;height:4px;top:-2px;background:#ffd54a;border-radius:3px}
+.frame::before{left:44px}.frame::after{right:44px}
+.top{position:absolute;left:64px;right:64px;top:49px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:14px;font-family:"Cabinet Grotesk","DM Sans",sans-serif;font-weight:900;font-style:italic;font-size:25px;letter-spacing:.015em}
+.mark{display:grid;place-items:center;width:43px;height:43px;border-radius:12px;color:#241704;background:linear-gradient(145deg,#ffe36d,#ff9f1a);box-shadow:0 8px 26px rgba(255,159,26,.25)}
+.mark svg{width:27px;height:27px}
+.brand em{color:#ffd54a;font-style:inherit}
+.live{display:flex;align-items:center;gap:10px;padding:10px 15px;border-radius:999px;background:rgba(5,7,10,.7);border:1px solid rgba(244,247,251,.2);font-size:13px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.live i{display:block;width:9px;height:9px;border-radius:50%;background:#ff3b5c;box-shadow:0 0 14px #ff3b5c}
+.copy{position:absolute;left:66px;top:147px;width:675px}
+.eyebrow{display:flex;align-items:center;gap:12px;color:#ffd54a;font-size:14px;font-weight:800;letter-spacing:.19em;text-transform:uppercase;margin-bottom:18px}
+.eyebrow::before{content:"";display:block;width:34px;height:3px;background:#ffd54a;border-radius:2px}
+h1{font-family:"Cabinet Grotesk","DM Sans",sans-serif;font-size:84px;line-height:.86;letter-spacing:-.045em;font-weight:900;font-style:italic;text-wrap:balance;text-shadow:0 10px 40px rgba(0,0,0,.72)}
+h1 span{display:block;color:#ffd54a}
+.sub{margin-top:24px;width:580px;color:#d7deea;font-size:23px;line-height:1.38;font-weight:600;text-shadow:0 3px 18px rgba(0,0,0,.82)}
+.chips{position:absolute;left:66px;bottom:58px;display:flex;gap:10px}
+.chip{display:flex;align-items:center;gap:8px;padding:11px 14px;border:1px solid rgba(244,247,251,.2);border-radius:10px;background:rgba(5,7,10,.7);color:#d4dbe6;font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.chip i{width:7px;height:7px;border-radius:50%;background:#2ee6ff;box-shadow:0 0 11px rgba(46,230,255,.8)}
+.chip:nth-child(2) i{background:#ffd54a;box-shadow:0 0 11px rgba(255,213,74,.8)}
+.chip:nth-child(3) i{background:#ff3b5c;box-shadow:0 0 11px rgba(255,59,92,.8)}
+.url{position:absolute;right:58px;bottom:56px;color:rgba(244,247,251,.82);font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;text-shadow:0 2px 14px rgba(0,0,0,.9)}
 </style></head>
 <body>
-<div id="card">
-  <div class="glow" id="glow-gold"></div>
-  <div class="glow" id="glow-cyan"></div>
-  <div class="glow" id="glow-red"></div>
-  <div id="grid"></div>
-  <div id="vignette"></div>
-
-  <div class="tick" id="tick-tl-h"></div><div class="tick" id="tick-tl-v"></div>
-  <div class="tick" id="tick-tr-h"></div><div class="tick" id="tick-tr-v"></div>
-  <div class="tick" id="tick-bl-h"></div><div class="tick" id="tick-bl-v"></div>
-  <div class="tick" id="tick-br-h"></div><div class="tick" id="tick-br-v"></div>
-
-  <svg id="crown" viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M3 7l4 4 5-7 5 7 4-4-1.5 12H4.5L3 7z" fill="#ffd54a"/>
-  </svg>
-
-  <div id="title">HI-LO <span class="g">ROYALE</span></div>
-
-  <div id="tag">100 fans enter. <b>One survives the stats.</b></div>
-
-  <div class="chip" id="chip-hi">
-    <svg viewBox="0 0 24 24" fill="none" stroke="#2ee6ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>HI
+<main id="card" aria-label="Hi-Lo Royale social preview">
+  <div class="stadium"></div><div class="wash"></div><div class="trophy"></div><div class="grain"></div><div class="frame"></div>
+  <header class="top">
+    <div class="brand"><span class="mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l4 4 5-7 5 7 4-4-1.5 12H4.5L3 7z" fill="currentColor"/></svg></span>HI-LO <em>ROYALE</em></div>
+    <div class="live"><i></i>Live match prediction battle</div>
+  </header>
+  <section class="copy">
+    <div class="eyebrow">Global football. Every moment counts.</div>
+    <h1>100 FANS.<span>ONE CROWN.</span></h1>
+    <p class="sub">Call each real match moment higher or lower. Miss once and the crowd moves on without you.</p>
+  </section>
+  <div class="chips" aria-label="Product highlights">
+    <div class="chip"><i></i>Real match tape</div>
+    <div class="chip"><i></i>6-second calls</div>
+    <div class="chip"><i></i>Challenge friends</div>
   </div>
-  <div class="chip" id="chip-lo">
-    <svg viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>LO
-  </div>
-
-  <div id="rule"></div>
-  <div id="foot">real World Cup data<span class="dot">&middot;</span>provable on Solana</div>
-</div>
+  <div class="url">hilo-royale.vercel.app</div>
+</main>
 </body></html>

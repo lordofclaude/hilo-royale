@@ -99,15 +99,17 @@ async function main() {
   eq("latestOdds without id fails soft", loBad.ok, false);
 
   console.log("poll: dedupe + cumulative monotonic events + odds");
-  const events = [], odds = [], statuses = [];
+  const events = [], odds = [], statuses = [], heartbeats = [];
   const h = LiveFeed.poll("fx-18257865", { // non-digits must be stripped from fixtureId
     intervalMs: 3600000, // effectively: only manual tick()s during the test
     onScoreEvent: e => events.push(e),
     onOdds: o => odds.push(o),
     onStatus: s => statuses.push(s),
+    onHeartbeat: beat => heartbeats.push(beat),
   });
   await h.tick();            // joins the initial cycle → window 1
   await h.tick();            // window 2 (overlapping, shuffled, stale update)
+  await h.tick();            // healthy but unchanged window
 
   eq("fixtureId digits-only in proxy calls", calls.filter(u => /mode=scores/.test(u)).every(u => u.includes("fixtureId=18257865")), true);
   eq("status went live", statuses[0], "live");
@@ -139,6 +141,8 @@ async function main() {
   eq("first odds triple", { p1: odds[0].p1, draw: odds[0].draw, p2: odds[0].p2 }, { p1: 33.2, draw: 42.6, p2: 24.2 });
   eq("second odds triple", { p1: odds[1].p1, draw: odds[1].draw, p2: odds[1].p2 }, { p1: 43.7, draw: 27.4, p2: 28.9 });
   ok("NA / non-1X2 payloads never emitted", odds.every(o => [o.p1, o.draw, o.p2].every(Number.isFinite)));
+  eq("healthy unchanged polls still emit transport heartbeats", heartbeats.length, 3);
+  eq("healthy unchanged poll does not duplicate game events", events.length, 6);
 
   console.log("poll: network failure degrades to idle, never throws");
   failNetwork = true;

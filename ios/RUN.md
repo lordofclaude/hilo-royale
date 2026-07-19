@@ -112,7 +112,7 @@ The app now keeps these as two explicit modes:
   actual match time: 1×, 15×, 30× (recommended demo), or 60×. Answer and reveal
   timing are configurable in Match Control.
 - **Live** uses `src/lib/live-service.ts` to read
-  `GET /api/scores/stream?fixtureId=…` over SSE. Predictions lock in 8–15 seconds
+  `GET /api/txline-stream?fixtureId=…` over SSE. Predictions lock in 8–15 seconds
   but resolve only when the real five-minute stat window closes; outcomes are
   never precomputed.
 
@@ -123,12 +123,18 @@ Expo public variables are shipped in the app binary.
 ```powershell
 $env:EXPO_PUBLIC_HILO_API_URL='https://hilo-royale.vercel.app'
 $env:EXPO_PUBLIC_TXLINE_FIXTURE_ID='<live fixture id>'
+$env:EXPO_PUBLIC_TXLINE_KICKOFF_MS='<fixture kickoff as Unix milliseconds>'
 $env:EXPO_PUBLIC_LIVE_TEAM_1='Argentina'
 $env:EXPO_PUBLIC_LIVE_TEAM_2='Morocco'
 pnpm start
 ```
 
 Configure `TXLINE_JWT` and `TXLINE_API_TOKEN` in the Vercel/backend environment.
+Native Live remains disabled outside the window from 15 minutes before kickoff
+through three hours after kickoff, preventing stale fixtures from appearing as
+"LIVE NOW." The checked-in default is Spain–Argentina (`18257739`, 19 July
+2026 at 19:00 UTC); overriding its fixture also requires the matching kickoff
+and both team names. Preflight the stream before using it on stage.
 
 Google OAuth is implemented with `expo-auth-session`. It requests profile
 identity only — never Gmail/IMAP mailbox access:
@@ -140,8 +146,8 @@ pnpm start
 ```
 
 Without OAuth client IDs the code shows a transparent configuration note and
-allows a local demo identity. Without live TxLINE variables the Live button is
-disabled and explains which variable is missing.
+allows a local demo identity. Outside the configured kickoff window the Live
+button is disabled and explains why; replay mode is always available.
 
 For real cross-device lobby/squad presence, run the included zero-dependency
 room service (locally on the same Wi-Fi or deployed behind HTTPS):

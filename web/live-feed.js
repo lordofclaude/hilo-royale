@@ -10,7 +10,7 @@
    Public API (window.LiveFeed / module.exports):
      LiveFeed.latestOdds(fixtureId)
        -> Promise<{ok:true,p1,draw,p2,ts} | {ok:false,reason}>   // percents 0-100
-     LiveFeed.poll(fixtureId, {intervalMs=15000, onScoreEvent, onOdds, onStatus})
+     LiveFeed.poll(fixtureId, {intervalMs=15000, onScoreEvent, onOdds, onStatus, onHeartbeat})
        -> {stop(), tick()}    // tick() is exposed for tests: runs/joins one cycle
      LiveFeed.isLive(kickoffMs, nowMs=Date.now())
        -> bool                // kickoff-10min .. kickoff+150min inclusive
@@ -409,6 +409,11 @@
         if (sawData) setStatus("live");
         else if (err) setStatus("error:" + err);
         else setStatus("idle"); // no creds / empty window / network down → quiet idle
+        // A quiet football match is still a healthy feed. Consumers should use
+        // this transport heartbeat—not only new goals/odds—to detect stalls.
+        if (Array.isArray(scores) && Array.isArray(odds)) {
+          safeCall(opts.onHeartbeat, { at: Date.now(), scoresOk: true, oddsOk: true });
+        }
       }).catch(function () {
         if (!st.stopped) setStatus("idle");
       }).then(function () { st.inFlight = null; });

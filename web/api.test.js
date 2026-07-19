@@ -47,6 +47,14 @@ async function main() {
   eq("stream rejects POST", (await call(stream, { method: "POST", query: {}, headers: {}, on() {} })).statusCode, 405);
   eq("stream rejects malformed fixture", (await call(stream, { method: "GET", query: { fixtureId: "%" }, headers: {}, on() {} })).statusCode, 400);
 
+  let streamedFinal = false;
+  const finalStream = loadHandler("txline-stream.js", { TXLINE_JWT: "secret", TXLINE_API_TOKEN: "secret" }, async url => {
+    streamedFinal = url.includes("fixtureId=18257739");
+    return { ok: true, body: { getReader: () => ({ read: async () => ({ done: true }) }) } };
+  });
+  const finalResponse = await call(finalStream, { method: "GET", query: { fixtureId: "18257739" }, headers: {}, on() {} });
+  eq("stream allowlist includes the World Cup final", { status: finalResponse.statusCode, fetched: streamedFinal }, { status: 200, fetched: true });
+
   console.log(`\napi.test.js: ${pass} passed, ${fail} failed`);
   process.exitCode = fail ? 1 : 0;
 }

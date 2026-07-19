@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Image, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
 import { C, displayFont, glow, type } from "../theme";
@@ -76,6 +76,12 @@ export default function LoginScreen({ onSignedIn }: Props) {
 
   return (
     <View style={styles.root}>
+      <Image
+        source={require("../../assets/world-football/tunnel-final.jpg")}
+        resizeMode="cover"
+        style={styles.backgroundArt}
+        accessibilityIgnoresInvertColors
+      />
       <View style={styles.lightLeft} />
       <View style={styles.lightRight} />
       <FadeIn dy={8}>
@@ -123,6 +129,7 @@ export default function LoginScreen({ onSignedIn }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg, paddingHorizontal: 22, justifyContent: "center", overflow: "hidden" },
+  backgroundArt: { ...StyleSheet.absoluteFillObject, width: undefined, height: undefined, opacity: 0.24 },
   lightLeft: { position: "absolute", width: 180, height: 180, borderRadius: 90, left: -110, top: 110, backgroundColor: C.hiSoft },
   lightRight: { position: "absolute", width: 220, height: 220, borderRadius: 110, right: -140, bottom: 100, backgroundColor: C.loSoft },
   title: { color: C.text, fontSize: 48, lineHeight: 48, ...displayFont, textAlign: "center" },

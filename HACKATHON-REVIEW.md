@@ -59,7 +59,8 @@ and must remain labeled as such.
 11. **Make live ingestion revision-aware and recoverable.** Provisional semantic
     actions wait for confirmation; `action_discarded` can no longer become a
     bogus card; initial silence and later stalls trigger visible replay fallback
-    without rewinding the match.
+    without rewinding the match. Healthy no-change polls emit transport
+    heartbeats, so an ordinary quiet passage is not mistaken for a dead feed.
 
 12. **Harden the TxLINE web API.** Added GET-only contracts, fixture/mode
     allowlists, upstream timeout and size bounds, structured status codes,
@@ -70,6 +71,7 @@ and must remain labeled as such.
     SSE bridge. The bridge now validates requests, aborts idle/disconnected
     upstreams, and iOS normalizes raw TxLINE fields, dedupes actions, isolates
     malformed frames, reconnects, and only finishes on a confirmed final event.
+    Fixture, kickoff, and both team labels must agree before native Live enables.
 
 14. **Fix round-settlement races.** Live rounds synchronously mark themselves
     resolved, replay answers wait for the match window boundary, and stream
@@ -89,6 +91,7 @@ and must remain labeled as such.
     Google configuration, added accessible tabs/answers/status, stopped room
     presence from blocking Join, added HTTPS challenges, minimized stored Google
     fields, linked a privacy notice, and added “Delete local data.”
+    A production-size branded app icon and splash asset now ship in Expo config.
 
 18. **Bound the prototype room service.** Malformed room URLs no longer crash the
     process; origins, IDs, rooms, players, clients, and join rates are bounded;
@@ -143,3 +146,8 @@ and must remain labeled as such.
   web fallbacks; complete native handoff when those signing details are known.
 - Use iOS replay mode on stage unless a fixture is demonstrably inside its live
   window and the backend stream passes preflight.
+- Dependency audit follow-up: Expo's build-only chain still reports a moderate
+  transitive `uuid` advisory. The separate devnet proof tooling reports that
+  advisory plus `bigint-buffer`; its advisory names `1.1.6`, but that version is
+  not published. Neither package is imported by the web or iOS gameplay runtime;
+  re-audit and upgrade the upstream toolchains before production custody work.

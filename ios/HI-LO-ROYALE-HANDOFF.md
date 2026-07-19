@@ -385,6 +385,7 @@ pnpm start
 ```powershell
 $env:EXPO_PUBLIC_HILO_API_URL='https://hilo-royale.vercel.app'
 $env:EXPO_PUBLIC_TXLINE_FIXTURE_ID='<live fixture id>'
+$env:EXPO_PUBLIC_TXLINE_KICKOFF_MS='<fixture kickoff as Unix milliseconds>'
 $env:EXPO_PUBLIC_LIVE_TEAM_1='<team one>'
 $env:EXPO_PUBLIC_LIVE_TEAM_2='<team two>'
 pnpm start
@@ -392,6 +393,13 @@ pnpm start
 
 `TXLINE_JWT` and `TXLINE_API_TOKEN` belong only in the backend environment.
 Never expose either through an `EXPO_PUBLIC_*` variable.
+
+The native Live choice is available only from 15 minutes before the configured
+kickoff through three hours afterward. Verify the backend SSE stream before a
+stage demo; otherwise use the deterministic replay path. The checked-in default
+is Spain–Argentina (`18257739`, 19 July 2026 at 19:00 UTC). If the fixture is
+overridden, kickoff and both team variables must be overridden with matching
+metadata too.
 
 Never commit these values. Expo `EXPO_PUBLIC_` variables are compiled into the client and are not secret storage; production should proxy privileged access through a backend with short-lived user/session authorization.
 
