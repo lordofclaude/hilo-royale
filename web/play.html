@@ -392,7 +392,7 @@ footer b{color:var(--muted)}
         <button class="btn" id="start"><svg class="ic"><use href="#i-bolt"/></svg>Join lobby &amp; start</button>
         <button class="btn ghost" id="startlive" style="display:none;margin-top:.6rem"><svg class="ic" style="color:var(--success)"><use href="#i-bolt"/></svg>ENTER LIVE LOBBY</button>
         <div class="note" id="livenote" style="display:none"><b>This fixture is inside its live window.</b> LIVE LOBBY drives the scoreboard from the real TxLINE feed as it updates; questions still come from the schedule engine. If the feed goes quiet for ~20s we fall back to the replay tape and say so.</div>
-        <div class="note" id="vrfnote" style="display:none"><svg class="ic" style="color:var(--hi)"><use href="#i-shield"/></svg> <b>Provably fair</b> — bots, picks and tie-breaks are seeded by <a id="vrflink" href="#" target="_blank" rel="noopener">ORAO VRF randomness on Solana</a>.</div>
+        <div class="note" id="vrfnote" style="display:none"><svg class="ic" style="color:var(--hi)"><use href="#i-shield"/></svg> <b>Verifiable seed source</b> — prototype bots and tie-breaks use <a id="vrflink" href="#" target="_blank" rel="noopener">ORAO VRF randomness on Solana</a>; per-lobby commitments are next.</div>
         <div class="note" id="proofnote" style="display:none"><svg class="ic" style="color:var(--gold)"><use href="#i-check"/></svg> <b>Score proven on-chain</b> — <a id="prooflink" href="#" target="_blank" rel="noopener">validateStatV2 tx on Solscan</a>.</div>
         <div class="note" id="capturenote" style="display:none"></div>
         <div class="note">Replay lobbies run on real World Cup matches pulled from the live TxLINE feed. Same engine as the iOS app.</div>
@@ -463,7 +463,13 @@ if(VRF){$('vrfnote').style.display='block';$('vrffootwrap').style.display='inlin
 /* ---------------- game-agnostic lobby select ---------------- */
 const LOBBIES=window.LOBBIES||[];
 const DAILY_IDS=['18257865','18222446','18237038','18241006'];
-function dailyIdx(){const k=new Date().toISOString().slice(0,10);let h=2166136261;for(const c of k)h=Math.imul(h^c.charCodeAt(0),16777619);const id=DAILY_IDS[(h>>>0)%DAILY_IDS.length];return Math.max(0,LOBBIES.findIndex(l=>l.fixtureId===id));}
+/* DEMO PIN: France v England (18257865) is the featured lobby — real data
+   captured live during the Jul 18 quarter-final. To restore daily rotation,
+   remove FEATURED_ID and the early return. */
+const FEATURED_ID='18257865';
+function dailyIdx(){
+  const pin=LOBBIES.findIndex(l=>l.fixtureId===FEATURED_ID);if(pin>=0)return pin;
+  const k=new Date().toISOString().slice(0,10);let h=2166136261;for(const c of k)h=Math.imul(h^c.charCodeAt(0),16777619);const id=DAILY_IDS[(h>>>0)%DAILY_IDS.length];return Math.max(0,LOBBIES.findIndex(l=>l.fixtureId===id));}
 const wanted=new URLSearchParams(location.search).get('fixture');
 const LOBBY=LOBBIES.find(l=>l.fixtureId===wanted)||LOBBIES[dailyIdx()]||LOBBIES[0];
 const DEMO=new URLSearchParams(location.search).get('demo')==='1';
@@ -471,7 +477,7 @@ const FIXTURE=LOBBY.fixture,E=LOBBY.events;
 const teamCode=n=>String(n||'').slice(0,3).toUpperCase();
 const CODE1=teamCode(FIXTURE.Participant1),CODE2=teamCode(FIXTURE.Participant2);
 const LOBBY_ID=`${CODE1}-${CODE2}-${LOBBY.fixtureId.slice(-3)}`;
-const FINAL_SCORE=LOBBY.finalScore;
+const FINAL_SCORE=LOBBY.finalScore||LOBBY.observedScore;
 /* hero */
 $('lobbyid').textContent=LOBBY_ID;
 $('comp').textContent=FIXTURE.Competition+(LOBBY.tag?' · '+LOBBY.tag:'');
@@ -625,7 +631,7 @@ const NB=['Lion','Fox','Eagle','Baller','Keeper','Winger','Nutmeg','Panenka','Ro
 const fanName=i=>i===44?(FAN&&FAN.handle||'YOU'):'@'+NA[i%20]+NB[(i*7+3)%20]+(i%4===0?String(i):'');
 let bots=[];
 for(let i=0;i<100;i++){
-  const d=document.createElement('div');d.className='dot'+(i===44?' me':'');d.title=fanName(i);
+  const d=document.createElement('div');d.className='dot'+(i===44?' me':'');d.title=fanName(i);d.setAttribute('aria-hidden','true');
   $('crowd').appendChild(d);
   bots.push({el:d,name:fanName(i),alive:true,skill:.45+rng()*.25,isMe:i===44});
 }
@@ -967,7 +973,7 @@ function drawStreakCard(o){
   c.fillStyle='#93a1b5';c.font=`600 34px ${BFONT}`;c.fillText('QUESTION STREAK',W/2,o.won?792:756);
   c.fillStyle='rgba(46,230,255,.14)';roundRect(c,W/2-330,H*.62+40,660,86,43);c.fill();
   c.fillStyle='#2ee6ff';c.font=`italic 900 40px ${DFONT}`;
-  c.fillText(`OUTLIVED ${o.outlivedCount} OF 99 FANS`,W/2,H*.62+98);
+  c.fillText(`OUTLIVED ${o.outlivedCount} OF 99 RIVALS`,W/2,H*.62+98);
   c.fillStyle='#f4f7fb';c.font=`italic 700 38px ${DFONT}`;
   c.fillText(`${CODE1} ${FINAL_SCORE.g1} – ${FINAL_SCORE.g2} ${CODE2} · ${LOBBY.captureStatus==='partial'?'SCORE AT '+(LOBBY.capturedThroughMinute||'?')+'′':FIXTURE.Competition}`,W/2,H*.62+190);
   c.fillStyle='#93a1b5';c.font=`500 28px ${BFONT}`;
@@ -1009,7 +1015,7 @@ function startReplay(fromMinute=-1){
 }
 function startLive(){
   liveMode=true;setDataChip('wait','LIVE FEED · WAITING');
-  let gotSignal=false,lastSignal=Date.now(),fellBack=false;
+  let gotSignal=false,lastHeartbeat=Date.now(),fellBack=false;
   const fallBack=reason=>{
     if(fellBack||gameOver)return;fellBack=true;
     try{poller&&poller.stop&&poller.stop()}catch(e){}
@@ -1018,15 +1024,16 @@ function startLive(){
     startReplay(lastAcceptedMinute);
   };
   const poller=LF.poll(LOBBY.fixtureId,{intervalMs:15000,
-    onScoreEvent:e=>{gotSignal=true;lastSignal=Date.now();if(liveMode)setDataChip('live','LIVE FEED');
+    onScoreEvent:e=>{gotSignal=true;lastHeartbeat=Date.now();if(liveMode)setDataChip('live','LIVE FEED');
       handleEvent(e);
       if(e.type==='game_finalised'){liveDone=true;tapeDone=true;if(!pending&&!gameOver)advanceAfterTape();}},
-    onOdds:o=>{markLiveOdds(o);if(liveMode)setDataChip('live','LIVE FEED');gotSignal=true;lastSignal=Date.now();},
+    onOdds:o=>{markLiveOdds(o);if(liveMode)setDataChip('live','LIVE FEED');gotSignal=true;lastHeartbeat=Date.now();},
+    onHeartbeat:()=>{gotSignal=true;lastHeartbeat=Date.now();if(liveMode)setDataChip('live','LIVE FEED');},
     onStatus:s=>{if(s&&s.state==='error')setDataChip('wait','LIVE FEED · RETRYING');}});
   /* Continuous honesty watchdog: initial silence and later stalls both recover. */
   const watchdog=setInterval(()=>{
     if(gameOver||fellBack){clearInterval(watchdog);return;}
-    if(Date.now()-lastSignal>30000)fallBack(gotSignal?'Live feed stalled for 30s — continuing on the recorded tape.':'Live feed gave no signal — rolling the recorded tape instead.');
+    if(Date.now()-lastHeartbeat>30000)fallBack(gotSignal?'Live feed stalled for 30s — continuing on the recorded tape.':'Live feed gave no signal — rolling the recorded tape instead.');
   },5000);
 }
 function launch(live){
@@ -1056,6 +1063,16 @@ document.addEventListener('keydown',e=>{
 /* ---------------- first-visit: 3-step how-it-works (dismiss persisted) ---------------- */
 if(!store.get('seenHow',false)){$('howto').classList.add('open');setTimeout(()=>$('howok').focus(),0);}
 $('howok').onclick=()=>{store.set('seenHow',true);$('howto').classList.remove('open');$('quickstart').focus();AudioFX.init();};
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('howto').classList.contains('open'))$('howok').click();});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&$('howto').classList.contains('open')){$('howok').click();return;}
+  if(e.key!=='Tab')return;
+  const modal=$('howto').classList.contains('open')?$('howto'):$('winner').classList.contains('open')?$('winner'):null;
+  if(!modal)return;
+  const focusable=[...modal.querySelectorAll('button:not(:disabled),a[href],[tabindex]:not([tabindex="-1"])')].filter(el=>el.offsetParent!==null);
+  if(!focusable.length)return;
+  const first=focusable[0],last=focusable[focusable.length-1];
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+});
 </script>
 </body></html>

@@ -86,7 +86,16 @@ export const REPLAYS: ReplayFixture[] = [
   )),
 ];
 
+/** DEMO PIN: France v England (18257865) is the featured Daily Lobby — real
+ *  data captured live during the Jul 18 quarter-final. Remove the pin (set to
+ *  null) to restore the date-hashed daily rotation. */
+const FEATURED_FIXTURE_ID: string | null = "18257865";
+
 export function replayForDate(date = new Date()): ReplayFixture {
+  if (FEATURED_FIXTURE_ID) {
+    const pinned = REPLAYS.find(replay => replay.fixtureId === FEATURED_FIXTURE_ID);
+    if (pinned) return pinned;
+  }
   return REPLAYS[dailyIndex(dailyKey(date), REPLAYS.length)];
 }
 

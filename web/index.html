@@ -60,8 +60,9 @@ nav{position:fixed;top:0;left:0;right:0;z-index:10;padding:.65rem 0;padding-top:
 
 /* ---------- hero: the arena at night ---------- */
 .hero{position:relative;min-height:100svh;display:grid;place-items:center;text-align:center;overflow:hidden;scroll-snap-align:start;scroll-snap-stop:always}
-#arena{position:absolute;inset:0;width:100%;height:100%}
-.hero .veil{position:absolute;inset:0;background:radial-gradient(900px 600px at 50% 42%,transparent 0%,rgba(5,6,8,.72) 68%,var(--bg) 100%)}
+.hero-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 62%;filter:saturate(.9) contrast(1.06)}
+#arena{position:absolute;inset:0;width:100%;height:100%;opacity:.34;mix-blend-mode:screen}
+.hero .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,6,8,.3),rgba(5,6,8,.48) 44%,var(--bg) 100%),radial-gradient(780px 520px at 50% 40%,rgba(5,6,8,.08),rgba(5,6,8,.72) 72%)}
 .hcontent{position:relative;z-index:2;padding:5.5rem 1.2rem 4rem;max-width:820px}
 .livechip{display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,59,92,.1);border:1px solid rgba(255,59,92,.4);border-radius:999px;padding:.42rem 1rem;font-size:.78rem;font-weight:700;color:var(--lo);letter-spacing:.1em;text-transform:uppercase}
 .livechip .d{width:7px;height:7px;border-radius:50%;background:var(--lo);box-shadow:0 0 0 0 rgba(255,59,92,.55);animation:blip 1.6s infinite}
@@ -100,6 +101,16 @@ section{min-height:100svh;display:grid;align-content:center;padding:clamp(2.5rem
 .demobar i{display:block;height:100%;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
 .demobar .dh{background:rgba(46,230,255,.35);width:50%}
 .demobar .dl{background:rgba(255,59,92,.35);width:50%}
+.world-strip{display:grid;grid-template-columns:1.1fr .9fr 1.1fr;gap:.8rem;margin-top:1.2rem}
+.world-shot{position:relative;min-height:150px;border-radius:17px;overflow:hidden;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow-1)}
+.world-shot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .55s var(--ease),filter .55s var(--ease)}
+.world-shot:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(5,6,8,.88))}
+.world-shot figcaption{position:absolute;z-index:1;left:1rem;right:1rem;bottom:.8rem;color:var(--text);font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:.9rem;letter-spacing:.03em}
+@media(hover:hover){.world-shot:hover img{transform:scale(1.035);filter:saturate(1.12)}}
+.lobby-art{position:relative;height:clamp(120px,19vw,210px);border-radius:19px;overflow:hidden;border:1px solid rgba(46,230,255,.28);margin:-.8rem 0 1rem;box-shadow:var(--shadow-1)}
+.lobby-art img{width:100%;height:100%;object-fit:cover;filter:saturate(.85)}
+.lobby-art:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,6,8,.08),rgba(5,6,8,.82))}
+.lobby-art span{position:absolute;z-index:1;left:1.1rem;bottom:.85rem;color:var(--muted);font-size:.78rem;font-weight:750;letter-spacing:.06em;text-transform:uppercase}
 
 .lobbies{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.9rem}
 .lob{background:linear-gradient(180deg,rgba(244,247,251,.03),rgba(244,247,251,0) 46%),var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.15rem;text-decoration:none;transition:border-color .15s var(--ease),transform .2s var(--ease),box-shadow .2s var(--ease);display:block;box-shadow:var(--shadow-1)}
@@ -136,6 +147,9 @@ section{min-height:100svh;display:grid;align-content:center;padding:clamp(2.5rem
 @media(max-width:760px){.snapnav{display:none}}
 .kick .ki{font-size:.72em;vertical-align:-.06em;margin-right:.35rem}
 .final{text-align:center}
+.final{position:relative;overflow:hidden;background:linear-gradient(180deg,var(--bg),rgba(5,6,8,.62)),url('assets/world-football/crown-confetti.webp') center 34%/cover no-repeat}
+.final:after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,transparent,rgba(5,6,8,.72) 70%);pointer-events:none}
+.final .wrap{position:relative;z-index:1}
 .final .kick{font-size:clamp(2rem,6.5vw,3.4rem)}
 footer{border-top:1px solid var(--hairline);padding:1.4rem 0 calc(2.4rem + env(safe-area-inset-bottom));color:var(--faint);font-size:.75rem;line-height:1.65;scroll-snap-align:end}
 footer b{color:var(--muted)}
@@ -154,6 +168,7 @@ footer b{color:var(--muted)}
 @media (prefers-reduced-transparency: reduce){
   nav,.snapnav a,.cta2{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(5,6,8,.96)}
 }
+@media(max-width:720px){.world-strip{grid-template-columns:1fr 1fr}.world-shot:first-child{grid-column:1/-1}.world-shot{min-height:130px}.hero-art{object-position:center}.lobby-art{margin-top:0}}
 </style></head>
 <body>
 
@@ -184,6 +199,7 @@ footer b{color:var(--muted)}
 </aside>
 
 <header class="hero" id="top">
+  <img class="hero-art" src="assets/world-football/stadium-night.webp" alt="A packed global football stadium under night floodlights" fetchpriority="high" decoding="async">
   <canvas id="arena" aria-hidden="true"></canvas>
   <div class="veil"></div>
   <div class="hcontent">
@@ -228,11 +244,17 @@ footer b{color:var(--muted)}
       <p>Finish a run and share a <b>ghost challenge link</b> — a friend faces the same fixture and the same questions with your picks replaying against theirs. Crowns are settled head to head.</p>
     </div>
   </div>
+  <div class="world-strip rv" aria-label="From match tension to shared celebration">
+    <figure class="world-shot"><img src="assets/world-football/fans-erupt.webp" alt="Football supporters celebrating together" loading="lazy" decoding="async"><figcaption>EVERY EVENT FEELS SHARED</figcaption></figure>
+    <figure class="world-shot"><img src="assets/world-football/fan-faceoff.webp" alt="Two supporters preparing for a friendly head-to-head challenge" loading="lazy" decoding="async"><figcaption>EVERY RUN CREATES A RIVAL</figcaption></figure>
+    <figure class="world-shot"><img src="assets/world-football/trophy-lift.webp" alt="A team lifting an original crown-shaped football trophy" loading="lazy" decoding="async"><figcaption>EVERY MATCH HAS ONE CROWN</figcaption></figure>
+  </div>
 </div></section>
 
 <section id="lobbies-sec"><div class="wrap">
   <h2 class="kick rv"><svg class="ic ki" style="color:var(--hi)"><use href="#i-ball"/></svg>Tonight's lobbies</h2>
   <p class="kicksub rv">Six FIFA World Cup 2026 match captures from TxLINE: five complete replay tapes and one clearly labeled partial capture. A featured lobby rotates daily. When a fixture is actually in play and credentials are configured, the arena can poll live 1X2 odds through our server proxy.</p>
+  <div class="lobby-art rv"><img src="assets/world-football/live-data-pitch.webp" alt="A football pitch visualized as live prediction windows" loading="lazy" decoding="async"><span>One pitch · dozens of prediction moments</span></div>
   <div class="lobbies" id="lobbies"></div>
 </div></section>
 
@@ -318,11 +340,15 @@ const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const code=n=>String(n||'').slice(0,3).toUpperCase();
 const LOBBIES=window.LOBBIES||[];
 const DAILY_IDS=['18257865','18222446','18237038','18241006'];
-function dailyIdx(){const k=new Date().toISOString().slice(0,10);let h=2166136261;for(const c of k)h=Math.imul(h^c.charCodeAt(0),16777619);const id=DAILY_IDS[(h>>>0)%DAILY_IDS.length];return Math.max(0,LOBBIES.findIndex(l=>l.fixtureId===id));}
+/* DEMO PIN: France v England (18257865) featured — matches play.html. */
+const FEATURED_ID='18257865';
+function dailyIdx(){
+  const pin=LOBBIES.findIndex(l=>l.fixtureId===FEATURED_ID);if(pin>=0)return pin;
+  const k=new Date().toISOString().slice(0,10);let h=2166136261;for(const c of k)h=Math.imul(h^c.charCodeAt(0),16777619);const id=DAILY_IDS[(h>>>0)%DAILY_IDS.length];return Math.max(0,LOBBIES.findIndex(l=>l.fixtureId===id));}
 $('lobbies').innerHTML=LOBBIES.map((l,i)=>{
   const today=i===dailyIdx();
   const mic=today?'<svg class="ic" style="color:var(--gold)"><use href="#i-crown"/></svg> ':'<svg class="ic"><use href="#i-ball"/></svg> ';
-  const meta=mic+(today?'<b>TONIGHT\'S LOBBY</b>':(l.tag||'REPLAY LOBBY'));
+  const meta=mic+(today?'<b>TONIGHT\'S LOBBY</b>':(l.tag||'REPLAY LOBBY'))+(l.captureStatus==='partial'?` · PARTIAL ${l.capturedThroughMinute||'?'}′`: '');
   return `<a class="lob rv" href="/login?fixture=${l.fixtureId}">
     <div class="vs"><span class="tc home">${code(l.fixture.Participant1)}</span><span class="x">VS</span><span class="tc away">${code(l.fixture.Participant2)}</span></div>
     <div class="meta">${meta} · ${l.fixture.Competition}</div>
