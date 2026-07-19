@@ -446,6 +446,7 @@ $('name1').textContent=FIXTURE.Participant1;$('name2').textContent=FIXTURE.Parti
 $('score').textContent='0 – 0';
 /* lobby switcher chips (stage/tag metadata + live window flags; UPCOMING is optional) */
 const isLiveNow=ms=>!!(LF&&LF.isLive&&ms&&LF.isLive(ms));
+const LIVE_OK=!!(LF&&LOBBY.kickoffMs&&isLiveNow(LOBBY.kickoffMs));
 $('lobbychips').innerHTML=LOBBIES.map((l,i)=>{
   const cur=l.fixtureId===LOBBY.fixtureId;
   const label=teamCode(l.fixture.Participant1)+' – '+teamCode(l.fixture.Participant2);
@@ -490,7 +491,11 @@ let liveMode=false;
 function setDataChip(state,txt){const el=$('datachip');el.classList.remove('live','wait');
   if(state==='live')el.classList.add('live');else if(state==='wait')el.classList.add('wait');
   $('datatxt').textContent=txt;}
-setDataChip('replay','REPLAY TAPE');
+setDataChip('replay',LOBBY.captureStatus==='partial'?`PARTIAL REPLAY · ${LOBBY.capturedThroughMinute||'?'}′`:'REPLAY TAPE');
+if(LOBBY.captureStatus==='partial'){
+  $('capturenote').style.display='block';
+  $('capturenote').innerHTML=`<b>Partial capture:</b> this recorded TxLINE tape currently runs through ${Number(LOBBY.capturedThroughMinute)||'?'}′. It is a product demo, not a final-score claim.`;
+}
 function markLiveOdds(o){
   if(!o||o.p1==null||o.p2==null)return;
   const lastM=ODDS.length?ODDS[ODDS.length-1].m:0;
@@ -503,7 +508,7 @@ function markLiveOdds(o){
   if(!liveMode)setDataChip('live','REPLAY + LIVE ODDS');
 }
 async function refreshLiveOdds(){
-  if(!LF||document.visibilityState!=='visible')return;
+  if(!LF||!LIVE_OK||document.visibilityState!=='visible')return;
   try{const r=await LF.latestOdds(LOBBY.fixtureId);if(r&&r.ok)markLiveOdds(r);}catch(e){}
 }
 if(LF){refreshLiveOdds();setInterval(refreshLiveOdds,20000);
@@ -593,7 +598,7 @@ function aliveTotal(){return bots.filter(b=>b.alive).length}
 function othersAlive(){return bots.filter(b=>b.alive&&!b.isMe).length}
 function updateAlive(){const a=aliveTotal(),el=$('alivecount');
   if(el.textContent!==String(a)){el.classList.remove('tick');void el.offsetWidth;el.classList.add('tick');}
-  el.textContent=a;$('glcount').textContent=a+' alive'}
+  el.textContent=a;$('glcount').textContent=a+' alive';$('crowd').setAttribute('aria-label',`Arena: ${a} of 100 fans alive`)}
 
 /* ---------------- ghost challenge: a friend's recorded run rides along as a rival dot ---------------- */
 let GHOST=null,ghostBot=null;
@@ -605,7 +610,7 @@ if(!GHOST){
   if(/^[hlx]{1,32}$/.test(pc))GHOST={
     fixtureId:qp.get('fixture')||'',
     name:(qp.get('challenger')||'A RIVAL').slice(0,24),
-    picks:pc.split('').map(v=>v==='h'?'hi':v==='l'?'lo':null),
+    picks:pc.split('').map((v,i)=>({n:i+1,pick:v==='h'?'hi':v==='l'?'lo':null,msLeft:0})),
     streak:Math.max(0,Math.min(99,Number(qp.get('streak'))||0)),
     outlived:Math.max(0,Math.min(99,Number(qp.get('outlived'))||0))
   };
@@ -718,6 +723,7 @@ function startQuestion(q){
   $('hi').disabled=$('lo').disabled=false;
   $('hi').classList.toggle('spect',!me.alive);$('lo').classList.toggle('spect',!me.alive);
   $('hi').classList.remove('picked');$('lo').classList.remove('picked');
+  $('hi').setAttribute('aria-pressed','false');$('lo').setAttribute('aria-pressed','false');
   $('cbhi').classList.remove('winside');$('cblo').classList.remove('winside');
   updateCrowdBar([]);
   const t0=performance.now();
@@ -736,7 +742,7 @@ function pickSide(p){if(!pending)return;
   if(pending.myPick)return;
   pending.myPick=p;pending.myPickAtMs=pending.msRemaining;
   pending.revealed.push(p);updateCrowdBar(pending.revealed);
-  $(p).classList.add('picked');$('hi').disabled=$('lo').disabled=true;AudioFX.lock();}
+  $(p).classList.add('picked');$(p).setAttribute('aria-pressed','true');$('hi').disabled=$('lo').disabled=true;AudioFX.lock();}
 
 function resolveRound(){
   if(!pending)return;const P=pending;pending=null;cancelAnimationFrame(timerRaf);
@@ -883,6 +889,7 @@ function endGame(){
     if(chalUrl)$('copychal').style.display='inline-flex';
     drawStreakCard({streak:me.streak,best:ladder.best,outlivedCount,won,rank,pts});
     $('winner').classList.add('open');
+    setTimeout(()=>$('wtitle').focus(),0);
     if(won){AudioFX.fanfare();FX.burst(160,innerHeight*.3);setTimeout(()=>FX.burst(120),500);}
     else if(me.alive){AudioFX.correct();FX.burst(80);}
   },900);
@@ -953,33 +960,36 @@ $('copychal').onclick=async()=>{
 };
 
 /* ---------------- kickoff: replay tape or LIVE lobby ---------------- */
-const LIVE_OK=!!(LF&&LF.isLive&&LOBBY.kickoffMs&&LF.isLive(LOBBY.kickoffMs));
 if(LIVE_OK){$('startlive').style.display='inline-flex';$('livenote').style.display='block';}
 function startReplay(){
   TxMock.stream({speed:5,onEvent:handleEvent,onDone:()=>{tapeDone=true;if(pending){/* let the running round settle */}else advanceAfterTape();}});
 }
 function startLive(){
   liveMode=true;setDataChip('wait','LIVE FEED · WAITING');
-  let gotSignal=false;
+  let gotSignal=false,lastSignal=Date.now(),fellBack=false;
+  const fallBack=reason=>{
+    if(fellBack||gameOver)return;fellBack=true;
+    try{poller&&poller.stop&&poller.stop()}catch(e){}
+    liveMode=false;setDataChip('replay','REPLAY TAPE');
+    const nEl=$('livenotice');nEl.textContent=reason;nEl.classList.add('on');
+    startReplay();
+  };
   const poller=LF.poll(LOBBY.fixtureId,{intervalMs:15000,
-    onScoreEvent:e=>{gotSignal=true;if(liveMode)setDataChip('live','LIVE FEED');
+    onScoreEvent:e=>{gotSignal=true;lastSignal=Date.now();if(liveMode)setDataChip('live','LIVE FEED');
       handleEvent(e);
       if(e.type==='game_finalised'){liveDone=true;tapeDone=true;if(!pending&&!gameOver)advanceAfterTape();}},
-    onOdds:o=>{markLiveOdds(o);if(liveMode)setDataChip('live','LIVE FEED');gotSignal=true;},
-    onStatus:()=>{}});
-  /* honesty watchdog: no live signal within 20s -> visible fallback to the replay tape */
-  setTimeout(()=>{
-    if(!gotSignal&&!gameOver){
-      try{poller&&poller.stop&&poller.stop()}catch(e){}
-      liveMode=false;setDataChip('replay','REPLAY TAPE');
-      const nEl=$('livenotice');nEl.textContent='Live feed gave no signal for 20s — rolling the recorded replay tape for this fixture instead.';nEl.classList.add('on');
-      startReplay();
-    }
-  },20000);
+    onOdds:o=>{markLiveOdds(o);if(liveMode)setDataChip('live','LIVE FEED');gotSignal=true;lastSignal=Date.now();},
+    onStatus:s=>{if(s&&s.state==='error')setDataChip('wait','LIVE FEED · RETRYING');}});
+  /* Continuous honesty watchdog: initial silence and later stalls both recover. */
+  const watchdog=setInterval(()=>{
+    if(gameOver||fellBack){clearInterval(watchdog);return;}
+    if(Date.now()-lastSignal>30000)fallBack(gotSignal?'Live feed stalled for 30s — continuing on the recorded tape.':'Live feed gave no signal — rolling the recorded tape instead.');
+  },5000);
 }
 function launch(live){
   if(running)return;running=true;AudioFX.init();
   $('start').disabled=true;$('startlive').disabled=true;
+  $('quickstart').hidden=true;
   $('start').innerHTML=live?'LIVE LOBBY':'LOBBY LIVE';
   const cd=$('count'),cn=$('countn');cd.classList.add('open');
   let n=3;cn.textContent=n;AudioFX.tick();
@@ -992,9 +1002,17 @@ function launch(live){
 }
 $('start').onclick=()=>launch(false);
 $('startlive').onclick=()=>launch(true);
+$('quickstart').onclick=()=>launch(false);
+$('again').onclick=()=>{const i=LOBBIES.indexOf(LOBBY),next=LOBBIES[(i+1)%LOBBIES.length];location.href='/play?fixture='+next.fixtureId;};
+document.addEventListener('keydown',e=>{
+  if(!pending||e.repeat||e.metaKey||e.ctrlKey||e.altKey)return;
+  if(e.key==='h'||e.key==='H'||e.key==='ArrowUp'){e.preventDefault();pickSide('hi');}
+  if(e.key==='l'||e.key==='L'||e.key==='ArrowDown'){e.preventDefault();pickSide('lo');}
+});
 
 /* ---------------- first-visit: 3-step how-it-works (dismiss persisted) ---------------- */
-if(!store.get('seenHow',false))$('howto').classList.add('open');
-$('howok').onclick=()=>{store.set('seenHow',true);$('howto').classList.remove('open');AudioFX.init();};
+if(!store.get('seenHow',false)){$('howto').classList.add('open');setTimeout(()=>$('howok').focus(),0);}
+$('howok').onclick=()=>{store.set('seenHow',true);$('howto').classList.remove('open');$('quickstart').focus();AudioFX.init();};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('howto').classList.contains('open'))$('howok').click();});
 </script>
 </body></html>

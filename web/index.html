@@ -17,8 +17,8 @@
 <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,800,900&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#050608;--panel:#0b0e14;--panel2:#080b10;--ink:#07090d;--line:#1c2433;--line2:#334057;
-  --text:#f4f7fb;--muted:#93a1b5;--faint:#5f6d82;
+  --bg:#050608;--panel:#0b0e14;--panel2:#080b10;--ink:#07090d;--line:#35445b;--line2:#51627b;
+  --text:#f4f7fb;--muted:#a9b5c6;--faint:#8996a9;
   --gold:#ffd54a;--accent:#ffc233;--accent2:#ff9f1a;--hi:#2ee6ff;--lo:#ff3b5c;--success:#31f28b;
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -111,7 +111,7 @@ section{min-height:100svh;display:grid;align-content:center;padding:clamp(2.5rem
 
 /* icon snap-nav: tracks the active fold */
 .snapnav{position:fixed;right:1rem;top:50%;transform:translateY(-50%);z-index:12;display:flex;flex-direction:column;gap:.55rem}
-.snapnav a{display:grid;place-items:center;width:34px;height:34px;border-radius:999px;background:rgba(7,9,13,.72);border:1px solid var(--line);color:var(--faint);font-size:.9rem;transition:.15s}
+.snapnav a{display:grid;place-items:center;width:44px;height:44px;border-radius:999px;background:rgba(7,9,13,.72);border:1px solid var(--line);color:var(--faint);font-size:.9rem;transition:.15s}
 .snapnav a:hover{color:var(--muted);border-color:var(--line2)}
 .snapnav a.on{color:var(--gold);border-color:rgba(255,213,74,.45);box-shadow:0 0 12px rgba(255,213,74,.25)}
 @media(max-width:760px){.snapnav{display:none}}
@@ -146,7 +146,7 @@ footer b{color:var(--muted)}
 
 <nav><div class="wrap nrow">
   <a class="brand" href="/"><span class="mark"><svg class="ic fill"><use href="#i-crown"/></svg></span>HI-LO <em>ROYALE</em></a>
-  <a class="navcta" href="/login"><svg class="ic"><use href="#i-bolt"/></svg>ENTER</a>
+  <div style="display:flex;gap:.5rem"><a class="navcta" href="/pitch">PITCH</a><a class="navcta" href="/login"><svg class="ic"><use href="#i-bolt"/></svg>ENTER</a></div>
 </div></nav>
 
 <aside class="snapnav" aria-label="Sections">
@@ -161,7 +161,7 @@ footer b{color:var(--muted)}
   <canvas id="arena" aria-hidden="true"></canvas>
   <div class="veil"></div>
   <div class="hcontent">
-    <span class="livechip"><span class="d"></span>REAL TXLINE WORLD CUP DATA · LIVE ODDS IN PLAY</span>
+    <span class="livechip"><span class="d"></span>REAL TXLINE MATCH DATA · LIVE-READY FEED</span>
     <h1><span class="g">100 FANS</span> ENTER.<br>ONE SURVIVES <span class="c">THE</span> <span class="r">STATS</span>.</h1>
     <p class="tag">One real match. Every stat window is a question — corners, shots, cards, VAR. Call it <b>HI</b> or <b>LO</b> before the lock. Wrong answer, you're out. <b>Last fan standing takes the crown.</b></p>
     <div class="ctarow">
@@ -171,8 +171,8 @@ footer b{color:var(--muted)}
   </div>
   <div class="herofoot">
     <span><svg class="ic"><use href="#i-ball"/></svg>6 real fixtures</span>
-    <span><svg class="ic"><use href="#i-shield"/></svg>Provably fair (ORAO VRF)</span>
-    <span><svg class="ic"><use href="#i-check"/></svg>Score proof on Solana devnet</span>
+    <span><svg class="ic"><use href="#i-shield"/></svg>VRF-seeded bot simulation</span>
+    <span><svg class="ic"><use href="#i-check"/></svg>One score proof on Solana devnet</span>
   </div>
 </header>
 
@@ -206,13 +206,13 @@ footer b{color:var(--muted)}
 
 <section id="lobbies-sec"><div class="wrap">
   <h2 class="kick rv"><svg class="ic ki" style="color:var(--hi)"><use href="#i-ball"/></svg>Tonight's lobbies</h2>
-  <p class="kicksub rv">Six real FIFA World Cup 2026 fixtures, captured event-by-event from the TxLINE feed. A new featured lobby rotates in daily — same match for everyone, no spoilers. When a fixture is actually in play, the arena polls live 1X2 odds straight from TxLINE.</p>
+  <p class="kicksub rv">Six FIFA World Cup 2026 match captures from TxLINE: five complete replay tapes and one clearly labeled partial capture. A featured lobby rotates daily. When a fixture is actually in play and credentials are configured, the arena can poll live 1X2 odds through our server proxy.</p>
   <div class="lobbies" id="lobbies"></div>
 </div></section>
 
 <section id="proof-sec"><div class="wrap">
   <div class="proof rv">
-    <h2 class="kick" style="font-size:clamp(1.4rem,4vw,2rem)"><svg class="ic ki" style="color:var(--success)"><use href="#i-shield"/></svg>Rigged is impossible. Here are the receipts.</h2>
+    <h2 class="kick" style="font-size:clamp(1.4rem,4vw,2rem)"><svg class="ic ki" style="color:var(--success)"><use href="#i-shield"/></svg>An auditable prototype. Here are the receipts.</h2>
     <div class="prows">
       <div class="prow p1"><div class="pi"><svg class="ic"><use href="#i-check"/></svg></div>
         <div><h4>Real data, proven on-chain</h4><p>Match events come from TxODDS's TxLINE feed via an on-chain Solana subscription. The Argentina 3&ndash;1 Switzerland final score is proven by a real <a href="https://solscan.io/tx/47rYc5tphp3y3MuyCfr4KSgHLtCYZfCVknhZB57SzTPVpyWSkVUgkkvmw4kS4nGyzN2Eb49oyAUYkPJsiX4uRdhA?cluster=devnet" target="_blank" rel="noopener">validateStatV2 transaction on devnet</a> against the Merkle root TxODDS publishes on-chain.</p></div></div>

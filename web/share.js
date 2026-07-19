@@ -397,7 +397,9 @@
       };
 
       if (opts.file && typeof navigator.share === 'function' && typeof navigator.canShare === 'function') {
-        var withFiles = { files: [opts.file], title: 'Hi-Lo Royale', text: text };
+        /* Some mobile share sheets omit the separate URL field when files are
+           attached, so keep the challenge clickable by including it in text. */
+        var withFiles = { files: [opts.file], title: 'Hi-Lo Royale', text: (text + (url ? ' ' + url : '')).trim() };
         var can = false;
         try { can = navigator.canShare(withFiles); } catch (e) { can = false; }
         if (can) {

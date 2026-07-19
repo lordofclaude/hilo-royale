@@ -61,7 +61,7 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
   const shareImage = async () => {
     try {
       const uri = await captureRef(ticketRef, { format: "png", quality: 0.92 });
-      await Share.share({ url: uri, message: "I just played Hi-Lo Royale!" });
+      await Share.share({ url: uri, message: `I just played Hi-Lo Royale — beat my run: ${challengeUrl}` });
     } catch {
       shareText();
     }
