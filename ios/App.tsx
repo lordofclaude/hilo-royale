@@ -9,6 +9,7 @@ import { DEFAULT_GAME_SETTINGS, GameSettings, loadGameSettings, saveGameSettings
 import { joinRoom } from "./src/lib/room-service";
 import { replayByFixtureId, replayForDate, ReplayFixture } from "./src/lib/txline-real";
 import { dailyKey, decodeGhostPicks } from "./src/lib/game-logic";
+import Icon, { IconName } from "./src/components/Icon";
 import LoginScreen from "./src/screens/LoginScreen";
 import LobbyScreen from "./src/screens/LobbyScreen";
 import GameScreen from "./src/screens/GameScreen";
@@ -181,21 +182,21 @@ export default function App() {
       </View>
       {TAB_SCREENS.includes(screen) && (
         <View style={styles.tabBar}>
-          <TabButton icon="▶" label="PLAY" active={screen === "lobby"} onPress={() => setScreen("lobby")} />
-          <TabButton icon="▥" label="RANK" active={screen === "rank"} onPress={() => setScreen("rank")} />
-          <TabButton icon="⬡" label="SQUAD" active={screen === "squad"} onPress={() => setScreen("squad")} />
-          <TabButton icon="●" label="ME" active={screen === "profile"} onPress={() => setScreen("profile")} />
+          <TabButton icon="play" label="PLAY" active={screen === "lobby"} onPress={() => setScreen("lobby")} />
+          <TabButton icon="chart" label="RANK" active={screen === "rank"} onPress={() => setScreen("rank")} />
+          <TabButton icon="users" label="SQUAD" active={screen === "squad"} onPress={() => setScreen("squad")} />
+          <TabButton icon="user" label="ME" active={screen === "profile"} onPress={() => setScreen("profile")} />
         </View>
       )}
     </SafeAreaView>
   );
 }
 
-function TabButton({ icon, label, active, onPress }: { icon: string; label: string; active: boolean; onPress: () => void }) {
+function TabButton({ icon, label, active, onPress }: { icon: IconName; label: string; active: boolean; onPress: () => void }) {
   return (
     <Pressable style={styles.tabBtn} onPress={onPress}>
       <View style={[styles.tabIndicator, active && styles.tabIndicatorOn]} />
-      <Text style={[styles.tabIcon, active && styles.tabActive]}>{icon}</Text>
+      <Icon name={icon} size={16} color={active ? C.hi : "#566174"} style={{ marginBottom: 3 }} />
       <Text style={[styles.tabLabel, active && styles.tabActive]}>{label}</Text>
     </Pressable>
   );
@@ -211,7 +212,6 @@ const styles = StyleSheet.create({
   tabBtn: { flex: 1, alignItems: "center" },
   tabIndicator: { height: 3, width: 42, borderRadius: 2, backgroundColor: "transparent", marginBottom: 6 },
   tabIndicatorOn: { backgroundColor: C.hi },
-  tabIcon: { color: "#566174", fontSize: 17, marginBottom: 2 },
   tabLabel: { color: "#566174", fontSize: 9, fontWeight: "900", letterSpacing: 1.2 },
   tabActive: { color: C.hi },
 });

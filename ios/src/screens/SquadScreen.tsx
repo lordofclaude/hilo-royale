@@ -4,6 +4,7 @@ import * as Clipboard from "expo-clipboard";
 import { C, displayFont, glow } from "../theme";
 import { FanIdentity } from "../lib/auth";
 import BrandHeader from "../components/BrandHeader";
+import Icon from "../components/Icon";
 import { joinRoom, roomServiceStatus } from "../lib/room-service";
 
 interface Props { identity: FanIdentity; initialCode?: string | null; }
@@ -35,7 +36,7 @@ export default function SquadScreen({ identity, initialCode }: Props) {
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <BrandHeader eyebrow="SQUAD ROOM" />
-      <View style={styles.liveRow}><View style={styles.liveDot} /><Text style={styles.liveTxt}>5 ONLINE</Text></View>
+      <View style={styles.liveRow}><View style={styles.liveDot} /><Text style={styles.liveTxt}>{roomService.ready ? "5 ONLINE" : "DEMO CREW"}</Text></View>
 
       <View style={[styles.hero, glow(C.hi, 13, 0.32)]}>
         <Text style={styles.heroCrown}>♛</Text>
@@ -48,7 +49,13 @@ export default function SquadScreen({ identity, initialCode }: Props) {
             </View>
           ))}
         </View>
-        <View style={styles.streak}><Text style={styles.streakLabel}>SQUAD STREAK</Text><Text style={styles.streakValue}>x12 🔥</Text></View>
+        <View style={styles.streak}>
+          <Text style={styles.streakLabel}>SQUAD STREAK</Text>
+          <View style={styles.streakValueRow}>
+            <Text style={styles.streakValue}>x12</Text>
+            <Icon name="bolt" size={16} color={C.gold} style={{ marginLeft: 6 }} />
+          </View>
+        </View>
       </View>
 
       <View style={styles.inviteCard}>
@@ -66,7 +73,7 @@ export default function SquadScreen({ identity, initialCode }: Props) {
 
       <View style={[styles.groupPick, glow(C.lo, 10, 0.22)]}>
         <Text style={styles.groupLabel}>NEXT GROUP PICK · CORNERS</Text>
-        <View style={styles.pickRow}><Text style={styles.pickHi}>HI</Text><Text style={styles.pickBall}>⚽</Text><Text style={styles.pickLo}>LO</Text></View>
+        <View style={styles.pickRow}><Text style={styles.pickHi}>HI</Text><Icon name="ball" size={24} color={C.text} /><Text style={styles.pickLo}>LO</Text></View>
         <Text style={styles.groupMeta}>3 crew members are leaning HI</Text>
       </View>
 
@@ -92,7 +99,7 @@ const styles = StyleSheet.create({
   avatarTxt: { fontSize: 16, fontWeight: "900" }, online: { position: "absolute", right: -1, bottom: 2, width: 9, height: 9, borderRadius: 5, backgroundColor: C.success, borderColor: C.bg, borderWidth: 1.5 },
   memberName: { color: C.muted, fontSize: 8, fontWeight: "800", marginTop: 5, maxWidth: 55 },
   streak: { borderColor: C.gold, borderWidth: 1, borderRadius: 13, backgroundColor: C.goldSoft, paddingHorizontal: 24, paddingVertical: 8, marginTop: 14, alignItems: "center" },
-  streakLabel: { color: C.muted, fontSize: 9, letterSpacing: 1.3 }, streakValue: { color: C.gold, fontSize: 24, ...displayFont },
+  streakLabel: { color: C.muted, fontSize: 9, letterSpacing: 1.3 }, streakValueRow: { flexDirection: "row", alignItems: "center" }, streakValue: { color: C.gold, fontSize: 24, ...displayFont },
   inviteCard: { backgroundColor: C.panel, borderColor: C.lineStrong, borderWidth: 1, borderRadius: 17, padding: 14, marginBottom: 11 },
   cardKicker: { color: C.hi, fontSize: 14, fontWeight: "900", letterSpacing: 1.2 }, cardText: { color: C.muted, fontSize: 11, lineHeight: 16, marginTop: 4, marginBottom: 10 },
   codeRow: { flexDirection: "row", gap: 8 }, codeInput: { flex: 1, color: C.text, backgroundColor: C.panelDeep, borderColor: C.lineStrong, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, fontSize: 13, fontWeight: "900", letterSpacing: 1 },
@@ -100,7 +107,7 @@ const styles = StyleSheet.create({
   actionRow: { flexDirection: "row", gap: 8, marginTop: 9 }, action: { flex: 1, borderWidth: 1, borderRadius: 10, paddingVertical: 10, alignItems: "center" }, actionTxt: { fontSize: 10, fontWeight: "900" },
   groupPick: { backgroundColor: C.panel, borderColor: C.lo, borderWidth: 1.5, borderRadius: 17, padding: 14, alignItems: "center", marginBottom: 14 },
   groupLabel: { color: C.text, fontSize: 11, fontWeight: "900", letterSpacing: 1.2 }, pickRow: { flexDirection: "row", alignItems: "center", gap: 22, marginVertical: 8 },
-  pickHi: { color: C.hi, fontSize: 38, ...displayFont }, pickLo: { color: C.lo, fontSize: 38, ...displayFont }, pickBall: { fontSize: 25 }, groupMeta: { color: C.muted, fontSize: 10 },
+  pickHi: { color: C.hi, fontSize: 38, ...displayFont }, pickLo: { color: C.lo, fontSize: 38, ...displayFont }, groupMeta: { color: C.muted, fontSize: 10 },
   section: { color: C.text, fontSize: 12, fontWeight: "900", letterSpacing: 1.5, marginBottom: 8 }, wall: { backgroundColor: C.panel, borderColor: C.line, borderWidth: 1, borderRadius: 15, padding: 9 },
   wallRow: { flexDirection: "row", alignItems: "center", borderBottomColor: C.line, borderBottomWidth: 1, paddingHorizontal: 8, paddingVertical: 9 }, wallYou: { borderColor: C.hi, borderWidth: 1, borderRadius: 9, backgroundColor: C.hiSoft },
   wallRank: { color: C.muted, width: 28, fontWeight: "900" }, wallName: { flex: 1, color: C.text, fontWeight: "800", fontSize: 12 }, wallPts: { color: C.gold, fontWeight: "900" },

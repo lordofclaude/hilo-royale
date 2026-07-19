@@ -11,21 +11,23 @@ export type Answer = Side | "push";
 export type Verdict = "correct" | "wrong" | "timeout" | "push";
 export type QuestionKind = "compare_window" | "side_pick" | "occurrence" | "var_reactive" | "pregame" | "halftime_special";
 
+/* Icons live in the UI layer (components/Icon.tsx KEY_ICON map, mirroring
+   the web sprite) — question data stays plain text, zero emojis. */
 export interface StatDef {
-  key: string; label: string; emoji: string;
+  key: string; label: string;
   get: (a: StatMap, b: StatMap) => number;
 }
 
 export const STAT_DEFS: StatDef[] = [
-  { key: "corners", label: "corners", emoji: "🚩", get: (a, b) => (b.c1 + b.c2) - (a.c1 + a.c2) },
-  { key: "shots",   label: "shots",   emoji: "🎯", get: (a, b) => (b.s1 + b.s2) - (a.s1 + a.s2) },
-  { key: "cards",   label: "cards",   emoji: "🟨", get: (a, b) => (b.y1 + b.y2 + b.r1 + b.r2) - (a.y1 + a.y2 + a.r1 + a.r2) },
+  { key: "corners", label: "corners", get: (a, b) => (b.c1 + b.c2) - (a.c1 + a.c2) },
+  { key: "shots",   label: "shots",   get: (a, b) => (b.s1 + b.s2) - (a.s1 + a.s2) },
+  { key: "cards",   label: "cards",   get: (a, b) => (b.y1 + b.y2 + b.r1 + b.r2) - (a.y1 + a.y2 + a.r1 + a.r2) },
 ];
 
 export const EMPTY_STATS: StatMap = { c1:0,c2:0,s1:0,s2:0,y1:0,y2:0,r1:0,r2:0,g1:0,g2:0 };
 
 export interface Question {
-  n: number; key: string; label: string; emoji: string;
+  n: number; key: string; label: string;
   fromMin: number; windowLen: number;
   /** Only meaningful for kind === "compare_window" (or the legacy makeQuestion/makeBestQuestion). */
   statIdx?: number; prevFrom?: number; prevVal?: number;
@@ -56,7 +58,7 @@ export function makeQuestion(events: ScoreEvent[], questionNumber: number, fromM
   const def = STAT_DEFS[statIdx];
   const prevFrom = Math.max(0, fromMin - windowLen);
   const prevVal = windowValue(events, statIdx, prevFrom, fromMin);
-  return { n: questionNumber, statIdx, key: def.key, label: def.label, emoji: def.emoji, fromMin, windowLen, prevFrom, prevVal };
+  return { n: questionNumber, statIdx, key: def.key, label: def.label, fromMin, windowLen, prevFrom, prevVal };
 }
 
 /** Quizmaster rule: prefer a stat whose outcome is decidable (non-push). */
@@ -180,16 +182,16 @@ export function ladderRank(wall: Array<{ points: number }>, myPoints: number): n
 // Occurrence: "will X happen in the next N min?" — never pushes (binary),
 // so it's a safe filler whenever a comparison would tie.
 export interface OccurrenceDef {
-  key: string; label: string; emoji: string;
+  key: string; label: string;
   matchType: (e: ScoreEvent) => boolean;
 }
 
 export const OCCURRENCE_DEFS: OccurrenceDef[] = [
-  { key: "goal",   label: "a goal",         emoji: "⚽", matchType: e => e.type === "goal" || (e.type === "penalty" && /scored/i.test(e.detail || "")) },
-  { key: "card",   label: "a card",         emoji: "🟨", matchType: e => e.type === "card" },
-  { key: "corner", label: "a corner",       emoji: "🚩", matchType: e => e.type === "corner" },
-  { key: "sub",    label: "a substitution", emoji: "🔄", matchType: e => e.type === "sub" },
-  { key: "shot",   label: "a shot",         emoji: "🎯", matchType: e => e.type === "shot" },
+  { key: "goal",   label: "a goal",         matchType: e => e.type === "goal" || (e.type === "penalty" && /scored/i.test(e.detail || "")) },
+  { key: "card",   label: "a card",         matchType: e => e.type === "card" },
+  { key: "corner", label: "a corner",       matchType: e => e.type === "corner" },
+  { key: "sub",    label: "a substitution", matchType: e => e.type === "sub" },
+  { key: "shot",   label: "a shot",         matchType: e => e.type === "shot" },
 ];
 
 export function occurrenceInWindow(events: ScoreEvent[], def: OccurrenceDef, fromMin: number, toMin: number): boolean {
@@ -199,14 +201,14 @@ export function occurrenceInWindow(events: ScoreEvent[], def: OccurrenceDef, fro
 // Side-pick: "more X this window — Team A or Team B?" — head-to-head
 // within the SAME window (simpler/more intuitive than vs-previous-window).
 export interface SideStatDef {
-  key: string; label: string; emoji: string;
+  key: string; label: string;
   get1: (s: StatMap) => number; get2: (s: StatMap) => number;
 }
 
 export const SIDE_STAT_DEFS: SideStatDef[] = [
-  { key: "corners", label: "corners", emoji: "🚩", get1: s => s.c1, get2: s => s.c2 },
-  { key: "shots",   label: "shots",   emoji: "🎯", get1: s => s.s1, get2: s => s.s2 },
-  { key: "cards",   label: "cards",   emoji: "🟨", get1: s => s.y1 + s.r1, get2: s => s.y2 + s.r2 },
+  { key: "corners", label: "corners", get1: s => s.c1, get2: s => s.c2 },
+  { key: "shots",   label: "shots",   get1: s => s.s1, get2: s => s.s2 },
+  { key: "cards",   label: "cards",   get1: s => s.y1 + s.r1, get2: s => s.y2 + s.r2 },
 ];
 
 export function sidePickValue(events: ScoreEvent[], statIdx: number, fromMin: number, toMin: number): { team1Delta: number; team2Delta: number; answer: Answer } {
@@ -241,9 +243,9 @@ export function makeOccurrenceQuestion(
   const happened = occurrenceInWindow(events, def, fromMin, toMin);
   const answer: Answer = happened ? "hi" : "lo";
   return {
-    n, kind: kindOverride || "occurrence", key: def.key, label: def.label, emoji: def.emoji,
+    n, kind: kindOverride || "occurrence", key: def.key, label: def.label,
     fromMin, windowLen,
-    promptText: promptOverride || `${def.emoji} Will there be ${def.label} in the next ${windowLen} min?`,
+    promptText: promptOverride || `Will there be ${def.label} in the next ${windowLen} min?`,
     hiLabel: "YES", loLabel: "NO",
     answer, val: happened ? 1 : 0,
   };
@@ -258,9 +260,9 @@ export function makeSidePickQuestion(
   const name1 = fixture?.Participant1 || "Team 1";
   const name2 = fixture?.Participant2 || "Team 2";
   return {
-    n, kind: "side_pick", key: def.key, label: def.label, emoji: def.emoji,
+    n, kind: "side_pick", key: def.key, label: def.label,
     fromMin, windowLen,
-    promptText: `${def.emoji} Next ${windowLen} min — more ${def.label}: ${name1} or ${name2}?`,
+    promptText: `Next ${windowLen} min — more ${def.label}: ${name1} or ${name2}?`,
     hiLabel: code3(name1), loLabel: code3(name2), hiIsTeam1: true,
     answer: r.answer, val: r.team1Delta - r.team2Delta,
   };
@@ -269,9 +271,9 @@ export function makeSidePickQuestion(
 function toScheduleQuestion(q: Question, events: ScoreEvent[]): Question {
   const r = resolveQuestion(events, q);
   return {
-    n: q.n, kind: "compare_window", key: q.key, label: q.label, emoji: q.emoji,
+    n: q.n, kind: "compare_window", key: q.key, label: q.label,
     fromMin: q.fromMin, windowLen: q.windowLen, prevFrom: q.prevFrom, prevVal: q.prevVal,
-    promptText: `${q.emoji} MORE or FEWER ${q.label} in the next ${q.windowLen} min than the last ${q.windowLen}?`,
+    promptText: `MORE or FEWER ${q.label} in the next ${q.windowLen} min than the last ${q.windowLen}?`,
     hiLabel: "HIGHER", loLabel: "LOWER",
     answer: r.answer, val: r.val,
   };
@@ -281,20 +283,20 @@ export function makeHalftimeQuestion(events: ScoreEvent[], n: number, h2Start: n
   const windowLen = 10;
   const subIdx = OCCURRENCE_DEFS.findIndex(d => d.key === "sub");
   return makeOccurrenceQuestion(events, n, h2Start, windowLen, subIdx, "halftime_special",
-    `🔄 1+ substitutions in the first ${windowLen} min of the second half?`);
+    `1+ substitutions in the first ${windowLen} min of the second half?`);
 }
 
 export function makePregameQuestion(events: ScoreEvent[], n: number): Question {
   const goalIdx = OCCURRENCE_DEFS.findIndex(d => d.key === "goal");
-  return makeOccurrenceQuestion(events, n, 0, 45, goalIdx, "pregame", "⚽ Will there be a goal before halftime?");
+  return makeOccurrenceQuestion(events, n, 0, 45, goalIdx, "pregame", "Will there be a goal before halftime?");
 }
 
 export function makeVarQuestion(varEvent: ScoreEvent, verdictEvent: ScoreEvent, n: number): Question {
   const answer = classifyVarVerdict(verdictEvent.detail);
   return {
-    n, kind: "var_reactive", key: "var", label: "VAR review", emoji: "📺",
+    n, kind: "var_reactive", key: "var", label: "VAR review",
     fromMin: varEvent.minute, windowLen: Math.max(1, verdictEvent.minute - varEvent.minute),
-    promptText: "📺 VAR REVIEW — will the call be upheld?",
+    promptText: "VAR REVIEW — will the call be upheld?",
     hiLabel: "UPHELD", loLabel: "OVERTURNED",
     answer, val: answer === "hi" ? 1 : answer === "lo" ? -1 : 0,
   };

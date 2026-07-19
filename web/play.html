@@ -2,6 +2,15 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Hi-Lo Royale — 100 fans enter, one survives the stats</title>
 <meta name="description" content="A prediction battle royale on real World Cup data. 100 fans, one match, every stat window is a question — last fan standing takes the crown. Provable on Solana.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Hi-Lo Royale — 100 fans enter, one survives the stats">
+<meta property="og:description" content="A prediction battle royale on real World Cup data via TxLINE. Every stat window is a question — wrong answer, you're out. Beat my streak.">
+<meta property="og:url" content="https://hilo-royale.vercel.app/play">
+<meta property="og:image" content="https://hilo-royale.vercel.app/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Hi-Lo Royale — 100 fans enter, one survives the stats">
+<meta name="twitter:description" content="A prediction battle royale on real World Cup data via TxLINE. Last fan standing takes the crown.">
+<meta name="twitter:image" content="https://hilo-royale.vercel.app/og.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
 <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,800,900&display=swap" rel="stylesheet">
@@ -34,7 +43,7 @@ header{padding:1rem 0 .35rem}
 .brand{display:flex;align-items:center;gap:.6rem;font-family:"Cabinet Grotesk",sans-serif;font-weight:900;font-style:italic;font-size:1.18rem;letter-spacing:.02em}
 .brand .mark{display:grid;place-items:center;width:31px;height:31px;border-radius:9px;background:linear-gradient(140deg,var(--accent),var(--accent2));color:#231703;box-shadow:0 0 14px rgba(255,194,51,.35)}
 .brand em{color:var(--gold);text-shadow:0 0 18px rgba(255,213,74,.45)}
-.hbtns{display:flex;gap:.5rem;align-items:center}
+.hbtns{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .pill{display:inline-flex;align-items:center;gap:.42rem;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:.42rem .85rem;font-size:.82rem;color:var(--muted);font-weight:500}
 .pill b{color:var(--text);font-variant-numeric:tabular-nums}
 .iconbtn{display:grid;place-items:center;width:37px;height:37px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--muted);transition:.15s}
@@ -175,9 +184,55 @@ body.shake{animation:shakeX .5s both}
 .count.open{display:flex}
 @keyframes czoom{0%{transform:scale(1.6);opacity:0}30%{transform:scale(1);opacity:1}100%{opacity:.9}}
 .count span{animation:czoom .9s ease}
+/* ---------- data-status + live ---------- */
+@keyframes livepulse{0%,100%{opacity:1}50%{opacity:.35}}
+.dpulse{width:7px;height:7px;border-radius:50%;background:var(--faint);display:inline-block;flex:none}
+#datachip.live{color:var(--success);border-color:rgba(49,242,139,.45)}
+#datachip.live .dpulse{background:var(--success);animation:livepulse 1.5s infinite}
+#datachip.wait .dpulse{background:var(--gold);animation:livepulse .8s infinite}
+#mlive{display:none;margin-left:auto;color:var(--success);font-size:.62rem;letter-spacing:.1em}
+#mlive.on{display:inline-flex;align-items:center;gap:.3rem}
+#mlive .dpulse{background:var(--success);animation:livepulse 1.5s infinite}
+.livenotice{display:none;margin:.6rem auto 0;max-width:460px;text-align:center;font-size:.78rem;color:var(--gold);border:1px solid rgba(255,213,74,.35);background:var(--goldsoft);border-radius:10px;padding:.5rem .8rem}
+.livenotice.on{display:block}
+/* ---------- ghost challenge ---------- */
+.ghostbanner{display:none;margin:0 auto .7rem;max-width:520px;align-items:center;justify-content:center;gap:.5rem;text-align:center;font-size:.82rem;font-weight:700;color:var(--gold);border:1px solid rgba(255,213,74,.4);background:var(--goldsoft);border-radius:999px;padding:.45rem .95rem}
+.ghostbanner.on{display:flex}
+.dot.rival{outline:2px solid var(--gold);outline-offset:2px;background:#4a3c15}
+.dot.rival.dead{outline-color:rgba(255,213,74,.3)}
+.ghostline{min-height:1.3rem;text-align:center;font-size:.8rem;color:var(--muted)}
+.ghostline b{color:var(--gold)}
+/* ---------- spectator ---------- */
+.chip.watching{color:var(--t1);border-color:rgba(46,230,255,.4)}
+.abtn.spect{border-style:dashed;opacity:.8}
+.abtn.spect.picked{opacity:1}
+.spectcta{display:none;margin-top:.7rem;text-align:center}
+.spectcta.on{display:block}
+.spectcta a{display:inline-flex;align-items:center;gap:.45rem;background:var(--ink);border:1px solid var(--line2);border-radius:10px;padding:.55rem 1rem;font-size:.82rem;font-weight:700;color:var(--text);text-decoration:none}
+.spectcta a:hover{border-color:var(--gold)}
+/* ---------- round chips ---------- */
+#qnum.final{color:var(--gold);border-color:rgba(255,213,74,.5);background:var(--goldsoft)}
+@keyframes alivetick{0%{transform:scale(1)}40%{transform:scale(1.4)}100%{transform:scale(1)}}
+#alivecount{display:inline-block}
+#alivecount.tick{animation:alivetick .45s ease}
+/* ---------- how-it-works overlay ---------- */
+.howto{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;background:rgba(5,6,8,.94);backdrop-filter:blur(6px);padding:1rem;overflow-y:auto}
+.howto.open{display:flex}
+.howcard{max-width:430px;width:100%;background:var(--panel);border:1px solid var(--line2);border-radius:20px;padding:1.5rem;box-shadow:var(--shadow)}
+.howcard h2{font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:1.4rem;text-align:center;margin-bottom:1.1rem}
+.howcard h2 em{color:var(--gold)}
+.hstep{display:flex;gap:.8rem;align-items:flex-start;padding:.65rem 0}
+.hstep .hn{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;flex:none;font-family:"Cabinet Grotesk";font-weight:900;font-style:italic}
+.hstep:nth-child(2) .hn{background:var(--hisoft);color:var(--hi)}
+.hstep:nth-child(3) .hn{background:var(--goldsoft);color:var(--gold)}
+.hstep:nth-child(4) .hn{background:var(--losoft);color:var(--lo)}
+.hstep h4{font-size:.92rem;margin-bottom:.15rem}
+.hstep p{font-size:.8rem;color:var(--muted);line-height:1.5}
+.howcard .btn{margin-top:1rem}
 @media (prefers-reduced-motion: reduce){
   body.shake,.count span,.neardeath.show,.timerbar.panic.pulse i{animation:none}
   .dot,.cb{transition:none}
+  #datachip.live .dpulse,#datachip.wait .dpulse,#mlive .dpulse,#alivecount.tick{animation:none}
 }
 footer{padding:0 0 2rem;color:var(--faint);font-size:.74rem;line-height:1.65;border-top:1px solid var(--line);padding-top:1.2rem}
 footer b{color:var(--muted)}
@@ -214,6 +269,7 @@ footer b{color:var(--muted)}
   <a class="brand" href="/" style="text-decoration:none;color:inherit"><span class="mark"><svg class="ic fill"><use href="#i-crown"/></svg></span>HI-LO <em>ROYALE</em>&nbsp;<span style="font-size:.72rem;color:var(--faint);font-weight:500">lobby <span id="lobbyid">…</span></span></a>
   <div class="hbtns">
     <span class="pill" style="color:var(--gold);border-color:rgba(255,213,74,.35)"><svg class="ic"><use href="#i-crown"/></svg><b id="fanhandle">…</b></span>
+    <span class="pill" id="datachip" title="Where this lobby's data is coming from"><span class="dpulse"></span><b id="datatxt" style="font-size:.72rem;letter-spacing:.08em">REPLAY TAPE</b></span>
     <button class="iconbtn" id="snd" aria-label="Toggle sound"><svg class="ic"><use href="#i-sound" id="snduse"/></svg></button>
     <span class="pill"><svg class="ic" style="color:var(--gold)"><use href="#i-users"/></svg><b id="alivecount">100</b>&nbsp;alive</span>
     <button class="iconbtn" id="leave" aria-label="Leave arena" title="Leave the arena"><svg class="ic"><use href="#i-x"/></svg></button>
@@ -240,9 +296,12 @@ footer b{color:var(--muted)}
 
   <main>
     <div class="stage">
+      <div class="ghostbanner" id="ghostbanner"><svg class="ic"><use href="#i-crown"/></svg><span id="ghosttxt"></span></div>
       <div class="rndrow">
         <span class="chip" id="qnum">GET READY</span>
         <span class="chip" id="evstate" style="display:none">OPEN</span>
+        <span class="chip" id="upnext" style="display:none"></span>
+        <span class="chip watching" id="watchchip" style="display:none"><svg class="ic"><use href="#i-monitor"/></svg>WATCHING</span>
       </div>
       <div class="question" id="question">100 fans. One real match. Every stat window is a question — wrong answer, you're out. <b>Last fan standing takes the crown.</b></div>
       <div class="lastval" id="lastval"></div>
@@ -259,25 +318,28 @@ footer b{color:var(--muted)}
         <button class="abtn lo" id="lo" disabled><svg class="ic"><use href="#i-down"/></svg><span id="lotxt">LOWER</span></button>
       </div>
       <div class="verdict" id="verdict"></div>
+      <div class="ghostline" id="ghostline"></div>
       <div class="neardeath" id="neardeath"></div>
       <div class="streak">your streak <b id="streak">0</b><span class="best">best <b id="beststreak" style="font-size:.95rem">0</b></span></div>
       <div class="gl"><span>the arena</span><span id="glcount">100 alive</span></div>
       <div class="grid" id="crowd"></div>
       <div class="ticker" id="ticker"></div>
+      <div class="spectcta" id="spectcta"><a id="nextlobby" href="/play"><svg class="ic"><use href="#i-refresh"/></svg>Play another lobby</a></div>
+      <div class="livenotice" id="livenotice"></div>
     </div>
 
     <aside class="side">
-      <div class="card"><h3><svg class="ic"><use href="#i-ball"/></svg>Live match — TxLINE feed</h3>
+      <div class="card"><h3><svg class="ic"><use href="#i-ball"/></svg>Match feed — TxLINE</h3>
         <div class="scoreline" id="score">0 – 0</div>
         <div class="feed" id="feed"></div>
       </div>
-      <div class="card" id="marketcard" style="display:none"><h3><svg class="ic"><use href="#i-chart"/></svg>Live market</h3>
+      <div class="card" id="marketcard" style="display:none"><h3><svg class="ic"><use href="#i-chart"/></svg>Match market<span id="mlive"><span class="dpulse"></span>LIVE</span></h3>
         <div class="stat3">
           <div class="st"><b id="mp1">–</b><span id="mp1l">home</span></div>
           <div class="st"><b id="mdraw">–</b><span>draw</span></div>
           <div class="st"><b id="mp2">–</b><span id="mp2l">away</span></div>
         </div>
-        <div class="note">Real 1X2 win-probability from the TxLINE StablePrice consensus, captured through the match.</div>
+        <div class="note" id="mnote">Real 1X2 win-probability from the TxLINE StablePrice consensus, captured through the match.</div>
       </div>
       <div class="card"><h3><svg class="ic fill" style="stroke:currentColor;fill:none"><use href="#i-crown"/></svg>Royale ladder</h3>
         <div class="ladstats">
@@ -286,10 +348,14 @@ footer b{color:var(--muted)}
           <div class="lad"><b id="lcrowns">0</b><span>crowns</span></div>
           <div class="lad"><b id="lmatches">0</b><span>lobbies</span></div>
         </div>
+        <div class="gl" style="margin:.2rem 0 .45rem"><span>the bot wall</span><span>this device's ladder</span></div>
         <div class="wall" id="wall"></div>
+        <div class="note">Your points, crowns and rank live in this browser. The named rivals on the wall are the resident bots — seeded targets to climb past, not real players (yet).</div>
       </div>
       <div class="card">
         <button class="btn" id="start"><svg class="ic"><use href="#i-bolt"/></svg>Join lobby &amp; start</button>
+        <button class="btn ghost" id="startlive" style="display:none;margin-top:.6rem"><svg class="ic" style="color:var(--success)"><use href="#i-bolt"/></svg>ENTER LIVE LOBBY</button>
+        <div class="note" id="livenote" style="display:none"><b>This fixture is inside its live window.</b> LIVE LOBBY drives the scoreboard from the real TxLINE feed as it updates; questions still come from the schedule engine. If the feed goes quiet for ~20s we fall back to the replay tape and say so.</div>
         <div class="note" id="vrfnote" style="display:none"><svg class="ic" style="color:var(--hi)"><use href="#i-shield"/></svg> <b>Provably fair</b> — bots, picks and tie-breaks are seeded by <a id="vrflink" href="#" target="_blank" rel="noopener">ORAO VRF randomness on Solana</a>.</div>
         <div class="note" id="proofnote" style="display:none"><svg class="ic" style="color:var(--gold)"><use href="#i-check"/></svg> <b>Score proven on-chain</b> — <a id="prooflink" href="#" target="_blank" rel="noopener">validateStatV2 tx on Solscan</a>.</div>
         <div class="note">Replay lobbies run on real World Cup matches pulled from the live TxLINE feed. Same engine as the iOS app.</div>
@@ -300,8 +366,8 @@ footer b{color:var(--muted)}
   <footer>
     <b>Real data, honest ledger.</b> Every lobby replays a real fixture pulled from the TxLINE feed (score events + StablePrice odds); questions come from the shared
     <code>HiLoLogic.buildSchedule</code> engine (unit-tested, mirrored in the iOS app). Rounds run a solora-anchor-style lifecycle (open → locked → settled; a feedless window voids the round).
-    The 99 other fans are simulated<span id="vrffootwrap" style="display:none">, seeded by <b>ORAO VRF</b> verifiable randomness on Solana devnet (<a id="vrffoot" href="#" target="_blank" rel="noopener">request tx</a>)</span>.
-    Streak records stamp via wallet memo; the featured Argentina–Switzerland final score is proven by a real <code>validateStatV2</code> devnet transaction.
+    The 99 other fans are simulated bots<span id="vrffootwrap" style="display:none">, seeded by <b>ORAO VRF</b> verifiable randomness on Solana devnet (<a id="vrffoot" href="#" target="_blank" rel="noopener">request tx</a>)</span>.
+    Ladder points and streaks are stored in this browser only. Where a lobby shows a proof link, its final score is proven by a real <code>validateStatV2</code> devnet transaction.
   </footer>
 </div>
 
@@ -312,15 +378,26 @@ footer b{color:var(--muted)}
   <div class="wbtns">
     <button class="btn" id="dl"><svg class="ic"><use href="#i-download"/></svg>Save streak card</button>
     <button class="btn ghost" id="share"><svg class="ic"><use href="#i-share"/></svg>Share</button>
+    <button class="btn ghost" id="copychal" style="display:none"><svg class="ic"><use href="#i-share"/></svg>Copy challenge link</button>
     <button class="btn ghost" onclick="location.reload()"><svg class="ic"><use href="#i-refresh"/></svg>Play another lobby</button>
   </div>
 </div></div>
 <div class="count" id="count"><span id="countn">3</span></div>
 <canvas id="fx"></canvas>
 
+<div class="howto" id="howto" role="dialog" aria-label="How Hi-Lo Royale works"><div class="howcard">
+  <h2>HOW YOU <em>SURVIVE</em></h2>
+  <div class="hstep"><div class="hn">1</div><div><h4>The tape rolls</h4><p>A real fixture's TxLINE events replay — goals, corners, the lot. Roughly every stat window, the arena asks one question.</p></div></div>
+  <div class="hstep"><div class="hn">2</div><div><h4>Call it before the lock</h4><p>Six seconds to pick HIGHER or LOWER while the crowd bar splits live. No pick counts as a timeout.</p></div></div>
+  <div class="hstep"><div class="hn">3</div><div><h4>Outlive 99 bots</h4><p>Wrong or too slow, your dot goes dark. Survive every round and the crown — plus the ladder points — is yours.</p></div></div>
+  <button class="btn" id="howok"><svg class="ic"><use href="#i-bolt"/></svg>GOT IT — LET ME IN</button>
+</div></div>
+
 <script src="lobbies.js"></script>
 <script src="vrf-proof.js"></script>
 <script src="game-logic.js"></script>
+<script src="live-feed.js"></script>
+<script src="share.js"></script>
 <script>
 const $=id=>document.getElementById(id);
 const REDUCE=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -331,6 +408,10 @@ if(!FAN||!FAN.handle){location.replace('/login'+location.search);}
 document.getElementById('fanhandle').textContent=FAN?FAN.handle:'';
 document.getElementById('leave').onclick=()=>{try{localStorage.removeItem('hilo.fan')}catch(e){};location.href='/';};
 const icon=(id,style)=>`<svg class="ic"${style?` style="${style}"`:''}><use href="#${id}"/></svg>`;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* optional modules (page must fully work without them) */
+const LF=(typeof window.LiveFeed!=='undefined')?window.LiveFeed:null;
+const SHARE=(typeof window.HiLoShare!=='undefined')?window.HiLoShare:null;
 /* game-logic questions carry emoji hints; the UI renders SVG icons instead */
 const KEY_ICON={corners:'i-flag',corner:'i-flag',shots:'i-target',shot:'i-target',cards:'i-cardy',card:'i-cardy',goal:'i-ball',sub:'i-swap',var:'i-monitor'};
 const qIcon=q=>icon(KEY_ICON[q.key]||'i-chart');
@@ -358,30 +439,70 @@ $('comp').textContent=FIXTURE.Competition+(LOBBY.tag?' · '+LOBBY.tag:'');
 $('crest1').textContent=CODE1;$('crest2').textContent=CODE2;
 $('name1').textContent=FIXTURE.Participant1;$('name2').textContent=FIXTURE.Participant2;
 $('score').textContent='0 – 0';
-/* lobby switcher chips */
+/* lobby switcher chips (stage/tag metadata + live window flags; UPCOMING is optional) */
+const isLiveNow=ms=>!!(LF&&LF.isLive&&ms&&LF.isLive(ms));
 $('lobbychips').innerHTML=LOBBIES.map((l,i)=>{
   const cur=l.fixtureId===LOBBY.fixtureId;
   const label=teamCode(l.fixture.Participant1)+' – '+teamCode(l.fixture.Participant2);
-  const sub=i===dailyIdx()?'TODAY':(l.tag||'REPLAY');
-  return `<a class="lb${cur?' cur':''}" href="?fixture=${l.fixtureId}"><span>${label}</span><small>${sub}</small></a>`;
-}).join('');
-/* odds sparkline + market (only when the lobby has an odds capture) */
-if(LOBBY.odds&&LOBBY.odds.winpct&&LOBBY.odds.winpct.length>1){
-  const S=LOBBY.odds.winpct;
+  const live=isLiveNow(l.kickoffMs);
+  const sub=live?'LIVE NOW':(i===dailyIdx()?'TODAY':(l.tag||l.stage||'REPLAY'));
+  const title=l.stage?` title="${esc(l.stage)}"`:'';
+  return `<a class="lb${cur?' cur':''}"${title} href="?fixture=${l.fixtureId}"><span>${label}</span><small${live?' style="color:var(--success)"':''}>${sub}</small></a>`;
+}).join('')+(Array.isArray(window.UPCOMING)?window.UPCOMING.map(u=>{
+  const label=teamCode(u.t1)+' – '+teamCode(u.t2);
+  const live=isLiveNow(u.kickoffMs);
+  let when='UPCOMING';
+  try{when=live?'LIVE NOW':new Date(u.kickoffMs).toLocaleString(undefined,{weekday:'short',hour:'2-digit',minute:'2-digit'}).toUpperCase()}catch(e){}
+  return `<span class="lb" style="opacity:.6;cursor:default" title="${esc(u.stage||u.comp||'')} — no tape yet"><span>${label}</span><small${live?' style="color:var(--success)"':''}>${when}</small></span>`;
+}).join(''):'');
+/* odds sparkline + market — normalized winpct keys {m,p1,draw,p2}, works for ANY lobby with an odds capture */
+const normPt=p=>({m:p.m||0,p1:p.p1!=null?p.p1:p.fra,draw:p.draw,p2:p.p2!=null?p.p2:p.eng,live:!!p.live});
+const ODDS=((LOBBY.odds&&LOBBY.odds.winpct)||[]).map(normPt).filter(p=>p.p1!=null&&p.p2!=null);
+function renderOdds(){
+  if(ODDS.length<2)return;
+  const S=ODDS,w=600,h=48,pad=4,xs=Math.max(1,S[S.length-1].m);
   $('swingwrap').classList.add('on');
   $('swinglbl').textContent=FIXTURE.Participant2+' win probability';
-  $('swingnow').textContent=S[S.length-1].eng.toFixed(0)+'%';
-  const w=600,h=48,pad=4,xs=S[S.length-1].m||1;
-  const pts=S.map(p=>[pad+(p.m/xs)*(w-2*pad),h-pad-(p.eng/100)*(h-2*pad)]);
+  $('swingnow').textContent=S[S.length-1].p2.toFixed(0)+'%';
+  const pts=S.map(p=>[pad+(p.m/xs)*(w-2*pad),h-pad-(p.p2/100)*(h-2*pad)]);
   const d=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const tail=pts[pts.length-1];
+  const liveDot=S[S.length-1].live?`<circle cx="${tail[0].toFixed(1)}" cy="${tail[1].toFixed(1)}" r="3.4" fill="#31f28b"/>`:'';
   $('spark').innerHTML=`<defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff3b5c" stop-opacity=".32"/><stop offset="1" stop-color="#ff3b5c" stop-opacity="0"/></linearGradient></defs>`+
-    `<path d="${d} L ${pts[pts.length-1][0].toFixed(1)} ${h} L ${pts[0][0].toFixed(1)} ${h} Z" fill="url(#sg)"/>`+
-    `<path d="${d}" fill="none" stroke="#ff3b5c" stroke-width="2" stroke-linejoin="round"/>`;
+    `<path d="${d} L ${tail[0].toFixed(1)} ${h} L ${pts[0][0].toFixed(1)} ${h} Z" fill="url(#sg)"/>`+
+    `<path d="${d}" fill="none" stroke="#ff3b5c" stroke-width="2" stroke-linejoin="round"/>`+liveDot;
   $('marketcard').style.display='block';
   const last=S[S.length-1];
-  $('mp1').textContent=last.fra.toFixed(0)+'%';$('mdraw').textContent=last.draw.toFixed(0)+'%';$('mp2').textContent=last.eng.toFixed(0)+'%';
+  $('mp1').textContent=last.p1.toFixed(0)+'%';
+  $('mdraw').textContent=last.draw!=null?last.draw.toFixed(0)+'%':'–';
+  $('mp2').textContent=last.p2.toFixed(0)+'%';
   $('mp1l').textContent=FIXTURE.Participant1;$('mp2l').textContent=FIXTURE.Participant2;
 }
+renderOdds();
+
+/* ---------------- LIVE odds via the TxLINE proxy (LiveFeed module, optional) ---------------- */
+let liveMode=false;
+function setDataChip(state,txt){const el=$('datachip');el.classList.remove('live','wait');
+  if(state==='live')el.classList.add('live');else if(state==='wait')el.classList.add('wait');
+  $('datatxt').textContent=txt;}
+setDataChip('replay','REPLAY TAPE');
+function markLiveOdds(o){
+  if(!o||o.p1==null||o.p2==null)return;
+  const lastM=ODDS.length?ODDS[ODDS.length-1].m:0;
+  const m=LOBBY.kickoffMs?Math.max(lastM+.5,Math.min(150,(Date.now()-LOBBY.kickoffMs)/60000)):lastM+1;
+  ODDS.push({m,p1:+o.p1,draw:o.draw!=null?+o.draw:null,p2:+o.p2,live:true});
+  if(ODDS.length>400)ODDS.shift();
+  renderOdds();
+  $('mlive').classList.add('on');
+  $('mnote').innerHTML='<b>LIVE</b> 1X2 win-probability from the TxLINE StablePrice consensus, refreshing about every 20s while this tab is open.';
+  if(!liveMode)setDataChip('live','REPLAY + LIVE ODDS');
+}
+async function refreshLiveOdds(){
+  if(!LF||document.visibilityState!=='visible')return;
+  try{const r=await LF.latestOdds(LOBBY.fixtureId);if(r&&r.ok)markLiveOdds(r);}catch(e){}
+}
+if(LF){refreshLiveOdds();setInterval(refreshLiveOdds,20000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshLiveOdds();});}
 /* on-chain settle proof (only when the lobby has one) */
 if(LOBBY.proof){$('proofnote').style.display='block';$('prooflink').href=LOBBY.proof.url;}
 
@@ -465,9 +586,27 @@ for(let i=0;i<100;i++){
 const me={alive:true,streak:0,outlivedAtDeath:null};
 function aliveTotal(){return bots.filter(b=>b.alive).length}
 function othersAlive(){return bots.filter(b=>b.alive&&!b.isMe).length}
-function updateAlive(){const a=aliveTotal();$('alivecount').textContent=a;$('glcount').textContent=a+' alive'}
+function updateAlive(){const a=aliveTotal(),el=$('alivecount');
+  if(el.textContent!==String(a)){el.classList.remove('tick');void el.offsetWidth;el.classList.add('tick');}
+  el.textContent=a;$('glcount').textContent=a+' alive'}
 
-/* ---------------- ladder + top-10 wall ---------------- */
+/* ---------------- ghost challenge: a friend's recorded run rides along as a rival dot ---------------- */
+let GHOST=null,ghostBot=null;
+if(SHARE){try{GHOST=SHARE.parseGhost(location.search)}catch(e){GHOST=null}}
+if(GHOST&&GHOST.fixtureId&&String(GHOST.fixtureId)!==String(LOBBY.fixtureId))GHOST=null;
+if(GHOST&&Array.isArray(GHOST.picks)&&GHOST.picks.length){
+  ghostBot=bots[7];
+  ghostBot.name=String(GHOST.name||'RIVAL').slice(0,24);
+  ghostBot.isGhost=true;
+  ghostBot.el.classList.add('rival');
+  ghostBot.el.title=ghostBot.name+' (ghost run)';
+  $('ghostbanner').classList.add('on');
+  $('ghosttxt').innerHTML=`GHOST CHALLENGE — beat <b>${esc(ghostBot.name)}</b>'s streak of ${GHOST.streak|0}`;
+}else GHOST=null;
+/* "play another lobby" CTA target */
+(function(){const i=LOBBIES.indexOf(LOBBY);if(i>=0&&LOBBIES.length>1)$('nextlobby').href='/play?fixture='+LOBBIES[(i+1)%LOBBIES.length].fixtureId;})();
+
+/* ---------------- ladder + top-10 wall (resident BOTS — labeled as such in the UI) ---------------- */
 const WALL=[
   {name:'@CasaLionne',points:2140,crowns:4},{name:'@PanenkaPriest',points:1980,crowns:3},
   {name:'@TifoTitan',points:1725,crowns:3},{name:'@BleuBaller',points:1510,crowns:2},
@@ -506,8 +645,11 @@ function paintEv(){const el=$('evstate');if(!curEvent){el.style.display='none';r
   el.style.display='inline-flex';el.textContent=curEvent.state;el.className='chip '+curEvent.state.toLowerCase();}
 
 /* ---------------- game state ---------------- */
-const SCHEDULE=HiLoLogic.buildSchedule(E,FIXTURE);
-let scheduleIdx=0,pending=null,buffer=[],running=false,gameOver=false;
+const SCHEDULE=HiLoLogic.buildSchedule(E,FIXTURE,{odds:(LOBBY.odds&&LOBBY.odds.winpct)||undefined});
+let scheduleIdx=0,pending=null,buffer=[],running=false,gameOver=false,liveDone=false,tapeDone=false;
+/* my picks are recorded per round so a finished run can be shared as a ghost challenge */
+const myPicks=[];
+let hadNearDeath=false,chalUrl=null,lastCaption=null;
 
 /* timer driven by rAF (near-death + heartbeat pacing) */
 const QMS=6000;
@@ -540,18 +682,24 @@ function updateCrowdBar(revealed){
 function startQuestion(q){
   const outcome={val:q.val??0,answer:q.answer??'push'};
   const picks=[];
-  for(const b of bots){if(!b.alive||b.isMe)continue;
+  for(const b of bots){if(!b.alive||b.isMe||b.isGhost)continue;
     picks.push({bot:b,pick:HiLoLogic.botPick(b.skill,outcome.answer,rng()),at:400+rng()*(QMS-1200)});}
-  pending={q,outcome,botPicks:picks,myPick:null,myPickAtMs:null,msRemaining:QMS,revealed:[]};
+  pending={q,outcome,botPicks:picks,myPick:null,myPickAtMs:null,spectPick:null,msRemaining:QMS,revealed:[]};
   createEvent(q,QMS);
+  $('upnext').style.display='none';
   const isSidePick=q.kind==='side_pick';
-  $('qnum').textContent=`ROUND ${q.n}/${SCHEDULE.length} · ${q.fromMin}–${q.fromMin+q.windowLen}'`;
+  const isFinal=q.n>=SCHEDULE.length;
+  $('qnum').classList.toggle('final',isFinal);
+  $('qnum').textContent=(isFinal?'FINAL QUESTION':`ROUND ${q.n}/${SCHEDULE.length}`)+` · ${q.fromMin}–${q.fromMin+q.windowLen}'`;
   $('question').innerHTML=qIcon(q)+' '+(q.promptText?stripEmoji(q.promptText):`Will there be <b>MORE or FEWER ${q.label}</b> in the next ${q.windowLen} minutes than the last ${q.windowLen}?`);
   $('lastval').innerHTML=(q.kind==='compare_window'||!q.kind)&&q.prevVal!=null?`last ${q.windowLen} min: <b>${q.prevVal}</b> ${q.key}`:'';
   $('hitxt').textContent=q.hiLabel||'HIGHER';$('lotxt').textContent=q.loLabel||'LOWER';
   $('hi').classList.toggle('sidepick',isSidePick);$('cbhi').classList.toggle('sidepick',isSidePick);
   $('verdict').textContent='';$('neardeath').textContent='';$('neardeath').classList.remove('show');
-  $('hi').disabled=$('lo').disabled=!me.alive;
+  $('ghostline').textContent='';
+  /* eliminated players spectate: buttons become dashed "what you'd have picked" ghosts */
+  $('hi').disabled=$('lo').disabled=false;
+  $('hi').classList.toggle('spect',!me.alive);$('lo').classList.toggle('spect',!me.alive);
   $('hi').classList.remove('picked');$('lo').classList.remove('picked');
   $('cbhi').classList.remove('winside');$('cblo').classList.remove('winside');
   updateCrowdBar([]);
@@ -564,7 +712,11 @@ function startQuestion(q){
   runTimer(()=>{lockEvent();setTimeout(()=>resolveRound(),curEvent?curEvent.waitPeriod:650);});
 }
 $('hi').onclick=()=>pickSide('hi');$('lo').onclick=()=>pickSide('lo');
-function pickSide(p){if(!pending||!me.alive||pending.myPick)return;
+function pickSide(p){if(!pending)return;
+  if(!me.alive){ /* spectator ghost-pick: doesn't count, just tells you what would've happened */
+    if(pending.spectPick)return;
+    pending.spectPick=p;$(p).classList.add('picked');$('hi').disabled=$('lo').disabled=true;AudioFX.click();return;}
+  if(pending.myPick)return;
   pending.myPick=p;pending.myPickAtMs=pending.msRemaining;
   pending.revealed.push(p);updateCrowdBar(pending.revealed);
   $(p).classList.add('picked');$('hi').disabled=$('lo').disabled=true;AudioFX.lock();}
@@ -575,7 +727,13 @@ function resolveRound(){
   $('hi').disabled=$('lo').disabled=true;
   const {val,answer}=P.outcome;const q=P.q;
   settleEvent(answer);
-  const allPicks=P.botPicks.map(p=>p.pick).concat(P.myPick?[P.myPick]:[]);
+  /* ghost rival replays the recorded pick for this round (revealed only after the lock) */
+  let gpick=null,ghostWasAlive=!!(ghostBot&&ghostBot.alive);
+  if(ghostWasAlive){
+    const gp=GHOST.picks.find(p=>p&&p.n===q.n);
+    gpick=gp&&(gp.pick==='hi'||gp.pick==='lo')?gp.pick:null;
+  }
+  const allPicks=P.botPicks.map(p=>p.pick).concat(P.myPick?[P.myPick]:[]).concat(ghostWasAlive&&gpick?[gpick]:[]);
   updateCrowdBar(allPicks);
   const s=HiLoLogic.crowdSplit(allPicks);
   $('cbhi').classList.toggle('winside',answer==='hi');$('cblo').classList.toggle('winside',answer==='lo');
@@ -583,10 +741,22 @@ function resolveRound(){
     `the crowd ${((answer==='hi'?s.hi:s.lo)>=.5?'was RIGHT':'was WRONG')}`;
   const verdict=HiLoLogic.judge(answer,P.myPick);
   const hadPick=P.myPick!=null;
+  if(me.alive)myPicks.push({n:q.n,pick:P.myPick||null,msLeft:P.myPickAtMs!=null?Math.round(P.myPickAtMs):0});
   const prevStreak=me.streak;
   me.streak=HiLoLogic.nextStreak(me.streak,verdict,hadPick);
   const dying=[];
   for(const p of P.botPicks){if(!HiLoLogic.survives(HiLoLogic.judge(answer,p.pick))){p.bot.alive=false;dying.push(p.bot);}}
+  /* settle the ghost rival */
+  if(ghostWasAlive){
+    const lbl=p=>p==='hi'?(q.hiLabel||'HIGHER'):(q.loLabel||'LOWER');
+    if(HiLoLogic.survives(HiLoLogic.judge(answer,gpick))){
+      $('ghostline').innerHTML=`<b>${esc(ghostBot.name)}</b> (ghost) ${gpick?'picked '+lbl(gpick):'sat out'} — still alive`;
+    }else{
+      ghostBot.alive=false;dying.push(ghostBot);
+      $('ghostline').innerHTML=`<b>${esc(ghostBot.name)}</b> (ghost) ${gpick?'picked '+lbl(gpick):'timed out'} — ELIMINATED`;
+      $('ghosttxt').innerHTML=`you outlived <b>${esc(ghostBot.name)}</b>'s ghost — now beat the streak of ${GHOST.streak|0}`;
+    }
+  }
   const myDot=bots[44];
   if(me.alive){
     if(HiLoLogic.survives(verdict)){
@@ -598,6 +768,7 @@ function resolveRound(){
         const byTime=HiLoLogic.isNearDeathTime(P.myPickAtMs);
         const byMargin=isHiLoKind&&q.prevVal!=null&&HiLoLogic.isNearDeathMargin(val,q.prevVal);
         if(byTime||byMargin){
+          hadNearDeath=true;
           $('neardeath').innerHTML=icon('i-heart')+' '+(byTime?`SURVIVED BY ${(P.myPickAtMs/1000).toFixed(1)}s`:`SURVIVED BY A SINGLE ${q.key.replace(/s$/,'').toUpperCase()}`);
           $('neardeath').classList.add('show');FX.burst(70);
         }
@@ -609,7 +780,15 @@ function resolveRound(){
       $('verdict').innerHTML=`${why}. Eliminated at streak ${me.streak} — you outlived ${me.outlivedAtDeath} of 99 fans`;
       $('verdict').className='verdict out';AudioFX.wrong();FX.shake();
       myDot.el.classList.add('justdead');setTimeout(()=>{myDot.el.classList.remove('justdead');myDot.el.classList.add('dead')},450);
+      /* enter spectator mode: the cascade continues, you watch with ghost-buttons */
+      $('watchchip').style.display='inline-flex';
+      $('spectcta').classList.add('on');
+      if(ghostBot&&ghostBot.alive)$('ghosttxt').innerHTML=`<b>${esc(ghostBot.name)}</b>'s ghost is still alive — it survived you`;
     }
+  }else if(P.spectPick){
+    const sv=HiLoLogic.judge(answer,P.spectPick);
+    $('verdict').innerHTML=icon('i-monitor')+' SPECTATING — you\'d have '+(HiLoLogic.survives(sv)?'survived that one':'been eliminated again');
+    $('verdict').className='verdict';
   }
   $('streak').textContent=me.streak;
   if(me.streak>ladder.best){ladder.best=me.streak;store.set('best',ladder.best);$('beststreak').textContent=ladder.best;}
@@ -624,7 +803,7 @@ function resolveRound(){
     (answer==='push'?'nobody eliminated this round':'');
   setTimeout(()=>{updateAlive();
     if(scheduleIdx>=SCHEDULE.length||aliveTotal()<=1||othersAlive()===0){endGame();}
-    else flushBuffer();
+    else{updateUpNext();flushBuffer();if(tapeDone&&!pending)advanceAfterTape();}
   },1400+Math.min(1200,dying.length*36));
 }
 
@@ -643,10 +822,25 @@ function handleEvent(e){
   if(next&&e.minute>=next.fromMin&&!pending&&!gameOver){scheduleIdx++;startQuestion(next);}
 }
 function flushBuffer(){const q=buffer;buffer=[];for(const e of q){if(pending){buffer.push(e);}else handleEvent(e);}}
+/* once the tape is exhausted no event can trigger the next round — force the
+   remaining scheduled questions (answers are precomputed on the question), then end */
+function advanceAfterTape(){
+  if(gameOver||pending)return;
+  const nq=SCHEDULE[scheduleIdx];
+  if(nq){scheduleIdx++;startQuestion(nq);}
+  else endGame();
+}
+/* UP NEXT hint: the window minute of the next scheduled question */
+function updateUpNext(){
+  const nq=SCHEDULE[scheduleIdx];
+  if(running&&!gameOver&&!pending&&nq){$('upnext').style.display='inline-flex';$('upnext').textContent=`UP NEXT · ${nq.fromMin}'`;}
+  else $('upnext').style.display='none';
+}
 
 /* ---------------- endgame + streak card ---------------- */
 function endGame(){
   if(gameOver)return;gameOver=true;curEvent=null;paintEv();
+  $('upnext').style.display='none';
   const oa=othersAlive();
   const won=me.alive&&oa===0;
   const outlivedCount=me.alive?100-aliveTotal():me.outlivedAtDeath??0;
@@ -655,11 +849,21 @@ function endGame(){
   store.set('ladder',ladder.points);store.set('matches',ladder.matches);store.set('crowns',ladder.crowns);
   renderLadder();
   const rank=HiLoLogic.ladderRank(WALL,ladder.points);
+  /* ghost-challenge link: your recorded picks become a rival for whoever opens it */
+  if(SHARE){
+    try{
+      const payload=SHARE.encodeGhost({fixtureId:LOBBY.fixtureId,name:(FAN&&FAN.handle)||'A RIVAL',picks:myPicks,streak:me.streak,outlived:outlivedCount});
+      chalUrl=SHARE.ghostUrl(payload);
+    }catch(e){chalUrl=null}
+    try{lastCaption=SHARE.caption({won,streak:me.streak,outlived:outlivedCount,lobbyId:LOBBY_ID,nearDeath:hadNearDeath});}catch(e){lastCaption=null}
+  }
   setTimeout(()=>{
     $('wtitle').innerHTML=won?icon('i-crown','color:var(--gold)')+' LAST FAN STANDING':me.alive?`TOP ${aliveTotal()} FINISH`:'ELIMINATED';
-    $('wsub').textContent=won?`You outlived all 99 fans across ${scheduleIdx} questions. +${pts} ladder points, crown stamped on-chain (devnet).`:
-      me.alive?`You survived all ${scheduleIdx} questions (streak ${me.streak}) with ${aliveTotal()-1} others. +${pts} ladder points.`:
-      `Streak ${me.streak}. You outlived ${outlivedCount} of 99 fans. +${pts} ladder points. Next lobby starts in 3 minutes.`;
+    $('wsub').textContent=(won?`You outlived all 99 bots across ${scheduleIdx} questions. +${pts} points on this device's ladder.`:
+      me.alive?`You survived all ${scheduleIdx} questions (streak ${me.streak}) with ${aliveTotal()-1} others. +${pts} points on this device's ladder.`:
+      `Streak ${me.streak}. You outlived ${outlivedCount} of 99 bots. +${pts} points on this device's ladder.`)+
+      (chalUrl?' Send a rival the challenge link — your run rides along as their ghost.':'');
+    if(chalUrl)$('copychal').style.display='inline-flex';
     drawStreakCard({streak:me.streak,best:ladder.best,outlivedCount,won,rank,pts});
     $('winner').classList.add('open');
     if(won){AudioFX.fanfare();FX.burst(160,innerHeight*.3);setTimeout(()=>FX.burst(120),500);}
@@ -701,7 +905,7 @@ function drawStreakCard(o){
   c.fillText(`${CODE1} ${FINAL_SCORE.g1} – ${FINAL_SCORE.g2} ${CODE2} · ${FIXTURE.Competition}`,W/2,H*.62+190);
   c.fillStyle='#93a1b5';c.font=`500 28px ${BFONT}`;
   c.fillText(`lobby ${LOBBY_ID} · ladder rank #${o.rank} · +${o.pts} pts`,W/2,H*.62+240);
-  c.fillText(new Date().toISOString().slice(0,10)+' · stats + fairness proof-anchored on Solana',W/2,H*.62+286);
+  c.fillText(new Date().toISOString().slice(0,10)+' · real TxLINE match tape · VRF-seeded rivals',W/2,H*.62+286);
   const seedHash=TxMock.hash(`card:${o.streak}:${o.outlivedCount}:${o.rank}`);
   let x=W/2-260;c.fillStyle='#f4f7fb';
   for(let i=0;i<40;i++){const wdt=2+(parseInt(seedHash[i%8],16)+i)%6;c.fillRect(x,H-160,wdt,70);x+=wdt+6;}
@@ -711,26 +915,69 @@ function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,
 $('dl').onclick=()=>{const a=document.createElement('a');a.download='hilo-royale-streak.png';a.href=$('cardcanvas').toDataURL('image/png');a.click();};
 $('share').onclick=async()=>{
   const cv=$('cardcanvas');
+  const text=lastCaption||`I outlived ${me.alive?100-aliveTotal():me.outlivedAtDeath??0} of 99 rivals on Hi-Lo Royale`;
   try{
     const blob=await new Promise(r=>cv.toBlob(r,'image/png'));
     const file=new File([blob],'hilo-royale-streak.png',{type:'image/png'});
+    if(SHARE){await SHARE.share({file,text,url:chalUrl||location.origin+'/play?fixture='+LOBBY.fixtureId});return;}
     if(navigator.canShare&&navigator.canShare({files:[file]})){
-      await navigator.share({files:[file],title:'Hi-Lo Royale',text:`I outlived ${me.alive?100-aliveTotal():me.outlivedAtDeath??0} of 99 fans on Hi-Lo Royale`});return;}
+      await navigator.share({files:[file],title:'Hi-Lo Royale',text:text+(chalUrl?' '+chalUrl:'')});return;}
   }catch(e){}
   $('dl').click();
 };
+$('copychal').onclick=async()=>{
+  if(!chalUrl)return;
+  const full=(lastCaption?lastCaption+' ':'')+chalUrl;
+  let ok=false;
+  try{await navigator.clipboard.writeText(full);ok=true;}catch(e){
+    try{const ta=document.createElement('textarea');ta.value=full;document.body.appendChild(ta);ta.select();ok=document.execCommand('copy');ta.remove();}catch(e2){}
+  }
+  $('copychal').innerHTML=icon(ok?'i-check':'i-x')+(ok?'Challenge link copied':'Copy failed — long-press the URL');
+};
 
-/* ---------------- kickoff ---------------- */
-$('start').onclick=()=>{
+/* ---------------- kickoff: replay tape or LIVE lobby ---------------- */
+const LIVE_OK=!!(LF&&LF.isLive&&LOBBY.kickoffMs&&LF.isLive(LOBBY.kickoffMs));
+if(LIVE_OK){$('startlive').style.display='inline-flex';$('livenote').style.display='block';}
+function startReplay(){
+  TxMock.stream({speed:5,onEvent:handleEvent,onDone:()=>{tapeDone=true;if(pending){/* let the running round settle */}else advanceAfterTape();}});
+}
+function startLive(){
+  liveMode=true;setDataChip('wait','LIVE FEED · WAITING');
+  let gotSignal=false;
+  const poller=LF.poll(LOBBY.fixtureId,{intervalMs:15000,
+    onScoreEvent:e=>{gotSignal=true;if(liveMode)setDataChip('live','LIVE FEED');
+      handleEvent(e);
+      if(e.type==='game_finalised'){liveDone=true;tapeDone=true;if(!pending&&!gameOver)advanceAfterTape();}},
+    onOdds:o=>{markLiveOdds(o);if(liveMode)setDataChip('live','LIVE FEED');gotSignal=true;},
+    onStatus:()=>{}});
+  /* honesty watchdog: no live signal within 20s -> visible fallback to the replay tape */
+  setTimeout(()=>{
+    if(!gotSignal&&!gameOver){
+      try{poller&&poller.stop&&poller.stop()}catch(e){}
+      liveMode=false;setDataChip('replay','REPLAY TAPE');
+      const nEl=$('livenotice');nEl.textContent='Live feed gave no signal for 20s — rolling the recorded replay tape for this fixture instead.';nEl.classList.add('on');
+      startReplay();
+    }
+  },20000);
+}
+function launch(live){
   if(running)return;running=true;AudioFX.init();
-  $('start').disabled=true;$('start').innerHTML='LOBBY LIVE';
+  $('start').disabled=true;$('startlive').disabled=true;
+  $('start').innerHTML=live?'LIVE LOBBY':'LOBBY LIVE';
   const cd=$('count'),cn=$('countn');cd.classList.add('open');
   let n=3;cn.textContent=n;AudioFX.tick();
   const iv=setInterval(()=>{n--;
     if(n>0){cn.textContent=n;cn.style.animation='none';void cn.offsetWidth;cn.style.animation='';AudioFX.tick();}
     else{clearInterval(iv);cd.classList.remove('open');AudioFX.lock();
-      TxMock.stream({speed:5,onEvent:handleEvent,onDone:()=>{if(pending){/* let the running round settle */}else if(!gameOver)endGame();}});}
+      updateUpNext();
+      if(live)startLive();else startReplay();}
   },800);
-};
+}
+$('start').onclick=()=>launch(false);
+$('startlive').onclick=()=>launch(true);
+
+/* ---------------- first-visit: 3-step how-it-works (dismiss persisted) ---------------- */
+if(!store.get('seenHow',false))$('howto').classList.add('open');
+$('howok').onclick=()=>{store.set('seenHow',true);$('howto').classList.remove('open');AudioFX.init();};
 </script>
 </body></html>

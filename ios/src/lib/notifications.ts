@@ -35,8 +35,8 @@ export async function scheduleLobbyReminder(
 ): Promise<string> {
   return Notifications.scheduleNotificationAsync({
     content: {
-      title: "🔥 Lobby opening in 5 minutes",
-      body: `Replay lobby #${lobbyId} (${matchLabel}) is filling up — 61/100 fans in. Claim your spot.`,
+      title: "Lobby opening in 5 minutes",
+      body: `Replay lobby #${lobbyId} (${matchLabel}) is about to open. Claim your spot.`,
       sound: true,
       data: { lobbyId },
     },
@@ -54,7 +54,7 @@ export async function scheduleLobbyReminder(
 export async function notifySurvival(round: number, aliveCount: number): Promise<string> {
   return Notifications.scheduleNotificationAsync({
     content: {
-      title: `🎉 You survived round ${round}`,
+      title: `You survived round ${round}`,
       body: `${aliveCount} fans still alive. The cascade is coming — get back in.`,
       sound: Platform.OS === "ios" ? true : undefined,
       data: { round },

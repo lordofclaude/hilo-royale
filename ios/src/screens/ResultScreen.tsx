@@ -9,6 +9,9 @@ import { encodeGhostPicks, ladderRank } from "../lib/game-logic";
 import { ReplayFixture, teamCode } from "../lib/txline-real";
 import { badgeDef } from "../lib/badges";
 import { VRF_EXPLORER_URL } from "../lib/vrf";
+import Icon from "../components/Icon";
+
+const WEB_URL = "https://hilo-royale.vercel.app";
 
 interface Props {
   result: GameResult;
@@ -34,7 +37,7 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
 
   const title = r.won ? "LAST FAN\nSTANDING" : r.survivedToEnd ? "YOU\nSURVIVED" : "ELIMINATED";
   const sub = r.won
-    ? `You outlived all 99 fans across ${r.rounds} questions. Crown stamped on-chain (devnet).`
+    ? `You outlived all 99 fans across ${r.rounds} questions. Provably-fair lobby · ORAO VRF seed on Solana devnet.`
     : r.survivedToEnd
     ? `You survived all ${r.rounds} questions with ${r.aliveAtEnd - 1} others still alive.`
     : `${r.aliveAtEnd} fans outlasted you.${r.ghostRankAtEnd ? ` In ghost mode, your run would have reached top ${r.ghostRankAtEnd}.` : ""}`;
@@ -43,8 +46,9 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
   const challengeUrl = `hiloroyale://challenge/${r.fixtureId}?p=${ghostCode}&target=${r.pts}`;
   const message =
     `I outlived ${r.outlivedCount} of 99 fans on Hi-Lo Royale ` +
-    `(streak ${r.streak}, ${r.predictionPoints} crowd-difficulty points${r.won ? ", 👑 LOBBY CHAMPION" : ""}) — ${code1} ${finalScore.g1}–${finalScore.g2} ${code2}. ` +
-    `${survived ? "Can you survive my score?" : `I died on round ${r.death?.round || r.rounds}. Can you beat my ghost?`} ${challengeUrl}`;
+    `(streak ${r.streak}, ${r.predictionPoints} crowd-difficulty points${r.won ? ", LOBBY CHAMPION" : ""}) — ${code1} ${finalScore.g1}–${finalScore.g2} ${code2}. ` +
+    `${survived ? "Think you can outlast my run? Same match, same questions — prove it." : `I died on round ${r.death?.round || r.rounds}. Beat my ghost if you can.`} ` +
+    `Play now: ${WEB_URL} · In-app challenge: ${challengeUrl}`;
 
   const shareText = () => {
     Share.share({
@@ -78,19 +82,23 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
         <Text style={{ color: C.gold }}>ROYALE</Text>
       </Text>
       <Text style={[styles.title, !survived && { color: C.lo }]}>{title}</Text>
-      <Text style={styles.crownBig}>{survived ? "👑" : "💀"}</Text>
+      <View style={styles.crownBig}>
+        <Icon name={survived ? "crown" : "skull"} size={58} color={survived ? C.gold : C.lo} />
+      </View>
       <Text style={[styles.pts, glow(C.gold, 12, 0.4) as object]}>+{r.pts.toLocaleString()}</Text>
       <Text style={styles.sub}>{sub}</Text>
       {challengeOutcome && <Text style={styles.challengeOutcome}>{challengeOutcome}</Text>}
 
       {/* streak + rank pills */}
       <View style={[styles.pill, { borderColor: C.gold }, glow(C.gold, 8, 0.35)]}>
+        <Icon name="bolt" size={13} color={C.gold} style={{ marginRight: 7 }} />
         <Text style={styles.pillGoldTxt}>
-          🔥 STREAK x{r.streak}{r.streak > 0 ? "  " + "👑".repeat(Math.min(7, r.streak)) : ""}
+          STREAK x{r.streak}{r.streak > 0 ? "  " + "♛".repeat(Math.min(7, r.streak)) : ""}
         </Text>
       </View>
       <View style={[styles.pill, { borderColor: C.hi }]}>
-        <Text style={styles.pillCyanTxt}>⛨  OUTLIVED {r.outlivedCount} OF 99 FANS</Text>
+        <Icon name="shield" size={13} color={C.hi} style={{ marginRight: 7 }} />
+        <Text style={styles.pillCyanTxt}>OUTLIVED {r.outlivedCount} OF 99 FANS</Text>
       </View>
 
       <View style={styles.breakdown}>
@@ -110,7 +118,12 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
             <Text style={{ color: C.gold }}>ROYALE</Text>
           </Text>
           <Text style={styles.tSub}>{survived ? "SURVIVAL TICKET" : "DEATH REPLAY"} · DAILY {r.dailyKey}</Text>
-          {r.won && <Text style={styles.tCrown}>👑 LOBBY CHAMPION</Text>}
+          {r.won && (
+            <View style={styles.tCrownRow}>
+              <Icon name="crown" size={12} color={C.gold} style={{ marginRight: 6 }} />
+              <Text style={styles.tCrown}>LOBBY CHAMPION</Text>
+            </View>
+          )}
           <Text style={styles.tStreak}>{r.streak}</Text>
           <Text style={styles.tStreakLbl}>QUESTION STREAK</Text>
           {!survived && r.death && (
@@ -129,14 +142,19 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
           <Text style={styles.tMeta}>
             {r.predictionPoints} skill + {r.survivalPoints} survival + {r.crownBonus} crown · rank #{rank}
           </Text>
-          {replay.proof && <Text style={styles.tChain}>⛓ FINAL SCORE VERIFIED ON SOLANA · {replay.proof.txSig.slice(0, 8)}…</Text>}
+          {replay.proof && (
+            <View style={styles.tChainRow}>
+              <Icon name="chain" size={10} color={C.success} style={{ marginRight: 5 }} />
+              <Text style={styles.tChain}>FINAL SCORE PROVEN ON SOLANA DEVNET · {replay.proof.txSig.slice(0, 8)}…</Text>
+            </View>
+          )}
           {r.badges.length > 0 && (
             <View style={styles.badgeRow}>
               {r.badges.map(id => {
                 const b = badgeDef(id);
                 return (
                   <View key={id} style={styles.badgeChip}>
-                    <Text style={styles.badgeIcon}>{b.icon}</Text>
+                    <Icon name={b.icon} size={11} color={C.gold} />
                     <Text style={styles.badgeLabel}>{b.label}</Text>
                   </View>
                 );
@@ -152,7 +170,8 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
         style={({ pressed }) => [styles.chainPill, glow(C.success, 8, 0.4), pressed && { opacity: 0.85 }]}
         onPress={() => Linking.openURL(replay.proofExplorerUrl!).catch(() => {})}
       >
-        <Text style={styles.chainPillTxt}>⛓  VERIFIED ON SOLANA — VIEW TX  ↗</Text>
+        <Icon name="chain" size={12} color={C.success} style={{ marginRight: 7 }} />
+        <Text style={styles.chainPillTxt}>SCORE PROOF · SOLANA DEVNET — VIEW TX  ↗</Text>
       </Pressable>}
 
       {/* provably fair lobby: bots/tie-breaks seeded by a real ORAO VRF
@@ -161,7 +180,8 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
         style={({ pressed }) => [styles.chainPill, glow(C.hi, 8, 0.35), pressed && { opacity: 0.85 }]}
         onPress={() => Linking.openURL(VRF_EXPLORER_URL).catch(() => {})}
       >
-        <Text style={styles.chainPillTxt}>🎲  PROVABLY FAIR — ORAO VRF SEED  ↗</Text>
+        <Icon name="dice" size={12} color={C.success} style={{ marginRight: 7 }} />
+        <Text style={styles.chainPillTxt}>PROVABLY FAIR — ORAO VRF SEED (DEVNET)  ↗</Text>
       </Pressable>
 
       {/* share */}
@@ -172,20 +192,22 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
         <Pressable style={[styles.sharePlatform, styles.copy]} onPress={copyChallenge}><Text style={[styles.sharePlatformTxt, { color: C.hi }]}>COPY LINK</Text></Pressable>
       </View>
       <Pressable style={({ pressed }) => [styles.primary, glow(C.gold, 8, 0.4), pressed && { opacity: 0.85 }]} onPress={shareImage}>
-        <Text style={styles.primaryTxt}>📤  SHARE {survived ? "SURVIVAL TICKET" : "DEATH REPLAY"}</Text>
+        <Text style={styles.primaryTxt}>SHARE {survived ? "SURVIVAL TICKET" : "DEATH REPLAY"}  ↗</Text>
       </Pressable>
       <Pressable style={({ pressed }) => [styles.challenge, pressed && { opacity: 0.85 }]} onPress={shareText}>
-        <Text style={styles.challengeTxt}>👥  CHALLENGE 3 FRIENDS  →</Text>
+        <Icon name="users" size={13} color={C.gold} style={{ marginRight: 7 }} />
+        <Text style={styles.challengeTxt}>CHALLENGE 3 FRIENDS  →</Text>
       </Pressable>
       <Pressable style={({ pressed }) => [styles.again, glow(C.hi, 8, 0.4), pressed && { opacity: 0.85 }]} onPress={onAgain}>
-        <Text style={styles.againTxt}>▶  RUN IT BACK</Text>
+        <Icon name="play" size={12} color={C.hi} style={{ marginRight: 8 }} />
+        <Text style={styles.againTxt}>RUN IT BACK</Text>
       </Pressable>
       <View style={styles.row}>
         <Pressable style={({ pressed }) => [styles.ghost, styles.half, pressed && { opacity: 0.85 }]} onPress={onLobby}>
-          <Text style={styles.ghostTxt}>🏟 Lobby</Text>
+          <Text style={styles.ghostTxt}>LOBBY</Text>
         </Pressable>
         <Pressable style={({ pressed }) => [styles.ghost, styles.half, pressed && { opacity: 0.85 }]} onPress={onProfile}>
-          <Text style={styles.ghostTxt}>👤 Profile</Text>
+          <Text style={styles.ghostTxt}>PROFILE</Text>
         </Pressable>
       </View>
 
@@ -217,12 +239,13 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 40 },
   brand: { fontSize: 18, ...displayFont, textAlign: "center", marginTop: 8 },
   title: { color: C.gold, fontSize: 44, ...displayFont, textAlign: "center", lineHeight: 48, marginTop: 10 },
-  crownBig: { fontSize: 64, textAlign: "center", marginVertical: 6 },
+  crownBig: { alignItems: "center", marginVertical: 10 },
   pts: { color: C.gold, fontSize: 40, ...displayFont, textAlign: "center" },
   sub: { color: C.muted, textAlign: "center", marginTop: 8, marginBottom: 16, lineHeight: 20 },
   challengeOutcome: { color: C.hi, backgroundColor: C.hiSoft, borderColor: C.hi, borderWidth: 1, borderRadius: 10, paddingVertical: 9, textAlign: "center", fontSize: 11, fontWeight: "900", letterSpacing: 0.8, marginBottom: 12 },
   pill: {
-    alignSelf: "center", backgroundColor: C.panelDeep, borderWidth: 1.5,
+    alignSelf: "center", flexDirection: "row", alignItems: "center",
+    backgroundColor: C.panelDeep, borderWidth: 1.5,
     borderRadius: 99, paddingHorizontal: 18, paddingVertical: 9, marginBottom: 10,
   },
   pillGoldTxt: { color: C.gold, fontSize: 14, fontWeight: "900", letterSpacing: 1 },
@@ -237,7 +260,8 @@ const styles = StyleSheet.create({
   },
   tHead: { fontSize: 22, ...displayFont },
   tSub: { color: C.muted, fontSize: 10, letterSpacing: 1.5, marginTop: 4, marginBottom: 8 },
-  tCrown: { color: C.gold, fontWeight: "900", marginBottom: 4 },
+  tCrownRow: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
+  tCrown: { color: C.gold, fontWeight: "900", letterSpacing: 0.8 },
   tStreak: { color: C.gold, fontSize: 84, ...displayFont, lineHeight: 92 },
   tStreakLbl: { color: C.muted, fontSize: 11, letterSpacing: 2, marginBottom: 12 },
   deathBox: { alignSelf: "stretch", backgroundColor: C.loSoft, borderColor: C.lo, borderWidth: 1.5, borderRadius: 13, padding: 12, alignItems: "center", marginBottom: 13 },
@@ -247,9 +271,11 @@ const styles = StyleSheet.create({
   deathCrowd: { color: C.muted, fontSize: 8, fontWeight: "800", textAlign: "center", marginTop: 5 },
   tMatch: { fontWeight: "900", fontSize: 16 },
   tMeta: { color: C.muted, fontSize: 11, marginTop: 4 },
-  tChain: { color: C.success, fontSize: 9, fontWeight: "900", letterSpacing: 0.5, marginTop: 8 },
+  tChainRow: { flexDirection: "row", alignItems: "center", marginTop: 8 },
+  tChain: { color: C.success, fontSize: 9, fontWeight: "900", letterSpacing: 0.5 },
   chainPill: {
-    alignSelf: "center", backgroundColor: "rgba(49,242,139,0.08)", borderColor: C.success, borderWidth: 1.5,
+    alignSelf: "center", flexDirection: "row", alignItems: "center",
+    backgroundColor: "rgba(49,242,139,0.08)", borderColor: C.success, borderWidth: 1.5,
     borderRadius: 99, paddingHorizontal: 18, paddingVertical: 10, marginBottom: 14,
   },
   chainPillTxt: { color: C.success, fontSize: 11, fontWeight: "900", letterSpacing: 1 },
@@ -259,7 +285,6 @@ const styles = StyleSheet.create({
     backgroundColor: C.panelDeep, borderColor: C.gold, borderWidth: 1,
     borderRadius: 99, paddingHorizontal: 10, paddingVertical: 5,
   },
-  badgeIcon: { fontSize: 12 },
   badgeLabel: { color: C.gold, fontSize: 10, fontWeight: "800" },
   shareLbl: { color: C.muted, fontSize: 11, fontWeight: "800", letterSpacing: 2, textAlign: "center", marginBottom: 10 },
   shareRow: { flexDirection: "row", gap: 7, marginBottom: 10 },
@@ -269,17 +294,18 @@ const styles = StyleSheet.create({
   primary: { backgroundColor: C.accent, borderRadius: 14, paddingVertical: 15, alignItems: "center", marginBottom: 10 },
   primaryTxt: { color: "#160f07", fontWeight: "900", fontSize: 15, letterSpacing: 1 },
   again: {
+    flexDirection: "row", justifyContent: "center",
     backgroundColor: C.hiSoft, borderColor: C.hi, borderWidth: 1.5,
     borderRadius: 14, paddingVertical: 14, alignItems: "center", marginBottom: 10,
   },
   againTxt: { color: C.hi, fontWeight: "900", fontSize: 15, letterSpacing: 1 },
-  challenge: { backgroundColor: C.goldSoft, borderColor: C.gold, borderWidth: 1.5, borderRadius: 14, paddingVertical: 14, alignItems: "center", marginBottom: 10 },
+  challenge: { flexDirection: "row", justifyContent: "center", backgroundColor: C.goldSoft, borderColor: C.gold, borderWidth: 1.5, borderRadius: 14, paddingVertical: 14, alignItems: "center", marginBottom: 10 },
   challengeTxt: { color: C.gold, fontSize: 13, fontWeight: "900", letterSpacing: 0.7 },
   ghost: {
     backgroundColor: C.panelDeep, borderColor: C.line, borderWidth: 1,
     borderRadius: 12, paddingVertical: 13, alignItems: "center", marginBottom: 10,
   },
-  ghostTxt: { color: C.text, fontWeight: "600", fontSize: 13 },
+  ghostTxt: { color: C.text, fontWeight: "800", fontSize: 11, letterSpacing: 1.4 },
   row: { flexDirection: "row", gap: 10, marginBottom: 14 },
   half: { flex: 1 },
   statsRow: { flexDirection: "row", gap: 8 },

@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { C, FANS, ME_INDEX, fanName, glow, displayFont } from "../theme";
 import { Profile } from "../lib/storage";
+import Icon from "../components/Icon";
 
 interface Props { profile: Profile; }
 
@@ -63,7 +64,7 @@ export default function RankScreen({ profile }: Props) {
               ]}
             >
               <Text style={[styles.podiumPlace, { color }]}>{place}</Text>
-              {place === 1 && <Text style={styles.podiumCrown}>👑</Text>}
+              {place === 1 && <Icon name="crown" size={16} color={C.gold} style={{ marginTop: 2 }} />}
               <Text style={[styles.podiumName, r.you && { color: C.gold }]} numberOfLines={1}>{r.name}</Text>
               <Text style={[styles.podiumPts, { color }]}>♛ {r.points.toLocaleString()}</Text>
             </View>
@@ -115,7 +116,6 @@ const styles = StyleSheet.create({
   },
   podiumFirst: { paddingVertical: 20, backgroundColor: "rgba(255,213,74,0.06)" },
   podiumPlace: { fontSize: 22, ...displayFont },
-  podiumCrown: { fontSize: 18, marginTop: 2 },
   podiumName: { color: C.text, fontWeight: "800", fontSize: 12, marginTop: 4, maxWidth: "90%" },
   podiumPts: { fontSize: 12, fontWeight: "900", marginTop: 4 },
   card: { backgroundColor: C.panel, borderColor: C.line, borderWidth: 1, borderRadius: 16, padding: 12 },

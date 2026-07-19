@@ -6,6 +6,7 @@ import { ladderRank } from "../lib/game-logic";
 import { BADGE_DEFS } from "../lib/badges";
 import { FanIdentity } from "../lib/auth";
 import BrandHeader from "../components/BrandHeader";
+import Icon from "../components/Icon";
 
 interface Props { identity: FanIdentity; profile: Profile; onBack: () => void; onSettings: () => void; }
 
@@ -48,12 +49,16 @@ export default function ProfileScreen({ identity, profile, onBack, onSettings }:
       <View style={styles.profileTop}>
         {identity.avatarUrl ? <Image source={{ uri: identity.avatarUrl }} style={styles.avatarImage} /> : <View style={styles.avatarFallback}><Text style={styles.avatarFallbackTxt}>{identity.name.slice(0, 1).toUpperCase()}</Text></View>}
         <Text style={styles.playerName}>{identity.name.toUpperCase()}</Text>
-        <Pressable onPress={onSettings} style={styles.settings}><Text style={styles.settingsTxt}>⚙ SETTINGS</Text></Pressable>
+        <Pressable onPress={onSettings} style={styles.settings}><Icon name="gear" size={10} color={C.muted} style={{ marginRight: 5 }} /><Text style={styles.settingsTxt}>SETTINGS</Text></Pressable>
       </View>
 
       {/* royal status */}
       <View style={[styles.royalCard, glow(C.gold, 10, 0.4)]}>
-        <Text style={styles.royalKicker}>👑  ROYAL STATUS  👑</Text>
+        <View style={styles.royalKickerRow}>
+          <Icon name="crown" size={12} color={C.gold} style={{ marginRight: 8 }} />
+          <Text style={styles.royalKicker}>ROYAL STATUS</Text>
+          <Icon name="crown" size={12} color={C.gold} style={{ marginLeft: 8 }} />
+        </View>
         <Text style={styles.royalLevel}>LEVEL {level}</Text>
         <Text style={styles.royalTitle}>{title.toUpperCase()}</Text>
       </View>
@@ -70,7 +75,7 @@ export default function ProfileScreen({ identity, profile, onBack, onSettings }:
         <Stat label="FAVORITE" value={favorite ? favorite.toUpperCase() : "—"} color={C.hi} />
       </View>
       <View style={styles.statsRow}>
-        <Stat label="CROWNS" value={"👑".repeat(Math.min(3, profile.crowns)) || "0"} color={C.gold} />
+        <Stat label="CROWNS" value={profile.crowns > 0 ? "♛".repeat(Math.min(3, profile.crowns)) : "0"} color={C.gold} />
         <Stat label="LOBBIES" value={String(profile.lobbies)} color={C.text} />
       </View>
 
@@ -82,7 +87,7 @@ export default function ProfileScreen({ identity, profile, onBack, onSettings }:
           const color = i % 2 ? C.lo : C.hi;
           return (
             <View key={b.id} style={[styles.badgeTile, { borderColor: unlocked ? color : C.line }, !unlocked && styles.badgeTileLocked]}>
-              <Text style={styles.badgeTileIcon}>{b.icon}</Text>
+              <Icon name={b.icon} size={22} color={unlocked ? color : C.muted} style={{ marginBottom: 6 }} />
               <Text style={[styles.badgeTileLabel, { color: unlocked ? color : C.muted }]}>{b.label}</Text>
             </View>
           );
@@ -91,11 +96,11 @@ export default function ProfileScreen({ identity, profile, onBack, onSettings }:
 
       {/* ladder wall */}
       <View style={styles.card}>
-        <Text style={styles.cardLabel}>👑 ROYALE LADDER · YOU ARE #{rank}</Text>
+        <Text style={styles.cardLabel}>♛ ROYALE LADDER · YOU ARE #{rank}</Text>
         {rows.map((r, i) => (
           <View key={r.name + i} style={[styles.wrow, r.you && [styles.wrowYou, glow(C.gold, 6, 0.3)]]}>
             <Text style={[styles.wname, r.you && { color: C.gold }]}>
-              #{i + 1} {r.name} {"👑".repeat(Math.min(3, r.crowns))}
+              #{i + 1} {r.name} <Text style={{ color: C.gold }}>{"♛".repeat(Math.min(3, r.crowns))}</Text>
             </Text>
             <Text style={styles.wpts}>{r.points}</Text>
           </View>
@@ -103,8 +108,9 @@ export default function ProfileScreen({ identity, profile, onBack, onSettings }:
       </View>
 
       <Text style={styles.foot}>
-        ⟨REAL⟩ Solana sign-in stamps each streak record on-chain via a wallet memo; ladder settles
-        against TxLINE stat proofs (validateStatV2) so crowns are verifiable, not claimed.
+        Provably-fair lobby: bot behavior is seeded from a real ORAO VRF request on Solana devnet,
+        and daily fixtures replay real TxLINE tapes (one carries a devnet score-proof tx).
+        The ladder above is a local demo — cross-device ranking ships with the multiplayer backend.
       </Text>
 
       <Pressable style={[styles.shareProfile, glow(C.hi, 8, 0.25)]} onPress={() => Share.share({ message: `${identity.name} is level ${level} ${title} on Hi-Lo Royale with ${profile.ladderPoints.toLocaleString()} points. Join the next lobby: hiloroyale://lobby` }).catch(() => {})}>
@@ -135,13 +141,14 @@ const styles = StyleSheet.create({
   avatarFallback: { width: 82, height: 82, borderRadius: 41, borderColor: C.hi, borderWidth: 2, backgroundColor: C.hiSoft, alignItems: "center", justifyContent: "center" },
   avatarFallbackTxt: { color: C.hi, fontSize: 32, fontWeight: "900" },
   playerName: { color: C.text, fontSize: 15, fontWeight: "900", letterSpacing: 1.2, marginTop: 8 },
-  settings: { borderColor: C.lineStrong, borderWidth: 1, borderRadius: 99, paddingHorizontal: 11, paddingVertical: 5, marginTop: 7 },
+  settings: { flexDirection: "row", alignItems: "center", borderColor: C.lineStrong, borderWidth: 1, borderRadius: 99, paddingHorizontal: 11, paddingVertical: 5, marginTop: 7 },
   settingsTxt: { color: C.muted, fontSize: 9, fontWeight: "900", letterSpacing: 0.7 },
   royalCard: {
     backgroundColor: "rgba(255,213,74,0.05)", borderColor: C.gold, borderWidth: 1.5, borderRadius: 18,
     alignItems: "center", paddingVertical: 16, marginBottom: 12,
   },
-  royalKicker: { color: C.gold, fontSize: 11, fontWeight: "900", letterSpacing: 2, marginBottom: 6 },
+  royalKickerRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
+  royalKicker: { color: C.gold, fontSize: 11, fontWeight: "900", letterSpacing: 2 },
   royalLevel: { color: C.text, fontSize: 14, fontWeight: "800", letterSpacing: 1 },
   royalTitle: { color: C.gold, fontSize: 26, ...displayFont, marginTop: 2 },
   scoreCard: {
@@ -164,7 +171,6 @@ const styles = StyleSheet.create({
     borderRadius: 12, paddingVertical: 14,
   },
   badgeTileLocked: { opacity: 0.4 },
-  badgeTileIcon: { fontSize: 24, marginBottom: 6 },
   badgeTileLabel: { fontSize: 11, fontWeight: "900", textAlign: "center", letterSpacing: 0.5 },
   card: { backgroundColor: C.panel, borderColor: C.line, borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 14 },
   cardLabel: { color: C.muted, fontSize: 10, letterSpacing: 1, marginBottom: 10, fontWeight: "800" },

@@ -1,5 +1,5 @@
 /* ============================================================
-   HI-LO ROYALE — core game rules (shared module).
+   HI-LO ROYALE — core game rules (shared module), engine v2.
    Plain JS: attaches a browser global `HiLoLogic` AND exports
    via CommonJS so `node test.js` and the web app share ONE
    implementation of question generation, hi/lo resolution,
@@ -9,6 +9,21 @@
    ({ minute, type, stats:{c1,c2,s1,s2,y1,y2,r1,r2,g1,g2} }) —
    exactly what shared/txline-mock.js emits and what the real
    ⟨REAL⟩ GET /api/scores/stream SSE feed maps onto.
+
+   v2 rules (why the engine looks the way it does):
+   - availableStats(events): a tape only supports bets on stats it
+     actually records. A thin capture with only goals+corners must
+     never produce "will there be a shot?" questions — the real match
+     had shots, the tape just didn't log them, so the question is
+     nonsense.
+   - Base-rate guard: an occurrence bet is only offered when, across
+     all windowLen-minute windows of the match, the event fires in
+     ~20-80% of them. No near-certain YES ("a shot in 10 min" on a
+     56-shot tape) and no near-certain NO.
+   - New kinds when the data supports them: odds_swing (needs a
+     normalized winpct series in opts.odds), next_goal (only where a
+     later goal exists — never a guaranteed push), goals_ou (threshold
+     anchored to the tape's actual half total so it's a sweat).
    ============================================================ */
 
 const HiLoLogic = (() => {
@@ -55,6 +70,57 @@ const HiLoLogic = (() => {
     return events.some(e => e.minute > fromMin && e.minute <= toMin && def.matchType(e));
   }
 
+  // ---------- v2: tape signal detection ----------
+  // Which stat/occurrence keys does this tape ACTUALLY carry? A key needs its
+  // event type present AND (for cumulative stats) a final total > 0. Anything
+  // else is a capture gap, not a fact about the match — never bet on it.
+  function availableStats(events) {
+    events = events || [];
+    const s = statsAt(events, Infinity);
+    const types = {};
+    events.forEach(e => { types[e.type] = true; });
+    const avail = [];
+    if ((types.goal || types.penalty) && (s.g1 + s.g2) > 0) avail.push("goal", "goals");
+    if (types.corner && (s.c1 + s.c2) > 0) avail.push("corner", "corners");
+    if (types.shot && (s.s1 + s.s2) > 0) avail.push("shot", "shots");
+    if (types.card && (s.y1 + s.y2 + s.r1 + s.r2) > 0) avail.push("card", "cards");
+    if (types.sub) avail.push("sub");
+    return avail;
+  }
+
+  function tapeMaxMinute(events) {
+    let m = 0;
+    (events || []).forEach(e => { if (e.minute > m) m = e.minute; });
+    return m;
+  }
+
+  // Precomputed per-tape context so the schedule builder doesn't rescan the
+  // tape for every candidate question.
+  function buildQuestionContext(events, windowLen) {
+    return { avail: new Set(availableStats(events)), maxMinute: tapeMaxMinute(events), windowLen: windowLen || 10 };
+  }
+
+  // ---------- v2: occurrence base-rate guard ----------
+  // Fraction of windowLen-minute windows of the match in which the event
+  // fires. A good occurrence bet lives in the 20-80% band: outside it the
+  // answer is near-certain and the "bet" is a coin with one face.
+  const BASE_RATE_MIN = 0.2, BASE_RATE_MAX = 0.8;
+
+  function occurrenceBaseRate(events, def, windowLen, maxMinute) {
+    if (maxMinute == null) maxMinute = tapeMaxMinute(events);
+    let total = 0, hits = 0;
+    for (let from = 0; from + windowLen <= maxMinute; from += windowLen) {
+      total++;
+      if (occurrenceInWindow(events, def, from, from + windowLen)) hits++;
+    }
+    return total ? hits / total : 0;
+  }
+
+  function occurrenceIsInteresting(events, def, windowLen, maxMinute) {
+    const r = occurrenceBaseRate(events, def, windowLen, maxMinute);
+    return r >= BASE_RATE_MIN && r <= BASE_RATE_MAX;
+  }
+
   // Side-pick: "more X this window — Team A or Team B?" — head-to-head
   // within the SAME window (simpler/more intuitive than vs-previous-window).
   const SIDE_STAT_DEFS = [
@@ -92,7 +158,7 @@ const HiLoLogic = (() => {
     return {
       n, kind: kindOverride || "occurrence", key: def.key, label: def.label, emoji: def.emoji,
       fromMin, windowLen,
-      promptText: promptOverride || `${def.emoji} Will there be ${def.label} in the next ${windowLen} min?`,
+      promptText: promptOverride || `Will there be ${def.label} in the next ${windowLen} min?`,
       hiLabel: "YES", loLabel: "NO",
       answer, val: happened ? 1 : 0,
     };
@@ -107,7 +173,7 @@ const HiLoLogic = (() => {
     return {
       n, kind: "side_pick", key: def.key, label: def.label, emoji: def.emoji,
       fromMin, windowLen,
-      promptText: `${def.emoji} Next ${windowLen} min — more ${def.label}: ${name1} or ${name2}?`,
+      promptText: `Next ${windowLen} min — more ${def.label}: ${name1} or ${name2}?`,
       hiLabel: code3(name1), loLabel: code3(name2), hiIsTeam1: true,
       answer: r.answer, val: r.team1Delta - r.team2Delta,
     };
@@ -118,22 +184,35 @@ const HiLoLogic = (() => {
     return {
       n: q.n, kind: "compare_window", key: q.key, label: q.label, emoji: q.emoji,
       fromMin: q.fromMin, windowLen: q.windowLen, prevFrom: q.prevFrom, prevVal: q.prevVal,
-      promptText: `${q.emoji} MORE or FEWER ${q.label} in the next ${q.windowLen} min than the last ${q.windowLen}?`,
+      promptText: `MORE or FEWER ${q.label} in the next ${q.windowLen} min than the last ${q.windowLen}?`,
       hiLabel: "HIGHER", loLabel: "LOWER",
       answer: r.answer, val: r.val,
     };
+  }
+
+  // compare_window restricted to stats the tape has signal for: start from
+  // the rotation stat for round n, advance until an available stat is found.
+  function makeGuardedCompareQuestion(events, n, fromMin, windowLen, avail) {
+    for (let i = 0; i < STAT_DEFS.length; i++) {
+      const idx = (n + i) % STAT_DEFS.length;
+      if (!avail.has(STAT_DEFS[idx].key)) continue;
+      const q = makeQuestion(events, n + i, fromMin, windowLen);
+      q.n = n;
+      return toScheduleQuestion(q, events);
+    }
+    return null;
   }
 
   function makeHalftimeQuestion(events, n, h2Start) {
     const windowLen = 10;
     const subIdx = OCCURRENCE_DEFS.findIndex(d => d.key === "sub");
     return makeOccurrenceQuestion(events, n, h2Start, windowLen, subIdx, "halftime_special",
-      `🔄 1+ substitutions in the first ${windowLen} min of the second half?`);
+      `1+ substitutions in the first ${windowLen} min of the second half?`);
   }
 
   function makePregameQuestion(events, n) {
     const goalIdx = OCCURRENCE_DEFS.findIndex(d => d.key === "goal");
-    return makeOccurrenceQuestion(events, n, 0, 45, goalIdx, "pregame", "⚽ Will there be a goal before halftime?");
+    return makeOccurrenceQuestion(events, n, 0, 45, goalIdx, "pregame", "Will there be a goal before halftime?");
   }
 
   function makeVarQuestion(varEvent, verdictEvent, n) {
@@ -141,9 +220,99 @@ const HiLoLogic = (() => {
     return {
       n, kind: "var_reactive", key: "var", label: "VAR review", emoji: "📺",
       fromMin: varEvent.minute, windowLen: Math.max(1, verdictEvent.minute - varEvent.minute),
-      promptText: "📺 VAR REVIEW — will the call be upheld?",
+      promptText: "VAR REVIEW — will the call be upheld?",
       hiLabel: "UPHELD", loLabel: "OVERTURNED",
       answer, val: answer === "hi" ? 1 : answer === "lo" ? -1 : 0,
+    };
+  }
+
+  // ---------- v2: next_goal ----------
+  // "Next goal: Team A or Team B?" — hi is always team 1. Only offered at a
+  // fromMin where a later goal actually exists in the tape, so it can never
+  // be a guaranteed-push/void question.
+  function isGoalEvent(e) {
+    return e.type === "goal" || (e.type === "penalty" && /scored/i.test(e.detail || ""));
+  }
+
+  function makeNextGoalQuestion(events, n, fromMin, fixture) {
+    let next = null;
+    for (const e of events) {
+      if (e.minute > fromMin && isGoalEvent(e)) { next = e; break; }
+    }
+    if (!next || (next.team !== 1 && next.team !== 2)) return null;
+    const name1 = (fixture && fixture.Participant1) || "Team 1";
+    const name2 = (fixture && fixture.Participant2) || "Team 2";
+    return {
+      n, kind: "next_goal", key: "goal", label: "next goal",
+      fromMin, windowLen: Math.max(1, next.minute - fromMin),
+      promptText: `Next goal — ${name1} or ${name2}?`,
+      hiLabel: code3(name1), loLabel: code3(name2), hiIsTeam1: true,
+      answer: next.team === 1 ? "hi" : "lo", val: next.team === 1 ? 1 : -1,
+    };
+  }
+
+  // ---------- v2: goals over/under ----------
+  // "N or more goals in the second half?" — the threshold is anchored to the
+  // tape's ACTUAL half total (either exactly it, answer YES, or one above,
+  // answer NO — steered by the hi/lo balance), so it's always a sweat and
+  // never trivially certain.
+  function makeGoalsOuQuestion(events, n, h2Start, h2End, preferAnswer) {
+    const a = statsAt(events, h2Start), b = statsAt(events, h2End);
+    const halfGoals = Math.max(0, (b.g1 + b.g2) - (a.g1 + a.g2));
+    const threshold = (preferAnswer === "lo" || halfGoals === 0) ? halfGoals + 1 : halfGoals;
+    const answer = halfGoals >= threshold ? "hi" : "lo";
+    return {
+      n, kind: "goals_ou", key: "goals", label: "second-half goals",
+      fromMin: h2Start, windowLen: Math.max(1, h2End - h2Start),
+      promptText: `${threshold} or more goals in the second half?`,
+      hiLabel: "YES", loLabel: "NO",
+      answer, val: halfGoals, prevVal: threshold,
+    };
+  }
+
+  // ---------- v2: odds swing ----------
+  // Needs a normalized winpct series [{m, p1, draw, p2}] (percent 0-100).
+  // "Will Team2's win probability be HIGHER or LOWER at minute T than now?"
+  // Resolves from the series; pushes when the move is within 1pt or the
+  // series has no sample covering the target minute.
+  function normalizeOddsSeries(odds) {
+    const raw = Array.isArray(odds) ? odds : (odds && Array.isArray(odds.winpct)) ? odds.winpct : null;
+    if (!raw) return null;
+    const s = raw
+      .filter(o => o && typeof o.m === "number" && typeof o.p1 === "number" && typeof o.p2 === "number")
+      .slice().sort((a, b) => a.m - b.m);
+    return s.length >= 2 ? s : null;
+  }
+
+  // Last sample at-or-before the minute (series must be sorted by m).
+  function oddsSampleAt(series, minute) {
+    let s = null;
+    for (const o of series) { if (o.m <= minute) s = o; else break; }
+    return s;
+  }
+
+  function makeOddsSwingQuestion(odds, n, fromMin, toMin, fixture) {
+    const s = normalizeOddsSeries(odds);
+    if (!s) return null;
+    const now = oddsSampleAt(s, fromMin);
+    if (!now) return null;
+    const name2 = (fixture && fixture.Participant2) || "Team 2";
+    const x = Math.round(now.p2);
+    // The series must actually reach toMin, otherwise "the value at toMin"
+    // is unknown and the round is a push (voided, nobody eliminated).
+    const covered = s[s.length - 1].m >= toMin;
+    const future = covered ? oddsSampleAt(s, toMin) : null;
+    let answer = "push", diff = 0;
+    if (future) {
+      diff = future.p2 - now.p2;
+      answer = diff > 1 ? "hi" : diff < -1 ? "lo" : "push";
+    }
+    return {
+      n, kind: "odds_swing", key: "odds", label: "win probability",
+      fromMin, windowLen: Math.max(1, toMin - fromMin),
+      promptText: `Will ${name2} win probability be HIGHER or LOWER at ${toMin}' than now (${x}%)?`,
+      hiLabel: "HIGHER", loLabel: "LOWER",
+      answer, val: Math.round(diff * 10) / 10, prevVal: x,
     };
   }
 
@@ -152,11 +321,31 @@ const HiLoLogic = (() => {
   // hi/lo mix toward balance — without it, sparse real fixtures skew heavily
   // one way (e.g. 9/10 "NO") and blindly picking one side becomes a winning
   // strategy, which kills the game.
-  function pickWindowQuestion(events, n, fromMin, windowLen, recentKeys, fixture, tally) {
+  // ctx (optional) = buildQuestionContext(events): availability + base-rate
+  // guards. Only stats with real tape signal produce candidates; occurrence
+  // bets additionally need a 20-80% base rate. Returns null when the tape
+  // supports no sensible question for this window.
+  function pickWindowQuestion(events, n, fromMin, windowLen, recentKeys, fixture, tally, ctx) {
+    ctx = ctx || buildQuestionContext(events, windowLen);
+    const avail = ctx.avail;
     const candidates = [];
-    for (let i = 0; i < SIDE_STAT_DEFS.length; i++) candidates.push(makeSidePickQuestion(events, n, fromMin, windowLen, i, fixture));
-    for (let i = 0; i < OCCURRENCE_DEFS.length; i++) candidates.push(makeOccurrenceQuestion(events, n, fromMin, windowLen, i));
-    candidates.push(toScheduleQuestion(makeQuestion(events, n, fromMin, windowLen), events));
+    for (let i = 0; i < SIDE_STAT_DEFS.length; i++) {
+      if (!avail.has(SIDE_STAT_DEFS[i].key)) continue;
+      candidates.push(makeSidePickQuestion(events, n, fromMin, windowLen, i, fixture));
+    }
+    for (let i = 0; i < OCCURRENCE_DEFS.length; i++) {
+      const def = OCCURRENCE_DEFS[i];
+      if (!avail.has(def.key)) continue;
+      if (!occurrenceIsInteresting(events, def, windowLen, ctx.maxMinute)) continue;
+      candidates.push(makeOccurrenceQuestion(events, n, fromMin, windowLen, i));
+    }
+    const cw = makeGuardedCompareQuestion(events, n, fromMin, windowLen, avail);
+    if (cw) candidates.push(cw);
+    if (avail.has("goal")) {
+      const ng = makeNextGoalQuestion(events, n, fromMin, fixture);
+      if (ng) candidates.push(ng);
+    }
+    if (!candidates.length) return null;
 
     const nonPush = candidates.filter(q => q.answer !== "push");
     const pool = nonPush.length ? nonPush : candidates;
@@ -179,26 +368,40 @@ const HiLoLogic = (() => {
    * that's what makes the VAR-reactive slot, the pregame prop, the halftime
    * special, and an "up next" queue all simple: they're just entries in one
    * ordered array, not runtime special-casing.
-   * Targets ~9-10 entries total: 1 pregame + up to `maxWindows` rolling
-   * windows (default 7, capped independent of match length) + 1 halftime
-   * special + 1 entry per real var→var_verdict pair.
+   *
+   * Targets 9-12 entries: pregame (if the tape has goals) + up to
+   * `maxWindows` rolling windows + a second-half goals over/under + up to 2
+   * odds_swing rounds (only when opts.odds carries a normalized winpct
+   * series) + the halftime sub special (only when the tape has subs) + 1
+   * entry per real var→var_verdict pair. Hard cap 12 (fillers trimmed from
+   * the end, specials kept).
+   *
+   * opts: { windowLen=10, maxWindows=7, odds: [{m,p1,draw,p2}] | {winpct:[...]} }
    */
   function buildSchedule(events, fixture, opts) {
     opts = opts || {};
     const windowLen = opts.windowLen || 10;
     const maxWindows = opts.maxWindows || 7;
-    let maxMinute = 0;
-    events.forEach(e => { if (e.minute > maxMinute) maxMinute = e.minute; });
+    const ctx = buildQuestionContext(events, windowLen);
+    const maxMinute = ctx.maxMinute;
 
     let h2Start = 45;
     for (const e of events) { if (e.type === "kickoff" && e.minute >= 44) { h2Start = e.minute; break; } }
+    let h2End = maxMinute;
+    for (const e of events) {
+      if ((e.type === "fulltime" || e.type === "game_finalised") && e.minute > h2Start) { h2End = e.minute; break; }
+    }
 
     const schedule = [];
     let n = 0;
     const tally = { hi: 0, lo: 0 };
     const count = q => { if (q.answer === "hi") tally.hi++; else if (q.answer === "lo") tally.lo++; };
 
-    n++; const pre = makePregameQuestion(events, n); schedule.push(pre); count(pre);
+    // Pregame prop only when the tape actually records goals — on a goalless
+    // capture "a goal before halftime?" would be a guaranteed NO.
+    if (ctx.avail.has("goal")) {
+      n++; const pre = makePregameQuestion(events, n); schedule.push(pre); count(pre);
+    }
 
     const recentKeys = [];
     let fromMin = windowLen, windowCount = 0;
@@ -207,14 +410,41 @@ const HiLoLogic = (() => {
       // windows straddling the second-half kickoff avoid "sub" — the halftime
       // special right after is already a substitution question.
       const avoid = Math.abs(fromMin - h2Start) <= windowLen ? recentKeys.concat(["sub"]) : recentKeys;
-      const q = pickWindowQuestion(events, n, fromMin, windowLen, avoid, fixture, tally);
-      schedule.push(q); count(q);
-      recentKeys.push(q.key); if (recentKeys.length > 2) recentKeys.shift();
+      const q = pickWindowQuestion(events, n, fromMin, windowLen, avoid, fixture, tally, ctx);
+      if (q) {
+        schedule.push(q); count(q);
+        recentKeys.push(q.key); if (recentKeys.length > 2) recentKeys.shift();
+      }
       windowCount++;
       fromMin += windowLen;
     }
 
-    n++; schedule.push(makeHalftimeQuestion(events, n, h2Start));
+    // Second-half goals over/under — threshold steered toward the minority
+    // answer so the schedule stays balanced.
+    if (ctx.avail.has("goal") && h2End > h2Start) {
+      n++;
+      const prefer = tally.hi > tally.lo ? "lo" : "hi";
+      const gq = makeGoalsOuQuestion(events, n, h2Start, h2End, prefer);
+      schedule.push(gq); count(gq);
+    }
+
+    // Odds swings: at most 2 per schedule, non-push only, spaced >= 20 min.
+    const series = normalizeOddsSeries(opts.odds);
+    if (series) {
+      const chosen = [];
+      for (let m = 5; m + windowLen <= maxMinute && chosen.length < 2; m += windowLen) {
+        const q = makeOddsSwingQuestion(series, 0, m, m + windowLen, fixture);
+        if (!q || q.answer === "push") continue;
+        if (chosen.length && m - chosen[chosen.length - 1].fromMin < 20) continue;
+        chosen.push(q);
+      }
+      for (const q of chosen) { n++; q.n = n; schedule.push(q); count(q); }
+    }
+
+    // Halftime sub special only when the tape records substitutions.
+    if (ctx.avail.has("sub")) {
+      n++; schedule.push(makeHalftimeQuestion(events, n, h2Start));
+    }
 
     let openVar = null;
     for (const e of events) {
@@ -223,6 +453,13 @@ const HiLoLogic = (() => {
     }
 
     schedule.sort((a, b) => a.fromMin - b.fromMin);
+
+    // Hard cap 12: trim filler questions from the end, keep the specials.
+    const FILLER = { occurrence: 1, side_pick: 1, compare_window: 1, next_goal: 1 };
+    for (let i = schedule.length - 1; schedule.length > 12 && i >= 0; i--) {
+      if (FILLER[schedule[i].kind]) schedule.splice(i, 1);
+    }
+
     schedule.forEach((q, i) => { q.n = i + 1; });
     return schedule;
   }
@@ -343,6 +580,13 @@ const HiLoLogic = (() => {
     makeOccurrenceQuestion, makeSidePickQuestion, makePregameQuestion,
     makeHalftimeQuestion, makeVarQuestion, pickWindowQuestion,
     buildSchedule,
+    // v2: tape-signal + base-rate guards, new question kinds
+    availableStats, buildQuestionContext, tapeMaxMinute,
+    occurrenceBaseRate, occurrenceIsInteresting,
+    BASE_RATE_MIN, BASE_RATE_MAX,
+    makeGuardedCompareQuestion, makeNextGoalQuestion,
+    makeGoalsOuQuestion, makeOddsSwingQuestion,
+    normalizeOddsSeries, oddsSampleAt, isGoalEvent,
   };
 })();
 

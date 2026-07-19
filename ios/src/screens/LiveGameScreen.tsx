@@ -8,6 +8,7 @@ import { C, FANS, ME_INDEX, fanName, displayFont, glow } from "../theme";
 import { GameSettings } from "../lib/settings";
 import { DeathMoment, GameResult, RoundRecord } from "../types";
 import { lobbyRng } from "../lib/vrf";
+import Icon, { IconName, KEY_ICON } from "../components/Icon";
 
 interface Bot { alive: boolean; isMe: boolean; name: string; }
 interface LivePending { question: L.Question; myPick: L.Side | null; botPicks: Array<{ index: number; pick: L.Side }>; deadline: number; }
@@ -43,7 +44,7 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [minute, setMinute] = useState(0);
   const [score, setScore] = useState(`${CODE_1} 0 – 0 ${CODE_2}`);
-  const [lastEvent, setLastEvent] = useState("Connecting to TxLINE live stream…");
+  const [lastEvent, setLastEvent] = useState<{ icon: IconName | null; text: string }>({ icon: null, text: "Connecting to TxLINE live stream…" });
   const [question, setQuestion] = useState<L.Question | null>(null);
   const [myPick, setMyPick] = useState<L.Side | null>(null);
   const [locked, setLocked] = useState(true);
@@ -84,8 +85,7 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
     eventsRef.current.push(event);
     setMinute(event.minute);
     setScore(`${CODE_1} ${event.stats.g1} – ${event.stats.g2} ${CODE_2}`);
-    const icon: Record<string, string> = { goal: "⚽", corner: "🚩", card: "🟨", shot: "🎯", var: "📺", penalty: "⚽", kickoff: "▶" };
-    setLastEvent(`${icon[event.type] || "●"} ${event.minute}' ${event.type.replace(/_/g, " ")} ${event.teamName !== "—" ? `· ${event.teamName}` : ""}`);
+    setLastEvent({ icon: KEY_ICON[event.type] || null, text: `${event.minute}' ${event.type.replace(/_/g, " ")} ${event.teamName !== "—" ? `· ${event.teamName}` : ""}` });
 
     if (nextWindowRef.current == null) nextWindowRef.current = Math.max(WINDOW_MINUTES, Math.ceil(event.minute / WINDOW_MINUTES) * WINDOW_MINUTES);
     const pending = pendingRef.current;
@@ -101,7 +101,7 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
     roundRef.current += 1;
     const q = L.makeQuestion(eventsRef.current, roundRef.current, fromMinute, WINDOW_MINUTES);
     q.kind = "compare_window";
-    q.promptText = `${q.emoji} MORE or FEWER ${q.label} in the next ${WINDOW_MINUTES} min than the last ${WINDOW_MINUTES}?`;
+    q.promptText = `MORE or FEWER ${q.label} in the next ${WINDOW_MINUTES} min than the last ${WINDOW_MINUTES}?`;
     q.hiLabel = "HIGHER";
     q.loLabel = "LOWER";
     const botPicks = botsRef.current.flatMap((bot, index) => !bot.alive || bot.isMe ? [] : [{ index, pick: (rng() < 0.5 ? "hi" : "lo") as L.Side }]);
@@ -209,7 +209,7 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } else if (playerVerdict === "push") setVerdict("— PUSH · THE WHOLE LOBBY SURVIVES");
     else {
-      setVerdict(playerVerdict === "timeout" ? "⏱ TOO SLOW · ELIMINATED" : "✕ WRONG · ELIMINATED");
+      setVerdict(playerVerdict === "timeout" ? "TOO SLOW · ELIMINATED" : "✕ WRONG · ELIMINATED");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
     }
 
@@ -263,12 +263,24 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
       <View style={styles.topBar}>
         <View style={[styles.livePill, glow(C.lo, 8, 0.35)]}><View style={styles.liveDot} /><Text style={styles.liveTxt}>LIVE · 1x</Text></View>
         <Text style={styles.round}>ROUND {Math.max(1, roundRef.current)}</Text>
-        <Text style={styles.alive}>👥 {aliveCount}</Text>
+        <View style={styles.aliveRow}><Icon name="users" size={12} color={C.text} style={{ marginRight: 5 }} /><Text style={styles.alive}>{aliveCount}</Text></View>
       </View>
-      {suddenDeath && <Text style={styles.suddenBanner}>⚡ SUDDEN DEATH · 3 SECONDS · {aliveCount} FANS LEFT</Text>}
+      {suddenDeath && (
+        <View style={styles.suddenBanner}>
+          <Icon name="bolt" size={12} color={C.gold} style={{ marginRight: 6 }} />
+          <Text style={styles.suddenBannerTxt}>SUDDEN DEATH · 3 SECONDS · {aliveCount} FANS LEFT</Text>
+        </View>
+      )}
 
       <View style={styles.scoreCard}><Text style={styles.team1}>{CODE_1}</Text><Text style={styles.score}>{score.replace(CODE_1, "").replace(CODE_2, "").trim()}</Text><Text style={styles.team2}>{CODE_2}</Text></View>
-      <Text style={styles.feed}>{connectionError ? `CONNECTION ERROR · ${connectionError}` : connected ? lastEvent : "CONNECTING TO TXLINE…"}</Text>
+      {connectionError || !connected ? (
+        <Text style={styles.feed}>{connectionError ? `CONNECTION ERROR · ${connectionError}` : "CONNECTING TO TXLINE…"}</Text>
+      ) : (
+        <View style={styles.feedRow}>
+          {lastEvent.icon && <Icon name={lastEvent.icon} size={10} color={C.muted} style={{ marginRight: 5 }} />}
+          <Text style={[styles.feed, { marginTop: 0, marginBottom: 0 }]}>{lastEvent.text}</Text>
+        </View>
+      )}
 
       <View style={[styles.questionCard, glow(C.hi, 12, 0.3)]}>
         <Text style={styles.window}>{question ? `LIVE WINDOW ${question.fromMin}–${resolvingAt}'` : `MATCH MINUTE ${minute}'`}</Text>
@@ -288,7 +300,7 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
       {!!verdict && <Text style={[styles.verdict, answer === "hi" && { color: C.hi }, answer === "lo" && { color: C.lo }]}>{verdict}</Text>}
       {roundReward && <Text style={[styles.reward, roundReward.points === 0 && { color: C.muted }]}>{roundReward.points > 0 ? `+${roundReward.points} PTS · ONLY ${roundReward.correctPct}% GOT IT RIGHT` : "0 PTS · WRONG / PUSH"}</Text>}
       {ghostMessage && <Text style={styles.ghostMode}>{ghostMessage} · KEEP WATCHING</Text>}
-      <View style={styles.streak}><Text style={styles.streakTxt}>🔥 STREAK x{streak}  ·  {predictionPoints} SKILL PTS</Text></View>
+      <View style={styles.streak}><Icon name="bolt" size={12} color={C.gold} style={{ marginRight: 6 }} /><Text style={styles.streakTxt}>STREAK x{streak}  ·  {predictionPoints} SKILL PTS</Text></View>
 
       <Text style={styles.section}>LIVE ELIMINATION FIELD</Text>
       <View style={styles.grid}>{botsRef.current.map((bot, index) => <View key={bot.name} style={[styles.dot, bot.isMe && styles.you, dead[index] && styles.dead]} />)}</View>
@@ -299,14 +311,15 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg }, content: { padding: 16, paddingBottom: 36 },
-  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 11 }, livePill: { flexDirection: "row", alignItems: "center", gap: 6, borderColor: C.lo, borderWidth: 1, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: C.loSoft }, liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.lo }, liveTxt: { color: C.text, fontSize: 10, fontWeight: "900", letterSpacing: 1 }, round: { color: C.text, fontSize: 15, ...displayFont }, alive: { color: C.text, fontSize: 12, fontWeight: "900" },
-  suddenBanner: { color: C.gold, backgroundColor: C.goldSoft, borderColor: C.gold, borderWidth: 1, borderRadius: 10, paddingVertical: 9, textAlign: "center", fontSize: 11, fontWeight: "900", letterSpacing: 0.8, marginBottom: 10 },
+  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 11 }, livePill: { flexDirection: "row", alignItems: "center", gap: 6, borderColor: C.lo, borderWidth: 1, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: C.loSoft }, liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.lo }, liveTxt: { color: C.text, fontSize: 10, fontWeight: "900", letterSpacing: 1 }, round: { color: C.text, fontSize: 15, ...displayFont }, aliveRow: { flexDirection: "row", alignItems: "center" }, alive: { color: C.text, fontSize: 12, fontWeight: "900" },
+  suddenBanner: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: C.goldSoft, borderColor: C.gold, borderWidth: 1, borderRadius: 10, paddingVertical: 9, marginBottom: 10 },
+  suddenBannerTxt: { color: C.gold, fontSize: 11, fontWeight: "900", letterSpacing: 0.8 },
   ghostMode: { color: C.hi, backgroundColor: C.hiSoft, borderColor: C.hi, borderWidth: 1, borderRadius: 10, paddingVertical: 9, textAlign: "center", fontSize: 10, fontWeight: "900", letterSpacing: 0.6, marginVertical: 7 },
-  scoreCard: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 18, backgroundColor: C.panel, borderColor: C.lineStrong, borderWidth: 1, borderRadius: 15, paddingVertical: 12 }, team1: { color: C.hi, fontSize: 17, ...displayFont }, team2: { color: C.lo, fontSize: 17, ...displayFont }, score: { color: C.text, fontSize: 23, fontWeight: "900" }, feed: { color: C.muted, fontSize: 10, textAlign: "center", marginTop: 7, marginBottom: 11, textTransform: "uppercase" },
+  scoreCard: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 18, backgroundColor: C.panel, borderColor: C.lineStrong, borderWidth: 1, borderRadius: 15, paddingVertical: 12 }, team1: { color: C.hi, fontSize: 17, ...displayFont }, team2: { color: C.lo, fontSize: 17, ...displayFont }, score: { color: C.text, fontSize: 23, fontWeight: "900" }, feed: { color: C.muted, fontSize: 10, textAlign: "center", marginTop: 7, marginBottom: 11, textTransform: "uppercase" }, feedRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: 7, marginBottom: 11 },
   questionCard: { backgroundColor: C.panel, borderColor: C.hi, borderWidth: 1.5, borderRadius: 19, padding: 17, minHeight: 145, justifyContent: "center" }, window: { color: C.muted, textAlign: "center", fontSize: 9, fontWeight: "900", letterSpacing: 1.7, marginBottom: 8 }, question: { color: C.text, fontSize: 22, fontWeight: "900", lineHeight: 29, textAlign: "center" }, previous: { color: C.muted, fontSize: 10, textAlign: "center", marginTop: 9 },
   answers: { flexDirection: "row", gap: 9, marginTop: 11 }, answerBtn: { flex: 1, height: 112, borderRadius: 18, borderWidth: 2, backgroundColor: C.panelDeep, alignItems: "center", justifyContent: "center" }, hiBtn: { borderColor: C.hi }, loBtn: { borderColor: C.lo }, selectedHi: { backgroundColor: C.hiSoft }, selectedLo: { backgroundColor: C.loSoft }, dim: { opacity: 0.34 }, hiTxt: { color: C.hi, fontSize: 33, ...displayFont }, loTxt: { color: C.lo, fontSize: 33, ...displayFont },
   crowdRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12 }, crowdHi: { color: C.hi, width: 55, fontSize: 11, fontWeight: "900" }, crowdLo: { color: C.lo, width: 55, textAlign: "right", fontSize: 11, fontWeight: "900" }, crowdTrack: { flex: 1, flexDirection: "row", height: 9, borderRadius: 99, overflow: "hidden" }, crowdHiFill: { backgroundColor: C.hi }, crowdLoFill: { backgroundColor: C.lo }, crowdMeta: { color: C.muted, fontSize: 8, letterSpacing: 1, textAlign: "center", marginTop: 5 },
-  timer: { alignSelf: "center", width: 78, height: 78, borderRadius: 39, borderColor: C.hi, borderWidth: 2, backgroundColor: C.panelDeep, alignItems: "center", justifyContent: "center", marginVertical: 12 }, timerNum: { color: C.text, fontSize: 27, fontWeight: "900" }, timerLabel: { color: C.muted, fontSize: 7, fontWeight: "900", letterSpacing: 0.6 }, verdict: { color: C.gold, textAlign: "center", fontSize: 13, fontWeight: "900", marginBottom: 8 }, streak: { alignSelf: "center", borderColor: C.gold, borderWidth: 1, backgroundColor: C.goldSoft, borderRadius: 99, paddingHorizontal: 15, paddingVertical: 7 }, streakTxt: { color: C.gold, fontSize: 12, fontWeight: "900" },
+  timer: { alignSelf: "center", width: 78, height: 78, borderRadius: 39, borderColor: C.hi, borderWidth: 2, backgroundColor: C.panelDeep, alignItems: "center", justifyContent: "center", marginVertical: 12 }, timerNum: { color: C.text, fontSize: 27, fontWeight: "900" }, timerLabel: { color: C.muted, fontSize: 7, fontWeight: "900", letterSpacing: 0.6 }, verdict: { color: C.gold, textAlign: "center", fontSize: 13, fontWeight: "900", marginBottom: 8 }, streak: { alignSelf: "center", flexDirection: "row", alignItems: "center", borderColor: C.gold, borderWidth: 1, backgroundColor: C.goldSoft, borderRadius: 99, paddingHorizontal: 15, paddingVertical: 7 }, streakTxt: { color: C.gold, fontSize: 12, fontWeight: "900" },
   reward: { color: C.gold, textAlign: "center", fontSize: 10, fontWeight: "900", letterSpacing: 0.8, marginBottom: 7 },
   section: { color: C.muted, fontSize: 9, fontWeight: "900", letterSpacing: 1.5, textAlign: "center", marginTop: 14, marginBottom: 7 }, grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center" }, dot: { width: "8.5%", aspectRatio: 1, borderRadius: 99, margin: "0.7%", backgroundColor: "#172131", borderColor: "#293a52", borderWidth: 1 }, you: { borderColor: C.gold, borderWidth: 2, backgroundColor: C.goldSoft }, dead: { backgroundColor: C.loSoft, borderColor: C.lo, transform: [{ scale: 0.55 }] }, truth: { color: C.muted, fontSize: 8, lineHeight: 13, textAlign: "center", marginTop: 9 },
 });

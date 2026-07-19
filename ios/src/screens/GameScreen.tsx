@@ -8,6 +8,7 @@ import { ChallengeRun, DeathMoment, GameResult, RoundRecord } from "../types";
 import { notifySurvival } from "../lib/notifications";
 import { GameSettings } from "../lib/settings";
 import { lobbyRng } from "../lib/vrf";
+import Icon, { IconName, KEY_ICON, KIND_ICON } from "../components/Icon";
 
 
 // Precomputed once (in txline-real.ts) from the static real-match tape: every
@@ -16,13 +17,8 @@ import { lobbyRng } from "../lib/vrf";
 // the halftime special are just entries in this ordered array — no runtime
 // special-casing needed. Shared with LobbyScreen's preview strip.
 
-const KIND_ICON: Record<string, string> = {
-  compare_window: "📊", side_pick: "⚔️", occurrence: "🔮",
-  var_reactive: "📺", pregame: "⚽", halftime_special: "🔄",
-};
-
 function questionPrompt(question: L.Question): string {
-  return question.promptText || `${question.emoji} MORE or FEWER ${question.label} in the next ${question.windowLen} min than the last ${question.windowLen}?`;
+  return question.promptText || `MORE or FEWER ${question.label} in the next ${question.windowLen} min than the last ${question.windowLen}?`;
 }
 
 interface Bot { name: string; alive: boolean; skill: number; isMe: boolean; }
@@ -86,7 +82,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
   const [myPick, setMyPick] = useState<L.Side | null>(null);
   const [locked, setLocked] = useState(true);
   const [verdict, setVerdict] = useState<{ text: string; kind: "ok" | "out" | "flat" } | null>(null);
-  const [nearDeath, setNearDeath] = useState<string | null>(null);
+  const [nearDeath, setNearDeath] = useState<{ icon: IconName; text: string } | null>(null);
   const [streak, setStreak] = useState(0);
   const [predictionPoints, setPredictionPoints] = useState(0);
   const [roundReward, setRoundReward] = useState<{ points: number; correctPct: number } | null>(null);
@@ -97,7 +93,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
   const [dead, setDead] = useState<boolean[]>(() => Array(FANS).fill(false));
   const [ticker, setTicker] = useState("");
   const [score, setScore] = useState(`${CODE1} 0 – 0 ${CODE2}`);
-  const [lastEvent, setLastEvent] = useState("kickoff imminent…");
+  const [lastEvent, setLastEvent] = useState<{ icon: IconName | null; text: string }>({ icon: null, text: "kickoff imminent…" });
   const [matchMinute, setMatchMinute] = useState(0);
 
   const later = (fn: () => void, ms: number) => { timersRef.current.push(setTimeout(fn, ms)); };
@@ -137,8 +133,8 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
     setScore(`${CODE1} ${e.stats.g1} – ${e.stats.g2} ${CODE2}`);
     setMatchMinute(e.minute);
     matchMinuteRef.current = e.minute;
-    const icons: Record<string, string> = { goal: "⚽", corner: "🚩", card: "🟨", shot: "🎯", var: "📺", penalty: "⚽" };
-    if (icons[e.type]) setLastEvent(`${icons[e.type]} ${e.minute}' ${e.type} — ${e.teamName}`);
+    const feedTypes = ["goal", "corner", "card", "shot", "var", "penalty"];
+    if (feedTypes.includes(e.type)) setLastEvent({ icon: KEY_ICON[e.type] || null, text: `${e.minute}' ${e.type} — ${e.teamName}` });
     const next = SCHEDULE[scheduleIdxRef.current];
     if (next && e.minute >= next.fromMin && !pendingRef.current) {
       scheduleIdxRef.current++;
@@ -271,17 +267,17 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
           });
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
           if (L.isNearDeathTime(P.myPickAtMs)) {
-            setNearDeath(`💓 SURVIVED BY ${((P.myPickAtMs ?? 0) / 1000).toFixed(1)}s`);
+            setNearDeath({ icon: "heart", text: `SURVIVED BY ${((P.myPickAtMs ?? 0) / 1000).toFixed(1)}s` });
             flaggedNearDeath = true;
           } else if (question.kind === "compare_window" && question.prevVal != null && L.isNearDeathMargin(val, question.prevVal)) {
-            setNearDeath(`💓 SURVIVED BY A SINGLE ${question.key.replace(/s$/, "").toUpperCase()}`);
+            setNearDeath({ icon: "heart", text: `SURVIVED BY A SINGLE ${question.key.replace(/s$/, "").toUpperCase()}` });
             flaggedNearDeath = true;
           } else if (wentAgainstCrowd) {
-            setNearDeath("🎯 WENT AGAINST THE CROWD AND WON");
+            setNearDeath({ icon: "target", text: "WENT AGAINST THE CROWD AND WON" });
           }
         } else {
           setVerdict({ text: `— PUSH — the whole lobby breathes`, kind: "flat" });
-          if (hadPick && me.streak > prevStreak) setNearDeath("push with a pick still feeds the streak");
+          if (hadPick && me.streak > prevStreak) setNearDeath({ icon: "check", text: "push with a pick still feeds the streak" });
         }
         // survival push notification demo (round 3 = the promised moment)
         if (question.n === 3) {
@@ -300,7 +296,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
           matchMinute: matchMinuteRef.current,
           eliminatedWith: dying.length,
         };
-        const why = verdictNow === "timeout" ? "⏱ TOO SLOW" : `✗ WRONG`;
+        const why = verdictNow === "timeout" ? "TOO SLOW" : `✗ WRONG`;
         setVerdict({ text: `${why}. Eliminated at streak ${me.streak} — you outlived ${me.outlivedAtDeath} of 99 fans`, kind: "out" });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
         setDead(d => { const nd = [...d]; nd[ME_INDEX] = true; return nd; });
@@ -330,8 +326,8 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
     const names = order.slice(0, 2).map(i => botsRef.current[i].name).join(", ");
     setTicker(
       dying.length
-        ? `💀 ${names}${dying.length > 2 ? ` +${dying.length - 2} more` : ""} eliminated${me.alive ? " — you outlived them" : ""}`
-        : answer === "push" ? "🤝 nobody eliminated this round" : ""
+        ? `${names}${dying.length > 2 ? ` +${dying.length - 2} more` : ""} eliminated${me.alive ? " — you outlived them" : ""}`
+        : answer === "push" ? "push — nobody eliminated this round" : ""
     );
 
     later(() => {
@@ -414,7 +410,11 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
           <Text style={styles.liveTxt}>{challenge ? "GHOST CHALLENGE" : "DAILY REPLAY"} · {settings.playbackRate}x</Text>
         </View>
         <Text style={styles.roundTitle}>{q ? `ROUND ${q.n} / ${SCHEDULE.length}` : "GET READY"}</Text>
-        <Text style={styles.leftPill}>{matchMinute}' · 👥 {aliveCount}</Text>
+        <View style={styles.leftPillRow}>
+          <Text style={styles.leftPill}>{matchMinute}'  ·  </Text>
+          <Icon name="users" size={12} color={C.text} />
+          <Text style={styles.leftPill}> {aliveCount}</Text>
+        </View>
       </View>
 
       {/* scoreline */}
@@ -423,14 +423,23 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
         <Text style={styles.scoreNum}>{scoreDigits}</Text>
         <Text style={styles.scoreCode2}>{CODE2}</Text>
       </View>
-      <Text style={styles.feedLine}>{lastEvent}</Text>
+      <View style={styles.feedRow}>
+        {lastEvent.icon && <Icon name={lastEvent.icon} size={11} color={C.muted} style={{ marginRight: 5 }} />}
+        <Text style={styles.feedLine}>{lastEvent.text}</Text>
+      </View>
 
       {/* question card */}
-      {suddenDeath && <Text style={[styles.suddenBanner, glow(C.gold, 10, 0.6)]}>⚡ SUDDEN DEATH · 3 SECONDS · {aliveCount} FANS LEFT</Text>}
+      {suddenDeath && (
+        <View style={[styles.suddenBanner, glow(C.gold, 10, 0.6)]}>
+          <Icon name="bolt" size={12} color={C.gold} style={{ marginRight: 6 }} />
+          <Text style={styles.suddenBannerTxt}>SUDDEN DEATH · 3 SECONDS · {aliveCount} FANS LEFT</Text>
+        </View>
+      )}
       <View style={[styles.qCard, suddenDeath && styles.qCardSudden, glow(suddenDeath ? C.gold : C.hi, 10, 0.35)]}>
-        <Text style={styles.qKicker}>
-          {q ? `${KIND_ICON[q.kind || "compare_window"]}  WINDOW ${q.fromMin}–${q.fromMin + q.windowLen}'` : "⚽"}
-        </Text>
+        <View style={styles.qKickerRow}>
+          <Icon name={q ? KIND_ICON[q.kind || "compare_window"] : "ball"} size={11} color={C.muted} style={{ marginRight: 6 }} />
+          {q && <Text style={styles.qKicker}>WINDOW {q.fromMin}–{q.fromMin + q.windowLen}'</Text>}
+        </View>
         <Text style={styles.question}>
           {q ? questionPrompt(q)
             : "Every stat window is a question. Wrong = eliminated."}
@@ -512,13 +521,19 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
           {roundReward.points > 0 ? `+${roundReward.points} PTS · ONLY ${roundReward.correctPct}% GOT IT RIGHT` : "0 PTS · WRONG / PUSH"}
         </Text>
       )}
-      {nearDeath && <Text style={styles.nearDeath}>{nearDeath}</Text>}
+      {nearDeath && (
+        <View style={styles.nearDeathRow}>
+          <Icon name={nearDeath.icon} size={12} color={C.gold} style={{ marginRight: 6 }} />
+          <Text style={styles.nearDeath}>{nearDeath.text}</Text>
+        </View>
+      )}
       {ghostMessage && <Text style={styles.ghostMode}>{ghostMessage} · KEEP WATCHING</Text>}
 
       {/* streak */}
       <View style={[styles.streakPill, glow(C.gold, 8, 0.35)]}>
+        <Icon name="bolt" size={13} color={C.gold} style={{ marginRight: 7 }} />
         <Text style={styles.streakPillTxt}>
-          🔥 STREAK x{streak}  ·  {predictionPoints} SKILL PTS
+          STREAK x{streak}  ·  {predictionPoints} SKILL PTS
         </Text>
       </View>
 
@@ -530,11 +545,11 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
             {upNext.slice(1).map((nq, idx) => (
               <View key={nq.n} style={[styles.upNextCard, idx % 2 ? styles.upNextRed : styles.upNextCyan]}>
                 <Text style={styles.upNextNum}>{nq.n}</Text>
-                <Text style={styles.upNextIcon}>{KIND_ICON[nq.kind || "compare_window"]}</Text>
+                <Icon name={KIND_ICON[nq.kind || "compare_window"]} size={18} color={idx % 2 ? C.lo : C.hi} style={{ marginVertical: 4 }} />
                 <Text style={[styles.upNextLabel, { color: idx % 2 ? C.lo : C.hi }]} numberOfLines={2}>
                   {nq.label.toUpperCase()}
                 </Text>
-                <Text style={styles.upNextLock}>🔒</Text>
+                <Icon name="lock" size={10} color={C.muted} style={{ opacity: 0.7 }} />
               </View>
             ))}
           </View>
@@ -542,7 +557,11 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
       )}
 
       {/* the 100 fans */}
-      <Text style={styles.sectionLbl}>💀  ELIMINATED {FANS - aliveCount}  💀</Text>
+      <View style={styles.sectionLblRow}>
+        <Icon name="skull" size={11} color={C.muted} style={{ marginRight: 8 }} />
+        <Text style={[styles.sectionLbl, { marginBottom: 0 }]}>ELIMINATED {FANS - aliveCount}</Text>
+        <Icon name="skull" size={11} color={C.muted} style={{ marginLeft: 8 }} />
+      </View>
       <View style={styles.grid}>
         {botsRef.current.map((b, i) => (
           <View
@@ -575,6 +594,7 @@ const styles = StyleSheet.create({
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.lo },
   liveTxt: { color: C.text, fontSize: 11, fontWeight: "800", letterSpacing: 1 },
   roundTitle: { color: C.text, fontSize: 16, ...displayFont, letterSpacing: 1 },
+  leftPillRow: { flexDirection: "row", alignItems: "center" },
   leftPill: { color: C.text, fontSize: 12, fontWeight: "800", letterSpacing: 0.5 },
   scoreChip: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12,
@@ -584,17 +604,20 @@ const styles = StyleSheet.create({
   scoreCode1: { color: C.hi, fontSize: 18, ...displayFont },
   scoreNum: { color: C.text, fontSize: 22, fontWeight: "900", fontVariant: ["tabular-nums"] },
   scoreCode2: { color: C.lo, fontSize: 18, ...displayFont },
-  feedLine: { color: C.muted, fontSize: 12, textAlign: "center", marginTop: 6, marginBottom: 12 },
+  feedRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: 6, marginBottom: 12 },
+  feedLine: { color: C.muted, fontSize: 12, textAlign: "center" },
   qCard: {
     backgroundColor: C.panel, borderColor: C.hi, borderWidth: 1.5, borderRadius: 18,
     paddingVertical: 16, paddingHorizontal: 14, marginBottom: 14,
   },
   qCardSudden: { borderColor: C.gold, transform: [{ scale: 1.015 }] },
-  suddenBanner: { color: C.gold, backgroundColor: C.goldSoft, borderColor: C.gold, borderWidth: 1, borderRadius: 10, paddingVertical: 9, textAlign: "center", fontSize: 11, fontWeight: "900", letterSpacing: 0.8, marginBottom: 10 },
+  suddenBanner: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: C.goldSoft, borderColor: C.gold, borderWidth: 1, borderRadius: 10, paddingVertical: 9, marginBottom: 10 },
+  suddenBannerTxt: { color: C.gold, fontSize: 11, fontWeight: "900", letterSpacing: 0.8 },
   ghostPickCard: { backgroundColor: "rgba(46,230,255,0.08)", borderColor: C.hi, borderWidth: 1, borderRadius: 11, padding: 9, alignItems: "center", marginBottom: 11 },
   ghostPickLabel: { color: C.hi, fontSize: 9, fontWeight: "900", letterSpacing: 1 },
   ghostPickValue: { color: C.text, fontSize: 11, fontWeight: "800", marginTop: 3 },
-  qKicker: { color: C.muted, fontSize: 10, letterSpacing: 2, textAlign: "center", marginBottom: 6, textTransform: "uppercase" },
+  qKickerRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 6 },
+  qKicker: { color: C.muted, fontSize: 10, letterSpacing: 2, textAlign: "center", textTransform: "uppercase" },
   question: { color: C.text, fontSize: 21, fontWeight: "900", textAlign: "center", lineHeight: 28 },
   lastval: { color: C.muted, textAlign: "center", marginTop: 8 },
   lastvalNum: { color: C.hi, fontSize: 18, fontWeight: "900" },
@@ -625,14 +648,17 @@ const styles = StyleSheet.create({
   verdict: { color: C.text, textAlign: "center", fontWeight: "800", marginBottom: 4, fontSize: 15 },
   reward: { color: C.gold, textAlign: "center", fontSize: 11, fontWeight: "900", letterSpacing: 0.8, marginBottom: 4 },
   rewardZero: { color: C.muted },
-  nearDeath: { color: C.gold, textAlign: "center", fontWeight: "900", marginBottom: 4 },
+  nearDeathRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  nearDeath: { color: C.gold, textAlign: "center", fontWeight: "900" },
   ghostMode: { color: C.hi, backgroundColor: C.hiSoft, borderColor: C.hi, borderWidth: 1, borderRadius: 10, paddingVertical: 9, textAlign: "center", fontSize: 10, fontWeight: "900", letterSpacing: 0.6, marginBottom: 8 },
   streakPill: {
-    alignSelf: "center", backgroundColor: C.goldSoft, borderColor: C.gold, borderWidth: 1.5,
+    alignSelf: "center", flexDirection: "row", alignItems: "center",
+    backgroundColor: C.goldSoft, borderColor: C.gold, borderWidth: 1.5,
     borderRadius: 99, paddingHorizontal: 18, paddingVertical: 8, marginTop: 6, marginBottom: 14,
   },
   streakPillTxt: { color: C.gold, fontSize: 14, fontWeight: "900", letterSpacing: 1 },
   sectionLbl: { color: C.muted, fontSize: 11, fontWeight: "800", letterSpacing: 2, textAlign: "center", marginBottom: 8 },
+  sectionLblRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 8 },
   upNextRow: { flexDirection: "row", gap: 10, marginBottom: 14 },
   upNextCard: {
     flex: 1, backgroundColor: C.panelDeep, borderWidth: 1.5,
@@ -641,9 +667,7 @@ const styles = StyleSheet.create({
   upNextCyan: { borderColor: C.hi },
   upNextRed: { borderColor: C.lo },
   upNextNum: { color: C.muted, fontSize: 10, fontWeight: "900", alignSelf: "flex-start", marginLeft: 8 },
-  upNextIcon: { fontSize: 20, marginVertical: 4 },
   upNextLabel: { fontSize: 10, fontWeight: "900", textAlign: "center", letterSpacing: 0.5, marginBottom: 4 },
-  upNextLock: { fontSize: 11, opacity: 0.7 },
   grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center" },
   dot: {
     width: "8.6%", aspectRatio: 1, borderRadius: 99, backgroundColor: "#141c28",

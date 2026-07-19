@@ -13,9 +13,10 @@
 | **Streak card PNG** — collectible ticket: giant streak number, "OUTLIVED 87 OF 99 FANS", match scoreline, ladder rank, pseudo-barcode hashed from your run | End-of-lobby modal → Save / native Share sheet | It's a flex object, not a screenshot. Ticket aesthetic = people collect them per match (104 possible tickets = a set to complete) |
 | **"I outlived 99 people" elimination screen** | Auto-framed at death: *"Eliminated at streak 4 — you outlived 78 of 99 fans"* | Losing produces a brag too. Games where losing is shareable grow ~2× faster than win-only shares |
 | **Crown moment** | Winner overlay + confetti + fanfare + on-chain streak stamp (devnet) | "My crown is stamped on Solana" is a screenshot with a story attached |
+| **Ghost challenge link** — compact URL encoding your exact run (picks, timing, streak) | Result screen → "Send this to someone who thinks they'd survive" | The share IS a rematch invite: the friend replays the same real match against your ghost, pick for pick. Every loss recruits an opponent |
 
-Post templates to seed (X/TikTok caption bank):
-- "died on a CORNER COUNT with 0.8s left. 💓 SURVIVED BY badge then instant death next round. this game is evil"
+Post templates to seed (X/TikTok caption bank — no emojis, the anti-slop is the brand):
+- "died on a CORNER COUNT with 0.8s left. SURVIVED BY badge then instant death next round. this game is evil"
 - "outlived 91 of 99 fans on FRA–MAR and lost on the last question. running it back"
 - "the crowd was 78% HI. the crowd was wrong. 41 people died at once"
 
@@ -25,7 +26,7 @@ All 104 World Cup matches replay 24/7 via `GET /api/scores/historical/{fixtureId
 
 - **Prime-time headline lobbies:** the semi-final (this demo), the final, and the biggest group-stage upset, on the hour every hour. Named lobbies (#FRA-MAR-047) become memes ("047 killed me three times").
 - **Anniversary hooks:** "One week ago today, this match broke the internet — can you survive it?" push notification 5 minutes before the lobby opens (already wired in the iOS app).
-- **Live-match lobbies** during judging week: any real fixture streaming on TxLINE becomes a live lobby — question windows cut from the actual SSE feed, no scriptable answers, maximum drama.
+- **Live-match lobbies** during judging week: the web app already polls real TxLINE odds/score windows through `/api/txline` when a fixture is live — any real fixture streaming on TxLINE becomes a live lobby, no scriptable answers, maximum drama.
 - **Ladder seasons:** the tournament-long Royale Ladder (streak×10 + fans outlived + 250 per crown) resets per round of the cup → recurring "season finale" spikes.
 
 ## 3. Referral loop — invite code = your lobby fills faster
@@ -42,7 +43,7 @@ Bot backfill (already built) guarantees no lobby ever feels empty while the real
 ## 4. TikTok-able moments (engineered into the build)
 
 1. **The elimination cascade** — 40 avatars popping red→dead in a staggered wave with tick sounds while the alive-counter free-falls. Film the grid. 3 seconds, no context needed.
-2. **The near-death badge** — heartbeat audio accelerates, timer goes red, you lock at 0.8s, "💓 SURVIVED BY 0.8s" pops with confetti. Perfect POV-reaction format.
+2. **The near-death badge** — heartbeat audio accelerates, timer goes red, you lock at 0.8s, "SURVIVED BY 0.8s" pops with confetti. Perfect POV-reaction format.
 3. **The crowd-was-wrong reveal** — social-proof bar shows 78% HI, answer drops LO, majority dies on screen. "Never trust the crowd" is an infinitely remixable format.
 
 Capture plan: screen-record 10 lobbies, cut vertical 9:16 with the UGC playbook (real-person reaction cam over the grid), post 3×/day during judging week from a fresh account; duet-bait caption "could you survive question 5?".
