@@ -78,9 +78,8 @@ function makeReplay(
 }
 
 /** Named real replays bundled for the backend-free Daily Lobby rotation.
- *  France v England (18257865) is featured first — captured live from the
- *  TxLINE /api/scores/updates feed while the match was in play (historical is
- *  locked ~6h post-kickoff), so it is the app's default lobby. */
+ *  France v England (18257865) is featured first and now carries the completed
+ *  TxLINE score history, so it is the app's default lobby. */
 export const REPLAYS: ReplayFixture[] = [
   ...CANONICAL_REPLAYS.map(row => makeReplay(
     row.fixture,
@@ -92,7 +91,7 @@ export const REPLAYS: ReplayFixture[] = [
 ];
 
 /** DEMO PIN: France v England (18257865) is the featured Daily Lobby — real
- *  data captured live during the Jul 18 quarter-final. Remove the pin (set to
+ *  completed data from the Jul 18 third-place match. Remove the pin (set to
  *  null) to restore the date-hashed daily rotation. */
 const FEATURED_FIXTURE_ID: string | null = "18257865";
 

@@ -17,6 +17,13 @@ assert.equal(replaySettlementSecondsLeft(1_000, 31_000), 0);
 const franceEngland = CANONICAL_REPLAYS.find(replay => replay.fixtureId === "18257865");
 assert.ok(franceEngland);
 assert.deepEqual([franceEngland.fixture.Participant1, franceEngland.fixture.Participant2], ["France", "England"]);
+assert.equal(franceEngland.captureStatus, "complete");
+assert.equal(franceEngland.events.at(-1)?.type, "game_finalised");
+assert.deepEqual(
+  [franceEngland.events.at(-1)?.stats.g1, franceEngland.events.at(-1)?.stats.g2],
+  [4, 6],
+);
+assert.ok((franceEngland.events.at(-1)?.minute ?? 0) >= 90);
 const schedule = buildSchedule(franceEngland.events, franceEngland.fixture);
 assert.ok(schedule.length > 0 && schedule.every(question => ["hi", "lo", "push"].includes(question.answer)));
 assert.deepEqual(
@@ -24,4 +31,4 @@ assert.deepEqual(
   { prompt: "Will there be a goal before halftime?", answer: "hi" },
 );
 
-console.log("replay-settlement.test.mjs: 10 passed, 0 failed");
+console.log("replay-settlement.test.mjs: 14 passed, 0 failed");

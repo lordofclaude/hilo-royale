@@ -4,8 +4,8 @@
    Usage:  node shared/build-lobbies.js          (from repo root or anywhere)
 
    Sources (all real captures, committed in shared/real-data/):
-     18257865  France v England        <- 18257865.scores-raw.txt (raw SSE from
-               /api/scores/updates, live capture 2026-07-18) + 18257865.odds-live.json
+     18257865  France v England        <- 18257865.tape.js (completed score
+               history) + 18257865.odds-live.json (in-play StablePrice capture)
      18222446, 18237038, 18241006, 18213979, 17588232
                <- <id>.tape.js  (window.TXLINE_TAPE bundles: raw historical score
                updates + BookmakerId 10021 demargined 1X2 consensus, produced by
@@ -55,10 +55,8 @@ const IOS_OUT = path.join(ROOT, "ios", "src", "lib", "real-data", "canonical.ts"
 const META = {
   "18257865": {
     p1: "France", p2: "England", stage: "Third-place play-off", tag: "3RD",
-    expected: { g1: 2, g2: 4 },
-    captureStatus: "partial",
-    capturedThroughMinute: 60,
-    note: "Live capture (scores to ~60', odds to ~84'); score was already 2-4 at capture end — verified final result.",
+    expected: { g1: 4, g2: 6 },
+    note: "Completed TxLINE score history; in-play StablePrice odds were captured through ~84'.",
   },
   "18241006": {
     p1: "England", p2: "Argentina", stage: "Semi-final", tag: "SF",
@@ -428,13 +426,16 @@ function buildLobby(fid, messages, fixture, oddsBuilder) {
 
 const lobbies = [];
 
-// --- 18257865 France v England: rebuild from the raw SSE live capture
+// --- 18257865 France v England: completed score tape + captured in-play odds
 {
   const fid = "18257865";
-  const msgs = parseSSE(path.join(RD, fid + ".scores-raw.txt"));
-  if (!msgs.length) fail(fid + ": no messages parsed from scores-raw.txt");
-  const fixture = { StartTime: msgs[0].StartTime, Participant1IsHome: msgs[0].Participant1IsHome };
-  const lb = buildLobby(fid, msgs, fixture, (events, anchors, kickoffMs) => {
+  const T = loadTapeBundle(path.join(RD, fid + ".tape.js"));
+  if (!T.historical || !T.historical.length) fail(fid + ": completed tape has no historical events");
+  const fixture = {
+    StartTime: (T.fixture && T.fixture.StartTime) || T.historical[0].StartTime,
+    Participant1IsHome: T.fixture ? T.fixture.Participant1IsHome : true,
+  };
+  const lb = buildLobby(fid, T.historical, fixture, (events, anchors, kickoffMs) => {
     const goals = events.filter(e => e.type === "goal").map(e => ({ ts: e.ts, team: e.team }));
     const winpct = oddsFromLive(path.join(RD, fid + ".odds-live.json"), anchors, kickoffMs, goals);
     return { winpct };
@@ -473,8 +474,8 @@ if (bad) fail(bad + " validation error(s)");
 // --- emit
 const header = `/* AUTO-GENERATED lobby catalog — REAL TxLINE captures only. Do not edit by hand.
    Regenerate: node shared/build-lobbies.js
-   Sources: shared/real-data/<id>.tape.js (TxLINE pulls), 18257865.scores-raw.txt +
-   18257865.odds-live.json (live capture 2026-07-18). Stats are cumulative and
+   Sources: shared/real-data/<id>.tape.js (TxLINE pulls) plus the committed
+   18257865.odds-live.json in-play capture. Stats are cumulative and
    validated monotonic; complete finalScore values come from game_finalised. Partial
    captures use observedScore and are never promoted to a final claim.
    odds.winpct = [{m, p1, draw, p2}] — percent 0-100, m = match minute, p1 = Participant1. */
