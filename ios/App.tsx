@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { AppState, Linking, Pressable, SafeAreaView, StatusBar as RNStatusBar, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { C } from "./src/theme";
+import { C, glow } from "./src/theme";
 import { ChallengeRun, GameResult } from "./src/types";
 import { loadProfile, saveProfile, Profile, EMPTY_PROFILE } from "./src/lib/storage";
 import { clearIdentity, FanIdentity, loadIdentity } from "./src/lib/auth";
@@ -194,9 +194,8 @@ export default function App() {
 
 function TabButton({ icon, label, active, onPress }: { icon: IconName; label: string; active: boolean; onPress: () => void }) {
   return (
-    <Pressable style={styles.tabBtn} onPress={onPress}>
-      <View style={[styles.tabIndicator, active && styles.tabIndicatorOn]} />
-      <Icon name={icon} size={16} color={active ? C.hi : "#566174"} style={{ marginBottom: 3 }} />
+    <Pressable style={[styles.tabBtn, active && styles.tabBtnOn]} onPress={onPress}>
+      <Icon name={icon} size={21} color={active ? C.hi : "#7c8aa0"} style={{ marginBottom: 4 }} />
       <Text style={[styles.tabLabel, active && styles.tabActive]}>{label}</Text>
     </Pressable>
   );
@@ -208,10 +207,16 @@ const styles = StyleSheet.create({
   loading: { flex: 1, backgroundColor: C.bg, alignItems: "center", justifyContent: "center" },
   loadingCrown: { color: C.gold, fontSize: 58 },
   loadingText: { color: C.hi, fontSize: 11, fontWeight: "900", letterSpacing: 2.4, marginTop: 8 },
-  tabBar: { flexDirection: "row", borderTopColor: C.line, borderTopWidth: 1, backgroundColor: "#030405", paddingBottom: 9 },
-  tabBtn: { flex: 1, alignItems: "center" },
-  tabIndicator: { height: 3, width: 42, borderRadius: 2, backgroundColor: "transparent", marginBottom: 6 },
-  tabIndicatorOn: { backgroundColor: C.hi },
-  tabLabel: { color: "#566174", fontSize: 9, fontWeight: "900", letterSpacing: 1.2 },
+  /* floating broadcast dock — unmissable, glows on the active tab */
+  tabBar: {
+    flexDirection: "row", gap: 6,
+    marginHorizontal: 14, marginBottom: 10, marginTop: 4,
+    padding: 6, borderRadius: 22,
+    backgroundColor: C.panel, borderColor: C.lineStrong, borderWidth: 1,
+    ...glow(C.hi, 14, 0.22),
+  },
+  tabBtn: { flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 16 },
+  tabBtnOn: { backgroundColor: C.hiSoft, borderColor: C.hi, borderWidth: 1, ...glow(C.hi, 10, 0.5) },
+  tabLabel: { color: "#7c8aa0", fontSize: 10, fontWeight: "900", letterSpacing: 1.3 },
   tabActive: { color: C.hi },
 });
