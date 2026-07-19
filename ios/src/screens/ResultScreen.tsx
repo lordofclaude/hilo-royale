@@ -198,8 +198,8 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
         <Text style={styles.chainPillTxt}>SCORE PROOF · SOLANA DEVNET — VIEW TX  ↗</Text>
       </Tap>}
 
-      {/* provably fair lobby: bots/tie-breaks seeded by a real ORAO VRF
-          randomness request on devnet (lib/vrf.ts) — tap to view on Solscan */}
+      {/* Verifiable seed source: bots/tie-breaks use a fulfilled ORAO request.
+          Per-lobby commitments and transcripts remain roadmap work. */}
       <Tap
         style={[styles.chainPill, glow(C.hi, 8, 0.25)]}
         accessibilityRole="link"

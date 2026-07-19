@@ -9,7 +9,7 @@ Last verified: 2026-07-19 (~02:30 UTC). Companion docs: [ABOUT.md](ABOUT.md) (pr
 
 **100 fans enter a real World Cup match. Every stat window is a hi/lo question. Wrong answer = eliminated live. Last fan standing takes the crown.**
 
-A prediction battle royale where the wager is your place in the lobby, not money. Built for the **TxODDS × Solana World Cup hackathon, Track 2 (Consumer & Fan Experiences)**. Runs on TxODDS's institutional TxLINE feed with fairness and results provable on Solana.
+A prediction battle royale where the wager is your place in the lobby, not money. Built for the **TxODDS × Solana World Cup hackathon, Track 2 (Consumer & Fan Experiences)**. Runs on TxODDS's institutional TxLINE feed and ships one final-score proof plus one fulfilled randomness-source receipt on Solana devnet.
 
 | Surface | Where | Status |
 |---|---|---|
@@ -21,9 +21,12 @@ A prediction battle royale where the wager is your place in the lobby, not money
 
 ## 2. What's working (verified)
 
-### The game loop (both platforms, one shared engine)
+### The game loop (canonical data, parity-tested core rules)
 - **11-round schedule on the featured fixture** (France–England), precomputed by `buildSchedule` from real events + real odds: pregame prop, occurrence bets, team side-picks, **odds-swing rounds** (England win-% higher/lower — settled against the real 1X2 series), next-goal, goals over/under, halftime special, and a **real VAR round** that fires at the actual VAR moment.
-- **Engine v2** (`web/game-logic.js`, mirrored in TS for iOS, **159 unit tests passing**): stat-aware (only asks about stats the tape actually has), occurrence base-rate guard (no free "obviously NO" rounds), hi/lo answer balancing (blind button-mashing never wins), no topic repeats back-to-back.
+- **Engine v2** (`web/game-logic.js`, with parity-tested core behavior in iOS,
+  **159 unit tests passing**): web is stat-aware, guards occurrence base rates,
+  balances hi/lo answers, and avoids adjacent topic repeats. Both clients consume
+  canonical match events; web currently has additional question types and guards.
 - **Window-in-play pacing** (iOS): pick → LOCKED → the match visibly fast-forwards through the real window (score/minute/feed updating) under a gold `WINDOW IN PLAY · SETTLES AT N'` chip → settlement when the match clock crosses the boundary. Honesty subline: "replay ×30 — this is 10 real minutes in live mode."
 - **SIM LIVE** (iOS): the lobby always presents a match about to start — rolling 2-minute "NEXT KICK-OFF IN" countdown, join always enabled. If Match Control is set to LIVE with no real match in its window, joining falls through to SIM LIVE on real data instead of a dead button. Labeled honestly everywhere.
 - Crowd bar with progressive bot-pick reveal, heartbeat timer + haptics, near-death detection ("survived by 0.4s"), elimination cascade with named fans, sudden-death (3s windows for the final three), ghost mode after death, crowd-difficulty scoring (rare correct picks earn more).
@@ -36,8 +39,11 @@ A prediction battle royale where the wager is your place in the lobby, not money
 
 ### iOS (9 screens, floating tab dock)
 - Login (guest + Google-OAuth-ready) → four tabs: **PLAY** (SIM LIVE lobby) / **RANK** (leaderboard) / **SQUAD** (rooms + invite deep links) / **ME** (profile: level, win rate, badges) + Settings (Match Control: replay/live, 1×–60×, answer/reveal timing).
-- Result screen: survival ticket or death replay (image share via view-shot), badges, points breakdown, WhatsApp/Instagram/copy-link sharing, ghost challenge links, **"VERIFIED ON SOLANA"** + **"PROVABLY FAIR — ORAO VRF"** tappable Solscan pills.
-- Universal links: `hilo-royale.vercel.app/play?fixture=…` and `hiloroyale://challenge/…` / `squad/…` both route into the app.
+- Result screen: survival ticket or death replay (image share via view-shot), badges, points breakdown, WhatsApp/Instagram/copy-link sharing, ghost challenge links, **"SCORE PROOF · SOLANA DEVNET"** + **"VERIFIABLE SEED SOURCE — ORAO VRF"** tappable receipt pills.
+- HTTPS challenge links work as web fallbacks; native universal-link handoff is
+  roadmap until the production AASA file and signed Associated Domains entitlement
+  are deployed. Custom `hiloroyale://challenge/…` / `squad/…` routes are wired in
+  the native app.
 
 ### Design system (Tiago's Track-2 directive, both platforms)
 - **No emojis anywhere in UI** — shared SVG/vector icon set (`web` sprite + `ios/src/components/Icon.tsx`).
@@ -59,7 +65,7 @@ TxODDS TxLINE (devnet) ──[on-chain subscription: txoracle program]──> AP
        │
 Solana devnet
        ├─ validateStatV2 tx ──> proves ARG–SUI final score vs TxODDS Merkle root ──> Solscan pill in both UIs
-       ├─ ORAO VRF request ──> seeds ALL lobby luck (bots, picks, cascade) via shared PRNG ──> "provably fair" links
+       ├─ one fulfilled ORAO source ──> reusable deterministic prototype seed ──> receipt link
        └─ solora-anchor state machine ──> round lifecycle OPEN→LOCKED→SETTLED in the engine (deploy = roadmap)
 ```
 
@@ -67,8 +73,8 @@ Solana devnet
 |---|---|---|
 | **TxLINE feed** (TxODDS) | On-chain wallet subscription → token activation → captured 6 real fixtures incl. **France–England live during the match** (historical locks ~6h post-KO; we used `/updates` + `/stream`). Live proxy + SSE bridge deployed with creds server-side. | The core requirement: real institutional data, consumed the hard (correct) way. `TXLINE-FEEDBACK.md` documents feed gotchas for the organizers. |
 | **validateStatV2** (TxODDS on-chain) | Real devnet tx proving ARG–SUI's final score against the on-chain Merkle root; sig ships as data, rendered as Solscan link on result tickets. | "Results provable on Solana" is a demoable claim, not copy. |
-| **ORAO VRF** (`orao-network/solana-vrf`) | Real fulfilled randomness request on devnet (`onchain/request-vrf.js`); randomness seeds a deterministic PRNG shared by both apps for every piece of lobby luck. | **Provably fair** lobbies — same lobby reproducible and auditable by anyone from the request tx. |
-| **solora-anchor** (`meditatingsloth/solora-anchor`) | Its `solora-pyth-price` lock→settle machine adopted 1:1 in the engine (`createEvent/lockEvent/settleEvent`, outcomes `Undrawn/Invalid/Up/Down/Same`, TxLINE StablePrice in place of Pyth). Mapping table in ABOUT.md. | Rounds already run an on-chain prediction-market lifecycle — taking them on-chain is a deploy, not a rewrite. |
+| **ORAO VRF** (`orao-network/solana-vrf`) | One real fulfilled randomness request on devnet (`onchain/request-vrf.js`) supplies the reusable prototype seed for deterministic rival simulation. | Proves the seed-source path. Per-lobby commitments and output transcripts are next. |
+| **solora-anchor** (`meditatingsloth/solora-anchor`) | Its lock→settle lifecycle informed the local `OPEN→LOCKED→SETTLED` engine. Gameplay state and winners are not committed on-chain today. | Demonstrates a clean settlement model without overstating the current prototype. |
 | **solana-escrow-gambling** (`dariusjvc/`) | Roadmap reference only (ABOUT.md): escrowed staked lobbies. | Deliberate: Hi-Lo is stakes-free today; shows we know the path without faking it. |
 
 ### The six real fixtures (lobbies)
@@ -86,7 +92,9 @@ Solana devnet
 
 ## 4. Honest ledger (what's simulated)
 
-- The 99 other fans are **bots** (VRF-seeded, so provably fair) — real multiplayer needs the room server deployed (`ios/server/`, works on LAN, not hosted).
+- The 99 other fans are **simulated rivals**, deterministically seeded from one
+  fulfilled ORAO source. Real multiplayer needs the room server deployed
+  (`ios/server/`, works on LAN, not hosted); per-lobby seed commitments are next.
 - Leaderboard wall beyond your own stats is demo data, labeled.
 - Guest identity is device-local; Google OAuth is code-complete but needs client IDs.
 - solora-anchor runs **in-engine**, not as a deployed program (no Anchor toolchain on the build machine — documented as roadmap).

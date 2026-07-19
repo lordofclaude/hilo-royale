@@ -213,7 +213,7 @@ links, ghost-challenge deep links, and a zero-dependency room/presence server
 - **In your browser, right now**: [hilo-royale.vercel.app](https://hilo-royale.vercel.app)
 - **Code**: [lordofclaude/hilo-royale](https://github.com/lordofclaude/hilo-royale) —
   deployed web app in `web/`, iOS app in `ios/`, bundled real-match data in
-  `shared/`. (The on-chain settlement scripts live in the hackathon monorepo.)
+  `shared/`. (The on-chain score-proof scripts live in the hackathon monorepo.)
 - **On your iPhone**: install Expo Go, then open the dev tunnel link while the
   dev machine is serving (`corepack pnpm tunnel` in the app folder).
 - **The on-chain proof**: [tx 47rYc5tp…uRdhA on Solscan (devnet)](https://solscan.io/tx/47rYc5tphp3y3MuyCfr4KSgHLtCYZfCVknhZB57SzTPVpyWSkVUgkkvmw4kS4nGyzN2Eb49oyAUYkPJsiX4uRdhA?cluster=devnet)
@@ -224,5 +224,5 @@ links, ghost-challenge deep links, and a zero-dependency room/presence server
 
 ---
 
-*Built in ~48 hours with real data, a real on-chain settlement, and no mock
+*Built in ~48 hours with real data, a real on-chain score proof, and no mock
 theater — the parts that are simulated say so on the tin.*

@@ -49,7 +49,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
   const CODE2 = TxMock.teamCode(replay.fixture.Participant2);
   const SCHEDULE = replay.schedule;
   // ----- mutable game state (refs: game runs on timers, not renders) -----
-  // Provably fair: all lobby luck (bot skills/picks/timing, cascade order)
+  // Deterministic prototype simulation: lobby luck (skills/picks/timing/cascade)
   // draws from a PRNG seeded by real ORAO VRF randomness (see lib/vrf.ts).
   const rngRef = useRef(lobbyRng());
   const rng = rngRef.current;

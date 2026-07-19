@@ -1,8 +1,9 @@
 /* AUTO-GENERATED from onchain/vrf-proof.json (node onchain/request-vrf.js).
    A REAL ORAO VRF randomness request fulfilled on Solana devnet. Every piece
    of lobby "luck" — bot skills, bot picks and their timing, elimination
-   shuffle order — derives from this randomness through a deterministic PRNG,
-   so the same lobby is reproducible and provably fair from the request tx. */
+   shuffle order — derives from this randomness through a deterministic PRNG.
+   The transaction proves this reusable seed source; a per-lobby commitment and
+   output transcript are not shipped yet. */
 export const VRF_PROOF = {
   "network": "devnet",
   "program": "ORAO VRF",
@@ -25,8 +26,8 @@ function mulberry32(a: number): () => number {
   };
 }
 
-/** A fresh lobby RNG seeded from the on-chain randomness. Create one per
- *  lobby/game mount so every lobby replays identically (provably fair). */
+/** A fresh lobby RNG seeded from the bundled on-chain randomness. Create one
+ *  per lobby/game mount so the prototype simulation replays deterministically. */
 export function lobbyRng(): () => number {
   const seed =
     parseInt(VRF_PROOF.randomness.slice(0, 8), 16) ^

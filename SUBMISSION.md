@@ -27,7 +27,7 @@ powered by TxODDS's TxLINE feed and provable on Solana.
 |---|---|
 | Live app | https://hilo-royale.vercel.app |
 | Repo (flip public first) | https://github.com/lordofclaude/hilo-royale |
-| On-chain settlement (`validateStatV2`, devnet) | https://solscan.io/tx/47rYc5tphp3y3MuyCfr4KSgHLtCYZfCVknhZB57SzTPVpyWSkVUgkkvmw4kS4nGyzN2Eb49oyAUYkPJsiX4uRdhA?cluster=devnet |
+| On-chain final-score proof (`validateStatV2`, devnet) | https://solscan.io/tx/47rYc5tphp3y3MuyCfr4KSgHLtCYZfCVknhZB57SzTPVpyWSkVUgkkvmw4kS4nGyzN2Eb49oyAUYkPJsiX4uRdhA?cluster=devnet |
 | ORAO VRF lobby-randomness request (devnet) | https://solscan.io/tx/4Fn4icgVJEftWm5TuWKWejY3p1adboCydqvragTyEXrsN6yBPx12bdeynrsW6pkuFR3xgMYovV3bXp7DTEuuwikH?cluster=devnet |
 | Technical docs | `README.md` (endpoints list) + `ABOUT.md` (architecture + honest ledger) in the repo |
 | TxLINE API feedback | `TXLINE-FEEDBACK.md` in the repo |
@@ -76,12 +76,16 @@ the app says so — the honest ledger is in `ABOUT.md`.
 - `GET /api/odds/updates/{epochDay}/{hourOfDay}/{interval}?fixtureId=` — historical 5-min odds intervals (bundled odds series)
 - `SSE GET /api/scores/stream?fixtureId=` — upstream real-time stream, consumed by iOS through the credential-safe `/api/txline-stream` bridge
 - `GET /api/scores/stat-validation?fixtureId=&seq=&statKeys=` — Merkle proofs
-- `validateStatV2` on devnet program `6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J` — on-chain settlement
+- `validateStatV2` on devnet program `6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J` — one on-chain final-score validation
 - All data calls: dual headers `Authorization: Bearer <jwt>` + `X-Api-Token: <token>`
 
 ---
 
 ## Demo video script (≤5:00)
+
+The canonical click-by-click stage runbook, deterministic answer key, preflight,
+and recovery plan live in [DEMO-SCRIPT.md](DEMO-SCRIPT.md). The short recording
+outline below uses the same safe path.
 
 Record the browser at hilo-royale.vercel.app (desktop, clean profile, 1080p).
 Have a second browser window ready for the ghost link and Solscan tabs
@@ -90,10 +94,10 @@ commentator, not a pitch deck.
 
 | Time | Scene | On screen | Voiceover |
 |---|---|---|---|
-| 0:00–0:12 | Hook | Cold open mid-cascade: alive counter falling | "One wrong call just killed half this lobby." |
+| 0:00–0:12 | Hook | Cold open mid-cascade: alive counter falling | "One wrong call just killed 35 rivals." |
 | 0:12–0:25 | Product | Hero line over the arena | "Hi-Lo Royale turns every live match into a shared survival game." |
 | 0:25–0:55 | Play | Open `/login?fixture=18222446&demo=1`, join and settle one Argentina–Switzerland round | "Join 100 fans, predict the next match stat, and stay alive—one wrong answer knocks you out." |
-| 0:55–1:18 | Growth loop | Die, press Challenge a friend, open the link in a second tab | "Losing is the growth loop: your exact run becomes the rival your friend must beat." |
+| 0:55–1:18 | Growth loop | Die, press **Copy challenge link**, then **Open challenge** | "Losing is the growth loop: your exact run becomes the rival your friend must beat." |
 | 1:18–1:55 | Data flow | Show TxLINE feed → question → lock → settlement | "Confirmed match events become deterministic questions and one shared crowd reveal." |
 | 1:55–2:20 | Receipts | Open the Argentina–Switzerland score proof, then the ORAO request | "This transaction proves this fixture's 3–1 score. This ORAO request proves the prototype seed source—not yet a full per-lobby transcript." |
 | 2:20–2:38 | iPhone | Native replay-mode round and HTTPS challenge | "The same canonical tape and rules run natively with haptics." |
@@ -104,24 +108,28 @@ commentator, not a pitch deck.
 ## Judge quickstart
 
 **Play in 60 seconds:** open https://hilo-royale.vercel.app/login?fixture=18222446&demo=1 → enter the
-Argentina–Switzerland lobby → when a question fires, tap HI or LO before the timer
-dies → survive all rounds to take the crown. Wrong or slow = eliminated (you
-will still see how far you'd have gone — and get a shareable card).
+Argentina–Switzerland lobby → click **START 3-MINUTE DEMO** → answer round 1
+**YES** → deliberately answer round 2 **HIGHER** → use the immediate result and
+ghost challenge to show the viral loop. A full correct run can still take the
+crown.
 
 **Test the ghost challenge:** finish (or die in) a run → share → open the
 generated link in another tab: same match, your recorded picks racing you.
 
-**Test live mode:** `GET /api/txline?fixtureId=<id>&mode=odds1x2` on the
+**Test live connectivity:** `GET /api/txline?fixtureId=<id>` on the
 deployed app returns `{ok:true, p1, draw, p2, ts}` when TxLINE credentials are
 configured and the fixture has a current odds window, and an honest
 `{ok:false, reason}` otherwise — the app itself falls back to replay tapes, so
-nothing ever breaks. Modes `scores` and `odds` expose the raw update windows.
+nothing ever breaks. The stage experience uses the complete proof-backed replay;
+the iOS live path resolves questions from incoming SSE events when a valid match
+is active.
 
 **Run the tests:** clone the repo, then `node web/test.js` (no install needed —
 the web build is dependency-free).
 
 **Verify the chain:** both Solscan links above are real devnet transactions;
-the settlement tx executes `validateStatV2` against TxODDS's published root.
+the score-proof transaction executes `validateStatV2` against TxODDS's
+published root. Gameplay round and player settlement remain local today.
 
 ## Judging criteria, explicitly
 

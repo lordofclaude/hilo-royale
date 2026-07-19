@@ -194,6 +194,13 @@ main{display:grid;grid-template-columns:1fr minmax(285px,340px);gap:1.15rem;padd
 #cardcanvas{width:min(300px,72vw);border-radius:14px;border:1px solid var(--line);display:block;margin:0 auto 1.1rem;box-shadow:0 18px 60px rgba(255,213,74,.16)}
 .wbtns{display:flex;gap:.7rem;justify-content:center;flex-wrap:wrap}
 .wbtns .btn{width:auto;padding:.85rem 1.5rem}
+@media (min-width:760px){
+  .wcard{max-width:900px;display:grid;grid-template-columns:300px minmax(0,1fr);grid-template-rows:auto auto 1fr;column-gap:1.6rem;align-items:start;text-align:left}
+  .wcard h1{grid-column:2;grid-row:1;justify-content:flex-start;margin-top:1.3rem}
+  .wcard p{grid-column:2;grid-row:2}
+  #cardcanvas{grid-column:1;grid-row:1/4;width:300px;margin:0}
+  .wbtns{grid-column:2;grid-row:3;justify-content:flex-start;align-self:start}
+}
 .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 /* ---------- juice ---------- */
@@ -395,7 +402,7 @@ footer b{color:var(--muted)}
         <div class="note" id="vrfnote" style="display:none"><svg class="ic" style="color:var(--hi)"><use href="#i-shield"/></svg> <b>Verifiable seed source</b> — prototype bots and tie-breaks use <a id="vrflink" href="#" target="_blank" rel="noopener">ORAO VRF randomness on Solana</a>; per-lobby commitments are next.</div>
         <div class="note" id="proofnote" style="display:none"><svg class="ic" style="color:var(--gold)"><use href="#i-check"/></svg> <b>Score proven on-chain</b> — <a id="prooflink" href="#" target="_blank" rel="noopener">validateStatV2 tx on Solscan</a>.</div>
         <div class="note" id="capturenote" style="display:none"></div>
-        <div class="note">Replay lobbies run on real World Cup matches pulled from the live TxLINE feed. Same engine as the iOS app.</div>
+        <div class="note">Replay lobbies use real World Cup matches pulled from TxLINE. Web and iOS share canonical match data and core survival rules; web currently ships additional question types.</div>
       </div>
     </aside>
   </main>
@@ -413,7 +420,8 @@ footer b{color:var(--muted)}
   <p id="wsub"></p>
   <canvas id="cardcanvas" width="1000" height="1400"></canvas>
   <div class="wbtns">
-    <button class="btn" id="copychal" style="display:none"><svg class="ic"><use href="#i-share"/></svg>Challenge a friend</button>
+    <a class="btn" id="openchal" style="display:none" target="_blank" rel="noopener"><svg class="ic"><use href="#i-share"/></svg>Open challenge</a>
+    <button class="btn ghost" id="copychal" style="display:none"><svg class="ic"><use href="#i-share"/></svg>Copy challenge link</button>
     <button class="btn ghost" id="share"><svg class="ic"><use href="#i-share"/></svg>Share</button>
     <button class="btn ghost" id="dl"><svg class="ic"><use href="#i-download"/></svg>Save streak card</button>
     <button class="btn ghost" id="again"><svg class="ic"><use href="#i-refresh"/></svg>Play another lobby</button>
@@ -454,7 +462,7 @@ const KEY_ICON={corners:'i-flag',corner:'i-flag',shots:'i-target',shot:'i-target
 const qIcon=q=>icon(KEY_ICON[q.key]||'i-chart');
 const stripEmoji=s=>String(s||'').replace(/^[^A-Za-z0-9]+/,'');
 
-/* ---------------- provably fair seed (ORAO VRF) ---------------- */
+/* ---------------- verifiable prototype seed source (ORAO VRF) ---------------- */
 const VRF=window.FE_VRF||null;
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const rng=VRF?mulberry32(parseInt(VRF.randomness.slice(0,8),16)^parseInt(VRF.randomness.slice(8,16),16)):Math.random;
@@ -710,6 +718,11 @@ function paintEv(){const el=$('evstate');if(!curEvent){el.style.display='none';r
 
 /* ---------------- game state ---------------- */
 const SCHEDULE=HiLoLogic.buildSchedule(E,FIXTURE,{odds:(LOBBY.odds&&LOBBY.odds.winpct)||undefined});
+/* Every simulated rival receives one VRF-seeded lethal round. This keeps the
+   100-seat promise honest: a perfect human run always reaches one survivor,
+   while ordinary bot mistakes can still eliminate rivals earlier. */
+const lethalRounds=SCHEDULE.filter(q=>q.answer==='hi'||q.answer==='lo').map(q=>q.n);
+for(const b of bots){if(!b.isMe&&!b.isGhost&&lethalRounds.length)b.forcedExit=lethalRounds[Math.floor(rng()*lethalRounds.length)];}
 let scheduleIdx=0,pending=null,buffer=[],running=false,gameOver=false,liveDone=false,tapeDone=false,lastAcceptedMinute=-1;
 /* my picks are recorded per round so a finished run can be shared as a ghost challenge */
 const myPicks=[];
@@ -752,7 +765,9 @@ function startQuestion(q){
   const outcome={val:q.val??0,answer:q.answer??'push'};
   const picks=[];
   for(const b of bots){if(!b.alive||b.isMe||b.isGhost)continue;
-    picks.push({bot:b,pick:HiLoLogic.botPick(b.skill,outcome.answer,rng()),at:400+rng()*(QMS-1200)});}
+    const regular=HiLoLogic.botPick(b.skill,outcome.answer,rng());
+    const forced=b.forcedExit===q.n?(outcome.answer==='hi'?'lo':outcome.answer==='lo'?'hi':regular):regular;
+    picks.push({bot:b,pick:forced,at:400+rng()*(QMS-1200)});}
   pending={q,outcome,botPicks:picks,myPick:null,myPickAtMs:null,spectPick:null,msRemaining:QMS,revealed:[]};
   createEvent(q,QMS);
   $('upnext').style.display='none';
@@ -872,6 +887,7 @@ function resolveRound(){
   $('ticker').innerHTML=dying.length?`${icon('i-x','color:var(--lo)')} ${names}${dying.length>3?` +${dying.length-3} more`:''} eliminated${me.alive?' — you outlived them':''}`:
     (answer==='push'?'nobody eliminated this round':'');
   setTimeout(()=>{updateAlive();
+    if(DEMO&&!me.alive){endGame();return;}
     if(scheduleIdx>=SCHEDULE.length||aliveTotal()<=1||othersAlive()===0){endGame();}
     else{updateUpNext();flushBuffer();if(tapeDone&&!pending)advanceAfterTape();}
   },1400+Math.min(1200,dying.length*36));
@@ -935,7 +951,7 @@ function endGame(){
       me.alive?`You survived all ${scheduleIdx} questions (streak ${me.streak}) with ${aliveTotal()-1} others. +${pts} points on this device's ladder.`:
       `Streak ${me.streak}. You outlived ${outlivedCount} of 99 bots. +${pts} points on this device's ladder.`)+
       (chalUrl?' Send a rival the challenge link — your run rides along as their ghost.':'');
-    if(chalUrl)$('copychal').style.display='inline-flex';
+    if(chalUrl){$('openchal').href=chalUrl;$('openchal').style.display='inline-flex';$('copychal').style.display='inline-flex';}
     drawStreakCard({streak:me.streak,best:ladder.best,outlivedCount,won,rank,pts});
     $('winner').classList.add('open');
     setTimeout(()=>$('wtitle').focus(),0);
@@ -1015,12 +1031,11 @@ $('share').onclick=async()=>{
 };
 $('copychal').onclick=async()=>{
   if(!chalUrl)return;
-  const full=(lastCaption?lastCaption+' ':'')+chalUrl;
   let ok=false;
-  try{await navigator.clipboard.writeText(full);ok=true;}catch(e){
-    try{const ta=document.createElement('textarea');ta.value=full;document.body.appendChild(ta);ta.select();ok=document.execCommand('copy');ta.remove();}catch(e2){}
+  try{await navigator.clipboard.writeText(chalUrl);ok=true;}catch(e){
+    try{const ta=document.createElement('textarea');ta.value=chalUrl;document.body.appendChild(ta);ta.select();ok=document.execCommand('copy');ta.remove();}catch(e2){}
   }
-  $('copychal').innerHTML=icon(ok?'i-check':'i-x')+(ok?'Challenge link copied':'Copy failed — long-press the URL');
+  $('copychal').innerHTML=icon(ok?'i-check':'i-x')+(ok?'Challenge link copied':'Copy failed — open the challenge instead');
 };
 
 /* ---------------- kickoff: replay tape or LIVE lobby ---------------- */
@@ -1044,7 +1059,7 @@ function startLive(){
       if(e.type==='game_finalised'){liveDone=true;tapeDone=true;if(!pending&&!gameOver)advanceAfterTape();}},
     onOdds:o=>{markLiveOdds(o);if(liveMode)setDataChip('live','LIVE FEED');gotSignal=true;lastHeartbeat=Date.now();},
     onHeartbeat:()=>{gotSignal=true;lastHeartbeat=Date.now();if(liveMode)setDataChip('live','LIVE FEED');},
-    onStatus:s=>{if(s&&s.state==='error')setDataChip('wait','LIVE FEED · RETRYING');}});
+    onStatus:s=>{if(typeof s==='string'&&s.startsWith('error:'))setDataChip('wait','LIVE FEED · RETRYING');}});
   /* Continuous honesty watchdog: initial silence and later stalls both recover. */
   const watchdog=setInterval(()=>{
     if(gameOver||fellBack){clearInterval(watchdog);return;}
@@ -1068,7 +1083,8 @@ function launch(live){
 $('start').onclick=()=>launch(false);
 $('startlive').onclick=()=>launch(true);
 $('quickstart').onclick=()=>launch(false);
-$('again').onclick=()=>{const i=LOBBIES.indexOf(LOBBY),next=LOBBIES[(i+1)%LOBBIES.length];location.href='/play?fixture='+next.fixtureId;};
+$('again').innerHTML=DEMO?icon('i-refresh')+'Restart judge run':$('again').innerHTML;
+$('again').onclick=()=>{if(DEMO){location.href='/play?fixture='+LOBBY.fixtureId+'&demo=1';return;}const i=LOBBIES.indexOf(LOBBY),next=LOBBIES[(i+1)%LOBBIES.length];location.href='/play?fixture='+next.fixtureId;};
 document.addEventListener('keydown',e=>{
   if(!pending||e.repeat||e.metaKey||e.ctrlKey||e.altKey)return;
   if(e.key==='h'||e.key==='H'||e.key==='ArrowUp'){e.preventDefault();pickSide('hi');}

@@ -389,6 +389,20 @@
       return true;
     }
 
+    /* The server's default odds1x2 mode digests the upstream history to one
+       validated consensus point. Poll that compact shape instead of pulling a
+       multi-megabyte raw odds window into every browser every 15 seconds. */
+    function processOddsDigest(body) {
+      if (!body || body.ok !== true) return false;
+      var p1 = Number(body.p1), draw = Number(body.draw), p2 = Number(body.p2), ts = Number(body.ts) || null;
+      if (![p1, draw, p2].every(function (n) { return isFinite(n) && n >= 0 && n <= 100; })) return false;
+      var key = p1 + "|" + draw + "|" + p2;
+      if (key === st.lastOddsKey && ts === st.lastOddsTs) return false;
+      st.lastOddsKey = key; st.lastOddsTs = ts;
+      safeCall(opts.onOdds, { p1: p1, draw: draw, p2: p2, ts: ts });
+      return true;
+    }
+
     // Proxy failure reasons that mean "upstream is broken" (vs quietly no data).
     var ERRORISH = /^(http-\d+|bad-json)$/;
 
@@ -397,21 +411,22 @@
       if (st.inFlight) return st.inFlight; // never overlap cycles; tests join the current one
       st.inFlight = Promise.all([
         apiGet("fixtureId=" + fid + "&mode=scores"),
-        apiGet("fixtureId=" + fid + "&mode=odds"),
+        apiGet("fixtureId=" + fid),
       ]).then(function (res) {
         if (st.stopped) return;
         var scores = res[0], odds = res[1];
         var sawData = false, err = null;
         if (Array.isArray(scores)) { if (scores.length) sawData = true; processScores(scores); }
         else if (scores && scores.reason && ERRORISH.test(scores.reason)) err = scores.reason;
-        if (Array.isArray(odds)) { if (odds.length) sawData = true; processOdds(odds); }
+        if (odds && odds.ok === true) { sawData = true; processOddsDigest(odds); }
+        else if (Array.isArray(odds)) { if (odds.length) sawData = true; processOdds(odds); }
         else if (!err && odds && odds.reason && ERRORISH.test(odds.reason)) err = odds.reason;
         if (sawData) setStatus("live");
         else if (err) setStatus("error:" + err);
         else setStatus("idle"); // no creds / empty window / network down → quiet idle
         // A quiet football match is still a healthy feed. Consumers should use
         // this transport heartbeat—not only new goals/odds—to detect stalls.
-        if (Array.isArray(scores) && Array.isArray(odds)) {
+        if (Array.isArray(scores) && ((odds && odds.ok === true) || Array.isArray(odds))) {
           safeCall(opts.onHeartbeat, { at: Date.now(), scoresOk: true, oddsOk: true });
         }
       }).catch(function () {

@@ -25,7 +25,7 @@ const CODE_1 = TEAM_1.slice(0, 3).toUpperCase();
 const CODE_2 = TEAM_2.slice(0, 3).toUpperCase();
 
 export default function LiveGameScreen({ settings, onEnd }: Props) {
-  // Provably fair: live-lobby bot picks draw from the ORAO-VRF-seeded PRNG.
+  // Deterministic simulation: bot picks draw from the fulfilled ORAO seed source.
   const rngRef = useRef(lobbyRng());
   const rng = rngRef.current;
   const botsRef = useRef<Bot[]>(Array.from({ length: FANS }, (_, index) => ({ alive: true, isMe: index === ME_INDEX, name: fanName(index) })));

@@ -30,9 +30,9 @@ and must remain labeled as such.
 3. **Put Join above the fold on mobile.** Added the stage-level quick-start CTA
    so the core action is no longer buried under feed/market/ladder cards.
 
-4. **Make the result viral-first.** “Challenge a friend” is now the primary
-   result action; save/share are secondary, and “Play another” advances to a
-   different fixture instead of reloading the same lobby.
+4. **Make the result viral-first.** **Open challenge** and **Copy challenge
+   link** are now visible above the fold beside share/save; judge mode offers a
+   deterministic restart, and normal play advances to another fixture.
 
 5. **Repair production ghost routing.** Challenge URLs land on `/play` and keep
    all query parameters through guest login instead of being dropped on `/`.
@@ -110,7 +110,7 @@ and must remain labeled as such.
 
 - Core game engine: **159/159 passing**.
 - Ghost/share fuzz suite: **14,933/14,933 passing**.
-- Live-feed suite: **32/32 passing**.
+- Live-feed suite: **35/35 passing**.
 - Integration contract: **7/7 sections passing**.
 - Expo/iOS TypeScript: **passing**.
 - Canonical compiler: **six web lobbies + four iOS replays generated**.
@@ -120,11 +120,11 @@ and must remain labeled as such.
 
 ## Demo run-of-show
 
-1. Cold-open the elimination cascade: “One wrong call just killed half this
-   lobby.”
+1. Cold-open the elimination cascade: “One wrong call just killed 35 rivals.”
 2. Say the one-liner, then enter the Argentina–Switzerland judge URL.
 3. Play one round and point to the crowd split, lock, and visible deaths.
-4. Die, choose Challenge a friend, and open the ghost in a second window.
+4. Die, choose **Copy challenge link**, then **Open challenge** in a second
+   window.
 5. Show TxLINE → deterministic questions → locked picks → result.
 6. Open the matching Argentina–Switzerland score proof, then precisely describe
    the ORAO transaction as the prototype's seed-source proof.

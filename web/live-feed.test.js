@@ -63,12 +63,19 @@ const calls = [];
 let failNetwork = false;
 const windows = { scores: [scoresWin1, scoresWin2], odds: [oddsWin1, oddsWin2] };
 const cursor = { scores: 0, odds: 0 };
+const oddsDigests = [
+  { ok: true, fixtureId: "18257865", p1: 33.2, draw: 42.6, p2: 24.2, ts: 1784406000000 },
+  { ok: true, fixtureId: "18257865", p1: 43.7, draw: 27.4, p2: 28.9, ts: 1784409000000 },
+];
+let digestCursor = 1;
 function mockFetch(url) {
   calls.push(url);
   if (failNetwork) return Promise.reject(new Error("network down"));
   const mode = /mode=scores/.test(url) ? "scores" : /mode=odds\b/.test(url) ? "odds" : "odds1x2";
   if (mode === "odds1x2") {
-    return Promise.resolve({ json: () => Promise.resolve({ ok: true, fixtureId: "18257865", p1: 43.7, draw: 27.4, p2: 28.9, ts: 1784409000000 }) });
+    const digest = oddsDigests[Math.min(digestCursor, oddsDigests.length - 1)];
+    digestCursor++;
+    return Promise.resolve({ json: () => Promise.resolve(digest) });
   }
   const list = windows[mode];
   const win = list[Math.min(cursor[mode], list.length - 1)];
@@ -97,6 +104,7 @@ async function main() {
   eq("latestOdds parses the 1X2 triple", lo, { ok: true, p1: 43.7, draw: 27.4, p2: 28.9, ts: 1784409000000 });
   const loBad = await LiveFeed.latestOdds("");
   eq("latestOdds without id fails soft", loBad.ok, false);
+  digestCursor = 0;
 
   console.log("poll: dedupe + cumulative monotonic events + odds");
   const events = [], odds = [], statuses = [], heartbeats = [];
@@ -112,6 +120,7 @@ async function main() {
   await h.tick();            // healthy but unchanged window
 
   eq("fixtureId digits-only in proxy calls", calls.filter(u => /mode=scores/.test(u)).every(u => u.includes("fixtureId=18257865")), true);
+  eq("poll uses the compact odds digest instead of raw odds windows", calls.some(u => /mode=odds\b/.test(u)), false);
   eq("status went live", statuses[0], "live");
 
   eq("event types in order", events.map(e => e.type), ["kickoff", "goal", "corner", "shot", "corner", "var_verdict"]);
@@ -137,7 +146,7 @@ async function main() {
   eq("stats monotonic non-decreasing across all events", monotonic, true);
   eq("minutes non-decreasing", minutes, true);
 
-  eq("odds emitted twice (window 2 repeat deduped by MessageId)", odds.length, 2);
+  eq("compact odds emitted twice (unchanged third poll deduped)", odds.length, 2);
   eq("first odds triple", { p1: odds[0].p1, draw: odds[0].draw, p2: odds[0].p2 }, { p1: 33.2, draw: 42.6, p2: 24.2 });
   eq("second odds triple", { p1: odds[1].p1, draw: odds[1].draw, p2: odds[1].p2 }, { p1: 43.7, draw: 27.4, p2: 28.9 });
   ok("NA / non-1X2 payloads never emitted", odds.every(o => [o.p1, o.draw, o.p2].every(Number.isFinite)));

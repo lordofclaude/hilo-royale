@@ -518,7 +518,7 @@ runSection("5 SERVERLESS", [p("api", "txline.js")], (t) => {
    play.html = THE GAME (engine + LiveFeed + share + vrf).
    ============================================================ */
 runSection("6 UI STATIC", [p("index.html"), p("login.html"), p("play.html"), p("pitch.html"), p("privacy.html")], (t) => {
-  const PAGES = ["index.html", "login.html", "play.html", "pitch.html", "privacy.html", "og.html"];
+  const PAGES = ["index.html", "login.html", "play.html", "pitch.html", "privacy.html", "og.html", "demo.html"];
   const html = {};
   for (const f of PAGES) html[f] = readText(p(f));
 
@@ -550,6 +550,18 @@ runSection("6 UI STATIC", [p("index.html"), p("login.html"), p("play.html"), p("
     "play.html: paints championship art into the exported streak card");
   t.ok(/stadium-night\.webp/.test(html["og.html"]) && /crown-trophy\.webp/.test(html["og.html"]),
     "og.html: uses the stadium and crown-trophy campaign art");
+  t.ok(/fixture=18222446[^"']*demo=1/.test(html["demo.html"]),
+    "demo.html: points to the complete proof-backed judge fixture");
+  t.ok(/validateStatV2[\s\S]*ORAO/i.test(html["demo.html"]),
+    "demo.html: links both precisely scoped Solana receipts");
+  t.ok(/DEMO&&!me\.alive\)\{endGame\(\)/.test(html["play.html"]),
+    "play.html: controlled judge-mode loss reaches the viral result immediately");
+  t.ok(/id=["']openchal["']/.test(html["play.html"]) && /clipboard\.writeText\(chalUrl\)/.test(html["play.html"]),
+    "play.html: challenge can be opened and its bare URL copied");
+  t.ok(/forcedExit/.test(html["play.html"]),
+    "play.html: a perfect human run cannot end behind an undefeated simulated bot");
+  t.ok(/id=["']jury["'][\s\S]*Jury scorecard/i.test(html["pitch.html"]),
+    "pitch.html: includes the jury verification checklist");
   t.ok(/fixture=18222446[^"']*demo=1/.test(html["pitch.html"]), "pitch.html: judge CTA uses the complete proof-backed fixture");
   t.ok(/REAL[\s\S]*SIMULATED[\s\S]*NEXT/.test(html["pitch.html"]), "pitch.html: distinguishes shipped, simulated, and next");
   t.ok(/Delete local data|Clear the site's storage/i.test(html["privacy.html"]), "privacy.html: explains local-data deletion");
