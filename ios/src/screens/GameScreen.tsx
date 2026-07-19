@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import * as TxMock from "../lib/txline-real";
 import * as L from "../lib/game-logic";
-import { C, FANS, ME_INDEX, fanName, glow, displayFont } from "../theme";
+import { C, FANS, ME_INDEX, fanName, glow, displayFont, hairline, type } from "../theme";
+import { FadeIn, Pulse, Tap } from "../components/Motion";
 import { ChallengeRun, DeathMoment, GameResult, RoundRecord } from "../types";
 import { notifySurvival } from "../lib/notifications";
 import { GameSettings } from "../lib/settings";
@@ -390,7 +391,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
   if (countdown > 0) {
     return (
       <View style={styles.countWrap}>
-        <Text style={styles.countNum}>{countdown}</Text>
+        <Pulse trigger={countdown}><Text style={styles.countNum}>{countdown}</Text></Pulse>
         <Text style={styles.countSub}>entering lobby #{replay.lobbyId} — 100 fans locked in</Text>
       </View>
     );
@@ -423,11 +424,11 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
       </View>
 
       {/* scoreline */}
-      <View style={[styles.scoreChip, glow(C.hi, 8, 0.25)]}>
+      <Pulse trigger={score} style={styles.scoreChip}>
         <Text style={styles.scoreCode1}>{CODE1}</Text>
         <Text style={styles.scoreNum}>{scoreDigits}</Text>
         <Text style={styles.scoreCode2}>{CODE2}</Text>
-      </View>
+      </Pulse>
       <View style={styles.feedRow}>
         {lastEvent.icon && <Icon name={lastEvent.icon} size={11} color={C.muted} style={{ marginRight: 5 }} />}
         <Text style={styles.feedLine}>{lastEvent.text}</Text>
@@ -440,7 +441,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
           <Text style={styles.suddenBannerTxt}>SUDDEN DEATH · 3 SECONDS · {aliveCount} FANS LEFT</Text>
         </View>
       )}
-      <View style={[styles.qCard, suddenDeath && styles.qCardSudden, glow(suddenDeath ? C.gold : C.hi, 10, 0.35)]}>
+      <FadeIn key={`q-${q?.n ?? 0}`} dy={10} duration={280} style={[styles.qCard, suddenDeath && styles.qCardSudden, glow(suddenDeath ? C.gold : C.hi, 10, 0.3)]}>
         <View style={styles.qKickerRow}>
           <Icon name={q ? KIND_ICON[q.kind || "compare_window"] : "ball"} size={11} color={C.muted} style={{ marginRight: 6 }} />
           {q && <Text style={styles.qKicker}>WINDOW {q.fromMin}–{q.fromMin + q.windowLen}'</Text>}
@@ -452,7 +453,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
         {q && q.kind === "compare_window" && q.prevVal != null && (
           <Text style={styles.lastval}>last {q.windowLen} min: <Text style={styles.lastvalNum}>{q.prevVal}</Text> {q.key}</Text>
         )}
-      </View>
+      </FadeIn>
       {challenge && q && (
         <View style={styles.ghostPickCard}>
           <Text style={styles.ghostPickLabel}>FRIEND'S GHOST · ROUND {q.n}</Text>
@@ -462,11 +463,12 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
 
       {/* the duel */}
       <View style={styles.answers}>
-        <Pressable
+        <Tap
           accessibilityRole="button"
           accessibilityLabel={q?.hiLabel || "Higher"}
           accessibilityState={{ disabled: locked, selected: myPick === "hi" }}
           disabled={locked}
+          scaleTo={0.96}
           onPress={() => pick("hi")}
           style={[
             styles.duelBtn, styles.duelHi,
@@ -477,12 +479,13 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
           <Text style={[styles.duelTxt, { color: hiColor }]} numberOfLines={1} adjustsFontSizeToFit>
             {q?.hiLabel || "HI"}
           </Text>
-        </Pressable>
-        <Pressable
+        </Tap>
+        <Tap
           accessibilityRole="button"
           accessibilityLabel={q?.loLabel || "Lower"}
           accessibilityState={{ disabled: locked, selected: myPick === "lo" }}
           disabled={locked}
+          scaleTo={0.96}
           onPress={() => pick("lo")}
           style={[
             styles.duelBtn, styles.duelLo,
@@ -493,7 +496,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
           <Text style={[styles.duelTxt, { color: C.lo }]} numberOfLines={1} adjustsFontSizeToFit>
             {q?.loLabel || "LO"}
           </Text>
-        </Pressable>
+        </Tap>
       </View>
 
       {/* crowd split */}
@@ -523,30 +526,34 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
       </View>
 
       {verdict && (
-        <Text accessibilityLiveRegion="polite" style={[styles.verdict, verdict.kind === "ok" && { color: C.hi }, verdict.kind === "out" && { color: C.lo }]}>
-          {verdict.text}
-        </Text>
+        <FadeIn dy={6} duration={240}>
+          <Text accessibilityLiveRegion="polite" style={[styles.verdict, verdict.kind === "ok" && { color: C.hi }, verdict.kind === "out" && { color: C.lo }]}>
+            {verdict.text}
+          </Text>
+        </FadeIn>
       )}
       {roundReward && (
-        <Text style={[styles.reward, roundReward.points === 0 && styles.rewardZero]}>
-          {roundReward.points > 0 ? `+${roundReward.points} PTS · ONLY ${roundReward.correctPct}% GOT IT RIGHT` : "0 PTS · WRONG / PUSH"}
-        </Text>
+        <FadeIn dy={6} duration={240} delay={60}>
+          <Text style={[styles.reward, roundReward.points === 0 && styles.rewardZero]}>
+            {roundReward.points > 0 ? `+${roundReward.points} PTS · ONLY ${roundReward.correctPct}% GOT IT RIGHT` : "0 PTS · WRONG / PUSH"}
+          </Text>
+        </FadeIn>
       )}
       {nearDeath && (
-        <View style={styles.nearDeathRow}>
+        <FadeIn dy={6} duration={240} delay={110} style={styles.nearDeathRow}>
           <Icon name={nearDeath.icon} size={12} color={C.gold} style={{ marginRight: 6 }} />
           <Text style={styles.nearDeath}>{nearDeath.text}</Text>
-        </View>
+        </FadeIn>
       )}
-      {ghostMessage && <Text style={styles.ghostMode}>{ghostMessage} · KEEP WATCHING</Text>}
+      {ghostMessage && <FadeIn dy={6}><Text style={styles.ghostMode}>{ghostMessage} · KEEP WATCHING</Text></FadeIn>}
 
       {/* streak */}
-      <View style={[styles.streakPill, glow(C.gold, 8, 0.35)]}>
+      <Pulse trigger={`${streak}-${predictionPoints}`} style={[styles.streakPill, glow(C.gold, 8, 0.3)]}>
         <Icon name="bolt" size={13} color={C.gold} style={{ marginRight: 7 }} />
         <Text style={styles.streakPillTxt}>
-          STREAK x{streak}  ·  {predictionPoints} SKILL PTS
+          STREAK <Text style={styles.streakNum}>x{streak}</Text>  ·  {predictionPoints} SKILL PTS
         </Text>
-      </View>
+      </Pulse>
 
       {/* up next */}
       {upNext.length > 1 && (
@@ -609,7 +616,7 @@ const styles = StyleSheet.create({
   leftPill: { color: C.text, fontSize: 12, fontWeight: "800", letterSpacing: 0.5 },
   scoreChip: {
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12,
-    backgroundColor: C.panel, borderColor: C.line, borderWidth: 1, borderRadius: 14,
+    backgroundColor: C.panel, borderColor: C.line, borderWidth: hairline, borderRadius: 14,
     paddingVertical: 10, paddingHorizontal: 16,
   },
   scoreCode1: { color: C.hi, fontSize: 18, ...displayFont },
@@ -618,7 +625,7 @@ const styles = StyleSheet.create({
   feedRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: 6, marginBottom: 12 },
   feedLine: { color: C.muted, fontSize: 12, textAlign: "center" },
   qCard: {
-    backgroundColor: C.panel, borderColor: C.hi, borderWidth: 1.5, borderRadius: 18,
+    backgroundColor: C.panel, borderColor: C.hi, borderWidth: 1, borderRadius: 18,
     paddingVertical: 16, paddingHorizontal: 14, marginBottom: 14,
   },
   qCardSudden: { borderColor: C.gold, transform: [{ scale: 1.015 }] },
@@ -667,16 +674,17 @@ const styles = StyleSheet.create({
     backgroundColor: C.goldSoft, borderColor: C.gold, borderWidth: 1.5,
     borderRadius: 99, paddingHorizontal: 18, paddingVertical: 8, marginTop: 6, marginBottom: 14,
   },
-  streakPillTxt: { color: C.gold, fontSize: 14, fontWeight: "900", letterSpacing: 1 },
-  sectionLbl: { color: C.muted, fontSize: 11, fontWeight: "800", letterSpacing: 2, textAlign: "center", marginBottom: 8 },
+  streakPillTxt: { color: C.gold, fontSize: 14, fontWeight: "700", letterSpacing: 0.6 },
+  streakNum: { ...displayFont, fontSize: 15 },
+  sectionLbl: { ...type.section, textAlign: "center", marginBottom: 8 },
   sectionLblRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 8 },
   upNextRow: { flexDirection: "row", gap: 10, marginBottom: 14 },
   upNextCard: {
-    flex: 1, backgroundColor: C.panelDeep, borderWidth: 1.5,
+    flex: 1, backgroundColor: C.panelDeep, borderWidth: hairline,
     borderRadius: 14, alignItems: "center", paddingVertical: 10, paddingHorizontal: 4,
   },
-  upNextCyan: { borderColor: C.hi },
-  upNextRed: { borderColor: C.lo },
+  upNextCyan: { borderColor: C.line },
+  upNextRed: { borderColor: C.line },
   upNextNum: { color: C.muted, fontSize: 10, fontWeight: "900", alignSelf: "flex-start", marginLeft: 8 },
   upNextLabel: { fontSize: 10, fontWeight: "900", textAlign: "center", letterSpacing: 0.5, marginBottom: 4 },
   grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center" },

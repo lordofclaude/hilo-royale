@@ -2,7 +2,8 @@ import React, { useRef } from "react";
 import { Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import ViewShot, { captureRef } from "react-native-view-shot";
-import { C, WALL, glow, displayFont } from "../theme";
+import { C, WALL, glow, displayFont, hairline, type } from "../theme";
+import { FadeIn, Tap } from "../components/Motion";
 import { GameResult } from "../types";
 import { Profile } from "../lib/storage";
 import { encodeGhostPicks, ladderRank } from "../lib/game-logic";
@@ -30,6 +31,7 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
   const code1 = teamCode(replay.fixture.Participant1);
   const code2 = teamCode(replay.fixture.Participant2);
   const finalScore = replay.finalScore;
+  const scoreContext = replay.captureStatus === "partial" ? `score at ${replay.capturedThroughMinute ?? "capture"}′` : "final score";
   const challengeOutcome = r.challengeTargetPoints == null ? null
     : r.pts > r.challengeTargetPoints ? `GHOST BEATEN · +${r.pts - r.challengeTargetPoints}`
     : r.pts === r.challengeTargetPoints ? "GHOST TIED"
@@ -48,7 +50,7 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
     `&challenger=${encodeURIComponent("A rival")}`;
   const message =
     `I outlived ${r.outlivedCount} of 99 fans on Hi-Lo Royale ` +
-    `(streak ${r.streak}, ${r.predictionPoints} crowd-difficulty points${r.won ? ", LOBBY CHAMPION" : ""}) — ${code1} ${finalScore.g1}–${finalScore.g2} ${code2}. ` +
+    `(streak ${r.streak}, ${r.predictionPoints} crowd-difficulty points${r.won ? ", LOBBY CHAMPION" : ""}) — ${code1} ${finalScore.g1}–${finalScore.g2} ${code2} (${scoreContext}). ` +
     `${survived ? "Think you can outlast my run? Same match, same questions — prove it." : `I died on round ${r.death?.round || r.rounds}. Beat my ghost if you can.`} ` +
     `Beat my run: ${challengeUrl}`;
 
@@ -79,29 +81,35 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
-      <Text style={styles.brand}>
-        <Text style={{ color: C.text }}>HI-LO </Text>
-        <Text style={{ color: C.gold }}>ROYALE</Text>
-      </Text>
-      <Text style={[styles.title, !survived && { color: C.lo }]}>{title}</Text>
-      <View style={styles.crownBig}>
-        <Icon name={survived ? "crown" : "skull"} size={58} color={survived ? C.gold : C.lo} />
-      </View>
-      <Text style={[styles.pts, glow(C.gold, 12, 0.4) as object]}>+{r.pts.toLocaleString()}</Text>
-      <Text style={styles.sub}>{sub}</Text>
-      {challengeOutcome && <Text style={styles.challengeOutcome}>{challengeOutcome}</Text>}
+      <FadeIn dy={8}>
+        <Text style={styles.brand}>
+          <Text style={{ color: C.text }}>HI-LO </Text>
+          <Text style={{ color: C.gold }}>ROYALE</Text>
+        </Text>
+        <Text style={[styles.title, !survived && { color: C.lo }]}>{title}</Text>
+        <View style={styles.crownBig}>
+          <Icon name={survived ? "crown" : "skull"} size={58} color={survived ? C.gold : C.lo} />
+        </View>
+      </FadeIn>
+      <FadeIn delay={90} dy={10}>
+        <Text style={[styles.pts, glow(C.gold, 12, 0.4) as object]}>+{r.pts.toLocaleString()}</Text>
+        <Text style={styles.sub}>{sub}</Text>
+        {challengeOutcome && <Text style={styles.challengeOutcome}>{challengeOutcome}</Text>}
+      </FadeIn>
 
       {/* streak + rank pills */}
-      <View style={[styles.pill, { borderColor: C.gold }, glow(C.gold, 8, 0.35)]}>
-        <Icon name="bolt" size={13} color={C.gold} style={{ marginRight: 7 }} />
-        <Text style={styles.pillGoldTxt}>
-          STREAK x{r.streak}{r.streak > 0 ? "  " + "♛".repeat(Math.min(7, r.streak)) : ""}
-        </Text>
-      </View>
-      <View style={[styles.pill, { borderColor: C.hi }]}>
-        <Icon name="shield" size={13} color={C.hi} style={{ marginRight: 7 }} />
-        <Text style={styles.pillCyanTxt}>OUTLIVED {r.outlivedCount} OF 99 FANS</Text>
-      </View>
+      <FadeIn delay={160} dy={10}>
+        <View style={[styles.pill, { borderColor: C.gold }, glow(C.gold, 8, 0.35)]}>
+          <Icon name="bolt" size={13} color={C.gold} style={{ marginRight: 7 }} />
+          <Text style={styles.pillGoldTxt}>
+            STREAK x{r.streak}{r.streak > 0 ? "  " + "♛".repeat(Math.min(7, r.streak)) : ""}
+          </Text>
+        </View>
+        <View style={[styles.pill, { borderColor: C.hi }]}>
+          <Icon name="shield" size={13} color={C.hi} style={{ marginRight: 7 }} />
+          <Text style={styles.pillCyanTxt}>OUTLIVED {r.outlivedCount} OF 99 FANS</Text>
+        </View>
+      </FadeIn>
 
       <View style={styles.breakdown}>
         <Breakdown label="PREDICTIONS" value={`+${r.predictionPoints}`} color={C.hi} />
@@ -141,6 +149,7 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
             <Text style={{ color: C.text }}>  {finalScore.g1} – {finalScore.g2}  </Text>
             <Text style={{ color: C.lo }}>{code2}</Text>
           </Text>
+          {replay.captureStatus === "partial" && <Text style={styles.tSub}>PARTIAL TXLINE CAPTURE · SCORE SHOWN AT {replay.capturedThroughMinute ?? "?"}′</Text>}
           <Text style={styles.tMeta}>
             {r.predictionPoints} skill + {r.survivalPoints} survival + {r.crownBonus} crown · rank #{rank}
           </Text>
@@ -168,49 +177,51 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
 
       {/* real on-chain proof: one devnet validateStatV2 tx per fixture, proving
           the final score against TxODDS's Merkle root — tap to view on Solscan */}
-      {replay.proofExplorerUrl && <Pressable
-        style={({ pressed }) => [styles.chainPill, glow(C.success, 8, 0.4), pressed && { opacity: 0.85 }]}
+      {replay.proofExplorerUrl && <Tap
+        style={[styles.chainPill, glow(C.success, 8, 0.3)]}
+        accessibilityRole="link"
         onPress={() => Linking.openURL(replay.proofExplorerUrl!).catch(() => {})}
       >
         <Icon name="chain" size={12} color={C.success} style={{ marginRight: 7 }} />
         <Text style={styles.chainPillTxt}>SCORE PROOF · SOLANA DEVNET — VIEW TX  ↗</Text>
-      </Pressable>}
+      </Tap>}
 
       {/* provably fair lobby: bots/tie-breaks seeded by a real ORAO VRF
           randomness request on devnet (lib/vrf.ts) — tap to view on Solscan */}
-      <Pressable
-        style={({ pressed }) => [styles.chainPill, glow(C.hi, 8, 0.35), pressed && { opacity: 0.85 }]}
+      <Tap
+        style={[styles.chainPill, glow(C.hi, 8, 0.25)]}
+        accessibilityRole="link"
         onPress={() => Linking.openURL(VRF_EXPLORER_URL).catch(() => {})}
       >
         <Icon name="dice" size={12} color={C.success} style={{ marginRight: 7 }} />
         <Text style={styles.chainPillTxt}>PROVABLY FAIR — ORAO VRF SEED (DEVNET)  ↗</Text>
-      </Pressable>
+      </Tap>
 
       {/* share */}
       <Text style={styles.shareLbl}>—  SHARE THE {survived ? "WIN" : "RUN"}  —</Text>
       <View style={styles.shareRow}>
-        <Pressable style={[styles.sharePlatform, styles.whatsapp]} onPress={shareWhatsApp}><Text style={[styles.sharePlatformTxt, { color: C.success }]}>WHATSAPP</Text></Pressable>
-        <Pressable style={[styles.sharePlatform, styles.instagram]} onPress={shareImage}><Text style={[styles.sharePlatformTxt, { color: C.text }]}>INSTAGRAM</Text></Pressable>
-        <Pressable style={[styles.sharePlatform, styles.copy]} onPress={copyChallenge}><Text style={[styles.sharePlatformTxt, { color: C.hi }]}>COPY LINK</Text></Pressable>
+        <Tap style={[styles.sharePlatform, styles.whatsapp]} onPress={shareWhatsApp}><Text style={[styles.sharePlatformTxt, { color: C.success }]}>WHATSAPP</Text></Tap>
+        <Tap style={[styles.sharePlatform, styles.instagram]} onPress={shareImage}><Text style={[styles.sharePlatformTxt, { color: C.text }]}>INSTAGRAM</Text></Tap>
+        <Tap style={[styles.sharePlatform, styles.copy]} onPress={copyChallenge}><Text style={[styles.sharePlatformTxt, { color: C.hi }]}>COPY LINK</Text></Tap>
       </View>
-      <Pressable style={({ pressed }) => [styles.primary, glow(C.gold, 8, 0.4), pressed && { opacity: 0.85 }]} onPress={shareImage}>
+      <Tap style={[styles.primary, glow(C.gold, 8, 0.35)]} onPress={shareImage} accessibilityRole="button">
         <Text style={styles.primaryTxt}>SHARE {survived ? "SURVIVAL TICKET" : "DEATH REPLAY"}  ↗</Text>
-      </Pressable>
-      <Pressable style={({ pressed }) => [styles.challenge, pressed && { opacity: 0.85 }]} onPress={shareText}>
+      </Tap>
+      <Tap style={styles.challenge} onPress={shareText} accessibilityRole="button">
         <Icon name="users" size={13} color={C.gold} style={{ marginRight: 7 }} />
         <Text style={styles.challengeTxt}>CHALLENGE 3 FRIENDS  →</Text>
-      </Pressable>
-      <Pressable style={({ pressed }) => [styles.again, glow(C.hi, 8, 0.4), pressed && { opacity: 0.85 }]} onPress={onAgain}>
+      </Tap>
+      <Tap style={[styles.again, glow(C.hi, 8, 0.35)]} onPress={onAgain} accessibilityRole="button">
         <Icon name="play" size={12} color={C.hi} style={{ marginRight: 8 }} />
         <Text style={styles.againTxt}>RUN IT BACK</Text>
-      </Pressable>
+      </Tap>
       <View style={styles.row}>
-        <Pressable style={({ pressed }) => [styles.ghost, styles.half, pressed && { opacity: 0.85 }]} onPress={onLobby}>
+        <Tap style={[styles.ghost, styles.half]} onPress={onLobby} accessibilityRole="button">
           <Text style={styles.ghostTxt}>LOBBY</Text>
-        </Pressable>
-        <Pressable style={({ pressed }) => [styles.ghost, styles.half, pressed && { opacity: 0.85 }]} onPress={onProfile}>
+        </Tap>
+        <Tap style={[styles.ghost, styles.half]} onPress={onProfile} accessibilityRole="button">
           <Text style={styles.ghostTxt}>PROFILE</Text>
-        </Pressable>
+        </Tap>
       </View>
 
       <View style={styles.statsRow}>
@@ -253,8 +264,8 @@ const styles = StyleSheet.create({
   pillGoldTxt: { color: C.gold, fontSize: 14, fontWeight: "900", letterSpacing: 1 },
   pillCyanTxt: { color: C.hi, fontSize: 13, fontWeight: "900", letterSpacing: 1 },
   breakdown: { flexDirection: "row", alignItems: "center", gap: 5, marginVertical: 5 },
-  breakdownItem: { flex: 1, backgroundColor: C.panelDeep, borderColor: C.line, borderWidth: 1, borderRadius: 10, alignItems: "center", paddingVertical: 9 },
-  breakdownValue: { fontSize: 17, fontWeight: "900" }, breakdownLabel: { color: C.muted, fontSize: 7, fontWeight: "900", letterSpacing: 0.7, marginTop: 2 }, operator: { color: C.muted, fontWeight: "900" },
+  breakdownItem: { flex: 1, backgroundColor: C.panelDeep, borderColor: C.line, borderWidth: hairline, borderRadius: 12, alignItems: "center", paddingVertical: 10 },
+  breakdownValue: { fontSize: 17, fontWeight: "800", fontVariant: ["tabular-nums"] }, breakdownLabel: { ...type.caption, fontSize: 9, marginTop: 2 }, operator: { color: C.muted, fontWeight: "900" },
   formula: { color: C.muted, fontSize: 8, lineHeight: 12, textAlign: "center", letterSpacing: 0.5, marginBottom: 8 },
   ticket: {
     borderColor: C.gold, borderWidth: 2, borderRadius: 20,
@@ -288,33 +299,33 @@ const styles = StyleSheet.create({
     borderRadius: 99, paddingHorizontal: 10, paddingVertical: 5,
   },
   badgeLabel: { color: C.gold, fontSize: 10, fontWeight: "800" },
-  shareLbl: { color: C.muted, fontSize: 11, fontWeight: "800", letterSpacing: 2, textAlign: "center", marginBottom: 10 },
-  shareRow: { flexDirection: "row", gap: 7, marginBottom: 10 },
-  sharePlatform: { flex: 1, borderWidth: 1, borderRadius: 11, paddingVertical: 11, alignItems: "center", backgroundColor: C.panelDeep },
+  shareLbl: { ...type.section, textAlign: "center", marginBottom: 10 },
+  shareRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
+  sharePlatform: { flex: 1, borderWidth: 1, borderRadius: 12, minHeight: 44, alignItems: "center", justifyContent: "center", backgroundColor: C.panelDeep },
   whatsapp: { borderColor: C.success }, instagram: { borderColor: C.lo }, copy: { borderColor: C.hi },
-  sharePlatformTxt: { fontSize: 9, fontWeight: "900", letterSpacing: 0.5 },
-  primary: { backgroundColor: C.accent, borderRadius: 14, paddingVertical: 15, alignItems: "center", marginBottom: 10 },
-  primaryTxt: { color: "#160f07", fontWeight: "900", fontSize: 15, letterSpacing: 1 },
+  sharePlatformTxt: { fontSize: 10, fontWeight: "800", letterSpacing: 0.4 },
+  primary: { backgroundColor: C.accent, borderRadius: 14, minHeight: 50, alignItems: "center", justifyContent: "center", marginBottom: 10 },
+  primaryTxt: { color: "#160f07", fontWeight: "800", fontSize: 15, letterSpacing: 0.4 },
   again: {
     flexDirection: "row", justifyContent: "center",
-    backgroundColor: C.hiSoft, borderColor: C.hi, borderWidth: 1.5,
-    borderRadius: 14, paddingVertical: 14, alignItems: "center", marginBottom: 10,
+    backgroundColor: C.hiSoft, borderColor: C.hi, borderWidth: 1,
+    borderRadius: 14, minHeight: 50, alignItems: "center", marginBottom: 10,
   },
-  againTxt: { color: C.hi, fontWeight: "900", fontSize: 15, letterSpacing: 1 },
-  challenge: { flexDirection: "row", justifyContent: "center", backgroundColor: C.goldSoft, borderColor: C.gold, borderWidth: 1.5, borderRadius: 14, paddingVertical: 14, alignItems: "center", marginBottom: 10 },
-  challengeTxt: { color: C.gold, fontSize: 13, fontWeight: "900", letterSpacing: 0.7 },
+  againTxt: { color: C.hi, fontWeight: "800", fontSize: 15, letterSpacing: 0.4 },
+  challenge: { flexDirection: "row", justifyContent: "center", backgroundColor: C.goldSoft, borderColor: C.gold, borderWidth: 1, borderRadius: 14, minHeight: 50, alignItems: "center", marginBottom: 10 },
+  challengeTxt: { color: C.gold, fontSize: 14, fontWeight: "800", letterSpacing: 0.4 },
   ghost: {
-    backgroundColor: C.panelDeep, borderColor: C.line, borderWidth: 1,
-    borderRadius: 12, paddingVertical: 13, alignItems: "center", marginBottom: 10,
+    backgroundColor: C.panelDeep, borderColor: C.line, borderWidth: hairline,
+    borderRadius: 12, minHeight: 46, alignItems: "center", justifyContent: "center", marginBottom: 10,
   },
-  ghostTxt: { color: C.text, fontWeight: "800", fontSize: 11, letterSpacing: 1.4 },
+  ghostTxt: { color: C.text, fontWeight: "700", fontSize: 12, letterSpacing: 0.8 },
   row: { flexDirection: "row", gap: 10, marginBottom: 14 },
   half: { flex: 1 },
   statsRow: { flexDirection: "row", gap: 8 },
   stat: {
-    flex: 1, backgroundColor: C.panelDeep, borderColor: C.line, borderWidth: 1,
-    borderRadius: 10, alignItems: "center", paddingVertical: 10,
+    flex: 1, backgroundColor: C.panelDeep, borderColor: C.line, borderWidth: hairline,
+    borderRadius: 12, alignItems: "center", paddingVertical: 10,
   },
-  statVal: { color: C.hi, fontWeight: "900", fontSize: 17 },
-  statLbl: { color: C.muted, fontSize: 9, letterSpacing: 1, marginTop: 2 },
+  statVal: { color: C.hi, fontWeight: "800", fontSize: 17, fontVariant: ["tabular-nums"] },
+  statLbl: { ...type.caption, fontSize: 9, marginTop: 2 },
 });

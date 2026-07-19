@@ -26,14 +26,25 @@ export function roomServiceStatus(): RoomServiceStatus {
     : { ready: false, message: "Set EXPO_PUBLIC_HILO_API_URL for cross-device rooms" };
 }
 
+function roomPseudonym(roomId: string, identityId: string): string {
+  let hash = 2166136261;
+  const input = `${roomId}:${identityId}`;
+  for (let i = 0; i < input.length; i++) hash = Math.imul(hash ^ input.charCodeAt(i), 16777619);
+  return `fan-${(hash >>> 0).toString(36)}`;
+}
+
 export async function joinRoom(roomId: string, identity: FanIdentity, squadCode?: string): Promise<RoomSnapshot | null> {
   const base = baseUrl();
   if (!base) return null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 2500);
   const response = await fetch(`${base}/api/rooms/${encodeURIComponent(roomId)}/join`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id: identity.id, name: identity.name, avatarUrl: identity.avatarUrl, squadCode }),
+    body: JSON.stringify({ id: roomPseudonym(roomId, identity.id), name: identity.name, squadCode }),
+    signal: controller.signal,
   });
+  clearTimeout(timeout);
   if (!response.ok) throw new Error(`Room join failed (${response.status})`);
   return response.json() as Promise<RoomSnapshot>;
 }
@@ -77,4 +88,3 @@ export function watchRoom(roomId: string, opts: { onSnapshot: (room: RoomSnapsho
   void pump();
   return { stop() { stopped = true; controller.abort(); } };
 }
-

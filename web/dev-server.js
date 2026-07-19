@@ -30,6 +30,11 @@ function fileFor(pathname) {
 }
 
 const server = http.createServer((req, res) => {
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    res.writeHead(405, { "Content-Type": "text/plain; charset=utf-8", Allow: "GET, HEAD" });
+    res.end("Method not allowed");
+    return;
+  }
   const url = new URL(req.url || "/", "http://localhost");
   const file = fileFor(url.pathname);
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -50,4 +55,3 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, "127.0.0.1", () => {
   console.log(`Hi-Lo Royale running at http://127.0.0.1:${PORT}`);
 });
-

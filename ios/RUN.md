@@ -116,16 +116,19 @@ The app now keeps these as two explicit modes:
   but resolve only when the real five-minute stat window closes; outcomes are
   never precomputed.
 
-Configure live mode without committing credentials:
+Point the app at the Hi-Lo backend bridge. Keep both TxLINE credentials only
+in that backend's environment; never use `EXPO_PUBLIC_*` for secrets because
+Expo public variables are shipped in the app binary.
 
 ```powershell
-$env:EXPO_PUBLIC_TXLINE_BASE_URL='https://txline.txodds.com'
+$env:EXPO_PUBLIC_HILO_API_URL='https://hilo-royale.vercel.app'
 $env:EXPO_PUBLIC_TXLINE_FIXTURE_ID='<live fixture id>'
-$env:EXPO_PUBLIC_TXLINE_TOKEN='<activated TxLINE bearer token>'
 $env:EXPO_PUBLIC_LIVE_TEAM_1='Argentina'
 $env:EXPO_PUBLIC_LIVE_TEAM_2='Morocco'
 pnpm start
 ```
+
+Configure `TXLINE_JWT` and `TXLINE_API_TOKEN` in the Vercel/backend environment.
 
 Google OAuth is implemented with `expo-auth-session`. It requests profile
 identity only — never Gmail/IMAP mailbox access:

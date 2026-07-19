@@ -36,3 +36,7 @@ export async function saveProfile(p: Profile): Promise<void> {
     // non-fatal — profile just won't persist this session
   }
 }
+
+export async function clearProfile(): Promise<void> {
+  await AsyncStorage.removeItem(KEY);
+}

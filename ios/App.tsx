@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { AppState, Linking, Pressable, SafeAreaView, StatusBar as RNStatusBar, StyleSheet, Text, View } from "react-native";
+import { AppState, Linking, SafeAreaView, StatusBar as RNStatusBar, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { C, glow } from "./src/theme";
+import { C, cardShadow, hairline } from "./src/theme";
+import { FadeIn, Tap } from "./src/components/Motion";
 import { ChallengeRun, GameResult } from "./src/types";
-import { loadProfile, saveProfile, Profile, EMPTY_PROFILE } from "./src/lib/storage";
+import { clearProfile, loadProfile, saveProfile, Profile, EMPTY_PROFILE } from "./src/lib/storage";
 import { clearIdentity, FanIdentity, loadIdentity } from "./src/lib/auth";
-import { DEFAULT_GAME_SETTINGS, GameSettings, loadGameSettings, saveGameSettings } from "./src/lib/settings";
+import { clearGameSettings, DEFAULT_GAME_SETTINGS, GameSettings, loadGameSettings, saveGameSettings } from "./src/lib/settings";
 import { joinRoom } from "./src/lib/room-service";
 import { liveStatus } from "./src/lib/live-service";
 import { replayByFixtureId, replayForDate, ReplayFixture } from "./src/lib/txline-real";
@@ -46,13 +47,9 @@ function challengeFromUrl(url: string): ChallengeRun | null {
     } catch { return null; }
   }
   if (!/^\d+$/.test(fixtureId)) return null;
-  const params: Record<string, string> = {};
-  for (const pair of query.split("&")) {
-    const [key, value] = pair.split("=");
-    if (key) params[decodeURIComponent(key)] = decodeURIComponent(value || "");
-  }
-  const targetPoints = Math.max(0, Math.min(10000, Number(params.target) || 0));
-  return { fixtureId, picks: decodeGhostPicks(params.p || ""), targetPoints };
+  const params = new URLSearchParams(query.slice(0, 2048));
+  const targetPoints = Math.max(0, Math.min(10000, Number(params.get("target")) || 0));
+  return { fixtureId, picks: decodeGhostPicks((params.get("p") || "").slice(0, 64)), targetPoints };
 }
 
 export default function App() {
@@ -149,6 +146,16 @@ export default function App() {
     setScreen("lobby");
   };
 
+  const deleteLocalData = async () => {
+    await Promise.all([clearIdentity(), clearProfile(), clearGameSettings()]);
+    setIdentity(null);
+    setProfile(EMPTY_PROFILE);
+    setSettings(DEFAULT_GAME_SETTINGS);
+    setLastResult(null);
+    setChallenge(null);
+    setScreen("lobby");
+  };
+
   const joinGame = async () => {
     if (!identity) return;
     const now = new Date();
@@ -159,11 +166,11 @@ export default function App() {
     setTodayKey(dailyKey(now));
     setActiveReplay(replay);
     setChallenge(null);
-    try { await joinRoom(replay.lobbyId, identity); } catch { /* Replay remains playable if presence is offline. */ }
     setScreen("game");
+    void joinRoom(replay.lobbyId, identity).catch(() => { /* Presence is optional; never block the arena. */ });
   };
 
-  if (loading) return <View style={styles.loading}><Text style={styles.loadingCrown}>♛</Text><Text style={styles.loadingText}>OPENING THE ARENA</Text></View>;
+  if (loading) return <View style={styles.loading}><Icon name="crown" size={52} color={C.gold} style={{ marginBottom: 14 }} /><Text style={styles.loadingText}>OPENING THE ARENA</Text></View>;
   if (!identity) return <SafeAreaView style={styles.root}><StatusBar style="light" /><LoginScreen onSignedIn={setIdentity} /></SafeAreaView>;
 
   return (
@@ -196,15 +203,15 @@ export default function App() {
         {screen === "profile" && <ProfileScreen identity={identity} profile={profile} onBack={() => setScreen("lobby")} onSettings={() => setScreen("settings")} />}
         {screen === "rank" && <RankScreen profile={profile} />}
         {screen === "squad" && <SquadScreen identity={identity} initialCode={initialSquadCode} />}
-        {screen === "settings" && <SettingsScreen identity={identity} settings={settings} onChange={updateSettings} onBack={() => setScreen("lobby")} onSignOut={signOut} />}
+        {screen === "settings" && <SettingsScreen identity={identity} settings={settings} onChange={updateSettings} onBack={() => setScreen("lobby")} onSignOut={signOut} onDeleteData={deleteLocalData} />}
       </View>
       {TAB_SCREENS.includes(screen) && (
-        <View style={styles.tabBar}>
-          <TabButton icon="play" label="PLAY" active={screen === "lobby"} onPress={() => setScreen("lobby")} />
-          <TabButton icon="chart" label="RANK" active={screen === "rank"} onPress={() => setScreen("rank")} />
-          <TabButton icon="users" label="SQUAD" active={screen === "squad"} onPress={() => setScreen("squad")} />
-          <TabButton icon="user" label="ME" active={screen === "profile"} onPress={() => setScreen("profile")} />
-        </View>
+        <FadeIn dy={6} duration={260} style={[styles.tabBar, cardShadow()]}>
+          <TabButton icon="play" label="Play" active={screen === "lobby"} onPress={() => setScreen("lobby")} />
+          <TabButton icon="chart" label="Rank" active={screen === "rank"} onPress={() => setScreen("rank")} />
+          <TabButton icon="users" label="Squad" active={screen === "squad"} onPress={() => setScreen("squad")} />
+          <TabButton icon="user" label="Me" active={screen === "profile"} onPress={() => setScreen("profile")} />
+        </FadeIn>
       )}
     </SafeAreaView>
   );
@@ -212,10 +219,10 @@ export default function App() {
 
 function TabButton({ icon, label, active, onPress }: { icon: IconName; label: string; active: boolean; onPress: () => void }) {
   return (
-    <Pressable accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: active }} style={[styles.tabBtn, active && styles.tabBtnOn]} onPress={onPress}>
-      <Icon name={icon} size={21} color={active ? C.hi : "#7c8aa0"} style={{ marginBottom: 4 }} />
+    <Tap accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: active }} scaleTo={0.94} style={[styles.tabBtn, active && styles.tabBtnOn]} onPress={onPress}>
+      <Icon name={icon} size={22} color={active ? C.gold : "#7c8aa0"} style={{ marginBottom: 3 }} />
       <Text style={[styles.tabLabel, active && styles.tabActive]}>{label}</Text>
-    </Pressable>
+    </Tap>
   );
 }
 
@@ -223,18 +230,17 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg, paddingTop: RNStatusBar.currentHeight ?? 0 },
   body: { flex: 1 },
   loading: { flex: 1, backgroundColor: C.bg, alignItems: "center", justifyContent: "center" },
-  loadingCrown: { color: C.gold, fontSize: 58 },
   loadingText: { color: C.hi, fontSize: 11, fontWeight: "900", letterSpacing: 2.4, marginTop: 8 },
-  /* floating broadcast dock — unmissable, glows on the active tab */
+  /* floating iOS dock — translucent dark, hairline edge, gold active tint */
   tabBar: {
-    flexDirection: "row", gap: 6,
-    marginHorizontal: 14, marginBottom: 10, marginTop: 4,
-    padding: 6, borderRadius: 22,
-    backgroundColor: C.panel, borderColor: C.lineStrong, borderWidth: 1,
-    ...glow(C.hi, 14, 0.22),
+    flexDirection: "row", gap: 4,
+    marginHorizontal: 16, marginBottom: 10, marginTop: 6,
+    padding: 5, borderRadius: 26,
+    backgroundColor: "rgba(11,14,20,0.94)",
+    borderColor: "rgba(244,247,251,0.10)", borderWidth: hairline,
   },
-  tabBtn: { flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: 16 },
-  tabBtnOn: { backgroundColor: C.hiSoft, borderColor: C.hi, borderWidth: 1, ...glow(C.hi, 10, 0.5) },
-  tabLabel: { color: "#7c8aa0", fontSize: 10, fontWeight: "900", letterSpacing: 1.3 },
-  tabActive: { color: C.hi },
+  tabBtn: { flex: 1, alignItems: "center", justifyContent: "center", minHeight: 48, borderRadius: 21 },
+  tabBtnOn: { backgroundColor: "rgba(255,213,74,0.10)" },
+  tabLabel: { color: "#7c8aa0", fontSize: 11, fontWeight: "600", letterSpacing: 0.1 },
+  tabActive: { color: C.gold, fontWeight: "700" },
 });

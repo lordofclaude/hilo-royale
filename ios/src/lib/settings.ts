@@ -38,7 +38,10 @@ export async function saveGameSettings(settings: GameSettings): Promise<void> {
   }
 }
 
+export async function clearGameSettings(): Promise<void> {
+  await AsyncStorage.removeItem(KEY);
+}
+
 export function playbackLabel(settings: GameSettings): string {
   return settings.mode === "live" ? "LIVE · 1x" : `REPLAY · ${settings.playbackRate}x`;
 }
-

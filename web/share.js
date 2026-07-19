@@ -245,7 +245,13 @@
     var p = String(payload == null ? '' : payload);
     var decoded = decodePayload(p);
     var q = '';
-    if (decoded && decoded.fixtureId) q += 'fixture=' + encodeURIComponent(decoded.fixtureId) + '&';
+    if (decoded && decoded.fixtureId) {
+      q += 'fixture=' + encodeURIComponent(decoded.fixtureId) + '&';
+      /* Dual-format bridge: web prefers the compact binary ghost payload;
+         iOS can replay the same run from the readable h/l/x fallback. */
+      q += 'p=' + decoded.picks.map(function (r) { return r.pick === 'hi' ? 'h' : r.pick === 'lo' ? 'l' : 'x'; }).join('') + '&';
+      q += 'streak=' + decoded.streak + '&outlived=' + decoded.outlived + '&challenger=' + encodeURIComponent(decoded.name) + '&';
+    }
     q += 'ghost=' + p;
     // Land directly in the arena. /play preserves the payload through the
     // guest-login redirect; the landing page previously dropped it.

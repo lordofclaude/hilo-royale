@@ -516,8 +516,8 @@ runSection("5 SERVERLESS", [p("api", "txline.js")], (t) => {
    index.html = marketing landing, login.html = fan-handle gate,
    play.html = THE GAME (engine + LiveFeed + share + vrf).
    ============================================================ */
-runSection("6 UI STATIC", [p("index.html"), p("login.html"), p("play.html")], (t) => {
-  const PAGES = ["index.html", "login.html", "play.html"];
+runSection("6 UI STATIC", [p("index.html"), p("login.html"), p("play.html"), p("pitch.html"), p("privacy.html")], (t) => {
+  const PAGES = ["index.html", "login.html", "play.html", "pitch.html", "privacy.html"];
   const html = {};
   for (const f of PAGES) html[f] = readText(p(f));
 
@@ -543,6 +543,9 @@ runSection("6 UI STATIC", [p("index.html"), p("login.html"), p("play.html")], (t
   t.ok(/location\.(href|replace)\s*[=(]\s*['"`]\/play['"`]\s*\+\s*location\.search|['"`]\/play['"`]\s*\+\s*location\.search/.test(html["login.html"]),
     "login.html: forwards location.search to /play");
   t.ok(/guest/i.test(html["login.html"]), "login.html: has a guest path (mentions 'guest')");
+  t.ok(/fixture=18222446[^"']*demo=1/.test(html["pitch.html"]), "pitch.html: judge CTA uses the complete proof-backed fixture");
+  t.ok(/REAL[\s\S]*SIMULATED[\s\S]*NEXT/.test(html["pitch.html"]), "pitch.html: distinguishes shipped, simulated, and next");
+  t.ok(/Delete local data|Clear the site's storage/i.test(html["privacy.html"]), "privacy.html: explains local-data deletion");
 
   // og:image must reference /og.png and the file must exist on disk
   let ogRefs = 0, ogBad = null;

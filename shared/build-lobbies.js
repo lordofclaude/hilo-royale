@@ -44,6 +44,7 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "..");
 const RD = path.join(ROOT, "shared", "real-data");
 const OUT = path.join(ROOT, "web", "lobbies.js");
+const IOS_OUT = path.join(ROOT, "ios", "src", "lib", "real-data", "canonical.ts");
 
 /* ------------------------------------------------------------ fixture metadata
    Stage/tag from the World Cup 2026 bracket (cross-checked against the TxLINE
@@ -478,3 +479,12 @@ const body = "window.LOBBIES = " + JSON.stringify(lobbies) + ";\n" +
   "window.UPCOMING = " + JSON.stringify(UPCOMING) + ";\n";
 fs.writeFileSync(OUT, header + body);
 console.log(`\nwrote ${path.relative(ROOT, OUT)} (${(fs.statSync(OUT).size / 1024).toFixed(0)} KB), ${lobbies.length} lobbies + ${UPCOMING.length} upcoming`);
+
+// iOS consumes the exact same compiler output, eliminating the old hand-edited
+// tapes whose provisional actions and stat regressions diverged from web.
+const iosOrder = ["18257865", "18222446", "18237038", "18241006"];
+const iosRows = iosOrder.map(fid => lobbies.find(lb => lb.fixtureId === fid));
+const iosBody = iosRows.map(lb => `  { fixtureId: ${JSON.stringify(lb.fixtureId)}, fixture: ${JSON.stringify(lb.fixture)}, events: ${JSON.stringify(lb.events)} as ScoreEvent[], captureStatus: ${JSON.stringify(lb.captureStatus || "complete")}, capturedThroughMinute: ${JSON.stringify(lb.capturedThroughMinute ?? null)} }`).join(",\n");
+const iosSource = `/* AUTO-GENERATED from the canonical TxLINE compiler. Do not edit.\n   Regenerate: node shared/build-lobbies.js */\nimport type { ScoreEvent } from "../txline-mock";\n\nexport const CANONICAL_REPLAYS = [\n${iosBody}\n];\n`;
+fs.writeFileSync(IOS_OUT, iosSource);
+console.log(`wrote ${path.relative(ROOT, IOS_OUT)} (${(fs.statSync(IOS_OUT).size / 1024).toFixed(0)} KB), ${iosRows.length} canonical iOS replays`);

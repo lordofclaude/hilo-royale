@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { C, FANS, ME_INDEX, fanName, glow, displayFont } from "../theme";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { C, FANS, ME_INDEX, fanName, glow, displayFont, hairline, type } from "../theme";
 import { Profile } from "../lib/storage";
 import Icon from "../components/Icon";
+import ScreenHeader from "../components/ScreenHeader";
+import { FadeIn, Tap } from "../components/Motion";
 
 interface Props { profile: Profile; }
 
@@ -42,14 +44,13 @@ export default function RankScreen({ profile }: Props) {
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
-      <Text style={styles.h1}>LIVE RANK</Text>
-      <Text style={styles.h2}>MATCH LEADERBOARD</Text>
+      <ScreenHeader title="Leaderboard" caption="LIVE RANK" />
       <View style={styles.boardTabs}>
-        {(["GLOBAL", "FRIENDS", "SQUADS"] as const).map(value => <Pressable key={value} onPress={() => setBoard(value)} style={[styles.boardTab, board === value && styles.boardTabOn]}><Text style={[styles.boardTabTxt, board === value && styles.boardTabTxtOn]}>{value}</Text></Pressable>)}
+        {(["GLOBAL", "FRIENDS", "SQUADS"] as const).map(value => <Tap key={value} onPress={() => setBoard(value)} scaleTo={0.97} accessibilityRole="tab" accessibilityState={{ selected: board === value }} style={[styles.boardTab, board === value && styles.boardTabOn]}><Text style={[styles.boardTabTxt, board === value && styles.boardTabTxtOn]}>{value}</Text></Tap>)}
       </View>
       <View style={styles.topPill}><Text style={styles.topPillTxt}>{board} DEMO BOARD · CONNECT ROOM API FOR LIVE RANKS</Text></View>
 
-      <View style={styles.podiumRow}>
+      <FadeIn key={board} dy={10} style={styles.podiumRow}>
         {podiumOrder.map((r, idx) => {
           const place = idx === 1 ? 1 : idx === 0 ? 2 : 3;
           const color = place === 1 ? C.gold : place === 2 ? C.hi : C.lo;
@@ -70,7 +71,7 @@ export default function RankScreen({ profile }: Props) {
             </View>
           );
         })}
-      </View>
+      </FadeIn>
 
       <View style={styles.card}>
         {list.map((r, i) => {
@@ -99,33 +100,33 @@ export default function RankScreen({ profile }: Props) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   content: { padding: 20, paddingBottom: 20 },
-  h1: { color: C.text, fontSize: 34, ...displayFont, textAlign: "center", marginTop: 8 },
-  h2: { color: C.hi, fontSize: 12, fontWeight: "900", letterSpacing: 3, textAlign: "center", marginTop: 2 },
-  boardTabs: { flexDirection: "row", gap: 7, marginTop: 13 },
-  boardTab: { flex: 1, borderColor: C.lineStrong, borderWidth: 1, borderRadius: 9, paddingVertical: 8, alignItems: "center", backgroundColor: C.panelDeep },
-  boardTabOn: { borderColor: C.hi, backgroundColor: C.hiSoft }, boardTabTxt: { color: C.muted, fontSize: 9, fontWeight: "900", letterSpacing: 0.7 }, boardTabTxtOn: { color: C.hi },
+  /* iOS segmented switcher: one recessed track, raised active segment */
+  boardTabs: { flexDirection: "row", gap: 2, padding: 2, borderRadius: 11, backgroundColor: C.panelDeep, borderColor: C.line, borderWidth: hairline },
+  boardTab: { flex: 1, minHeight: 36, borderRadius: 9, alignItems: "center", justifyContent: "center" },
+  boardTabOn: { backgroundColor: "#1a2230", borderColor: "rgba(244,247,251,0.08)", borderWidth: hairline },
+  boardTabTxt: { color: C.muted, fontSize: 12, fontWeight: "600", letterSpacing: 0.2 }, boardTabTxtOn: { color: C.text, fontWeight: "700" },
   topPill: {
-    alignSelf: "center", borderColor: C.hi, borderWidth: 1, borderRadius: 99,
-    paddingHorizontal: 14, paddingVertical: 4, marginTop: 10, marginBottom: 16,
+    alignSelf: "center", borderColor: C.line, borderWidth: hairline, borderRadius: 99,
+    paddingHorizontal: 14, paddingVertical: 5, marginTop: 12, marginBottom: 16,
   },
-  topPillTxt: { color: C.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1 },
+  topPillTxt: { ...type.caption, fontSize: 10 },
   podiumRow: { flexDirection: "row", gap: 8, marginBottom: 16, alignItems: "flex-end" },
   podiumCard: {
-    flex: 1, backgroundColor: C.panel, borderWidth: 1.5,
-    borderRadius: 14, alignItems: "center", paddingVertical: 12,
+    flex: 1, backgroundColor: C.panel, borderWidth: 1,
+    borderRadius: 16, alignItems: "center", paddingVertical: 12,
   },
   podiumFirst: { paddingVertical: 20, backgroundColor: "rgba(255,213,74,0.06)" },
   podiumPlace: { fontSize: 22, ...displayFont },
-  podiumName: { color: C.text, fontWeight: "800", fontSize: 12, marginTop: 4, maxWidth: "90%" },
-  podiumPts: { fontSize: 12, fontWeight: "900", marginTop: 4 },
-  card: { backgroundColor: C.panel, borderColor: C.line, borderWidth: 1, borderRadius: 16, padding: 12 },
+  podiumName: { color: C.text, fontWeight: "700", fontSize: 12, marginTop: 4, maxWidth: "90%" },
+  podiumPts: { fontSize: 12, fontWeight: "800", marginTop: 4, fontVariant: ["tabular-nums"] },
+  card: { backgroundColor: C.panel, borderColor: C.line, borderWidth: hairline, borderRadius: 16, padding: 12 },
   row: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: C.panelDeep, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 6,
+    backgroundColor: C.panelDeep, borderRadius: 10, paddingHorizontal: 12, minHeight: 44, paddingVertical: 10, marginBottom: 6,
   },
-  rowYou: { borderColor: C.lo, borderWidth: 1.5 },
-  rowRank: { color: C.muted, fontSize: 13, fontWeight: "900", width: 24 },
-  rowName: { flex: 1, color: C.text, fontSize: 13, fontWeight: "700" },
-  rowPts: { color: C.hi, fontWeight: "900", fontSize: 13 },
-  move: { width: 22, textAlign: "right", fontSize: 10, fontWeight: "900" },
+  rowYou: { borderColor: C.lo, borderWidth: 1 },
+  rowRank: { color: C.muted, fontSize: 13, fontWeight: "700", width: 24, fontVariant: ["tabular-nums"] },
+  rowName: { flex: 1, color: C.text, fontSize: 14, fontWeight: "600", letterSpacing: -0.2 },
+  rowPts: { color: C.hi, fontWeight: "700", fontSize: 13, fontVariant: ["tabular-nums"] },
+  move: { width: 22, textAlign: "right", fontSize: 11, fontWeight: "700", fontVariant: ["tabular-nums"] },
 });

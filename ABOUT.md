@@ -27,11 +27,10 @@ place in the lobby. That makes it:
 - **Free to play, viral by design** — losing produces a shareable "death
   replay" card, winning produces a survival ticket. 99 of 100 players lose, so
   the share surface is huge.
-- **Provably fair** — every match stat comes from TxODDS's feed, and the final
-  score is proven against a Merkle root published **on the Solana blockchain**.
-  The result screen has a "VERIFIED ON SOLANA" button that opens the actual
-  transaction on a block explorer. That's not marketing copy — it's a real
-  on-chain cryptographic proof.
+- **Auditable by design** — match stats come from TxODDS. The complete
+  Argentina–Switzerland replay includes a real devnet transaction proving its
+  final score against a TxODDS Merkle root. The prototype also exposes its ORAO
+  VRF seed source; a per-lobby transcript commitment is still future work.
 
 ## How a round feels
 
@@ -84,9 +83,10 @@ program, activated an API token by signing the transaction, and pulled full
 historical score streams plus the 5-minute StablePrice odds intervals covering
 each match. Raw pulls are compacted into bundled "replay tapes"
 (`ios/src/lib/real-data/*.ts`, mirrored in `web/lobbies.js`) so no network or
-credentials are needed to replay a real match. Four real fixtures ship today —
-including the France–England quarter-final captured live on 2026-07-18 —
-rotating as a daily lobby, each carrying its real 1X2 win-probability series
+credentials are needed to replay a real match. Six compiled captures ship on
+web and the same canonical compiler supplies four iOS replays. France–England
+is a third-place play-off capture through 60′ and is labeled partial; the other
+five web tapes are complete. Four common fixtures rotate as the cross-platform daily lobby, carrying real 1X2 win-probability series where available
 (normalized to `{p1, draw, p2}` percentages per match minute).
 
 **Live mode — a real TxLINE consumer, not just a replayer**: when a fixture is
@@ -114,19 +114,18 @@ over/under). The builder still balances the hi/lo answer mix (so blindly
 smashing one button never wins) and avoids repeating topics back-to-back.
 
 **On-chain proof**: a real `validateStatV2` transaction on the TxODDS Solana
-devnet program proves the featured fixture's final score (home goals − away
-goals > 0) against the Merkle root TxODDS publishes on-chain. The transaction
+devnet program proves the Argentina 3–1 Switzerland final score against the
+Merkle root TxODDS publishes on-chain. The transaction
 signature ships inside the app as data — no wallet or keys in the bundle — and
-renders as a tappable Solscan link on every result ticket.
+renders as a tappable Solscan link on that fixture's result ticket.
 
-**Provably fair lobbies (ORAO VRF)**: every piece of lobby "luck" — the 99
+**Verifiable simulation seed (ORAO VRF)**: prototype lobby "luck" — the 99
 bots' skills, their picks and timing, elimination-cascade order, tie-breaks —
 derives from a real [ORAO VRF](https://github.com/orao-network/solana-vrf)
 verifiable-randomness request fulfilled on Solana devnet
 (`onchain/request-vrf.js` makes the request; the fulfilled randomness seeds a
-deterministic PRNG shared by both apps). The request transaction is a tappable
-Solscan link in both UIs, so the same lobby is reproducible and auditable by
-anyone.
+deterministic PRNG shared by both apps). The request proves the seed source. It
+does not yet prove a per-lobby schedule commitment or full transcript.
 
 **Round lifecycle = Solora's lock→settle state machine**: each round runs the
 exact event lifecycle of
@@ -157,11 +156,11 @@ links, ghost-challenge deep links, and a zero-dependency room/presence server
 
 | Real | Simulated (for now) |
 |---|---|
-| Match events, timings, scores (TxLINE feed) | The other 99 fans (bots — but ORAO-VRF-seeded, so provably fair) |
+| Match events, timings, scores (TxLINE feed) | The other 99 fans (VRF-seeded bots, clearly labeled) |
 | The 1X2 win-probability series behind odds questions (TxLINE StablePrice) | Global leaderboard (local + this-lobby only) |
 | Live odds/score polling during a match window — real TxLINE data via `/api/txline` **when server credentials are configured**; replay tapes otherwise | Squad presence (needs the room server running) |
 | On-chain data subscription + API token | |
-| On-chain final-score proof (Solscan-verifiable) | |
+| One Argentina–Switzerland final-score proof (Solscan-verifiable) | |
 | Question schedule derived from real events + real odds | |
 | Your streaks, badges, points (persisted on device) | |
 
@@ -172,7 +171,7 @@ links, ghost-challenge deep links, and a zero-dependency room/presence server
   credentials server-side, graceful replay fallback.
 - **Question engine v2** — stat-aware generation plus `odds_swing`,
   `next_goal`, and `goals_ou` kinds settled from the real odds series.
-- **France–England quarter-final tape rebuilt** — the raw capture had
+- **France–England partial third-place tape rebuilt** — the raw capture had
   out-of-order sequence numbers (stats briefly regressed mid-tape); the tape
   is now rebuilt from raw updates, deduped by `Seq`, with monotonic cumulative
   stats and the normalized odds series attached.
@@ -191,10 +190,9 @@ links, ghost-challenge deep links, and a zero-dependency room/presence server
 - **Real multiplayer** — promote the room server to a hosted service so
   lobbies, squads, and rivals are real people; rival assignments + stateful
   push ("your rival just passed you").
-- **Full live-match lobbies** — live odds/score polling shipped (see above)
-  and the iOS live service already consumes the SSE stream; the remaining step
-  is cutting question windows from the live feed end-to-end during a real
-  match, with no precomputed answers.
+- **Full live-match lobbies** — secure polling and SSE ingestion are wired; the
+  remaining step is production soak-testing question windows during an actual
+  live fixture, with resumable connections and no precomputed answers.
 - **More sports** — TxODDS ships US Football and Basketball feed specs; the
   stat-window engine generalizes.
 - **On-chain crowns** — settle each lobby winner's crown as its own

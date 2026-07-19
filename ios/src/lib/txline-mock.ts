@@ -22,6 +22,8 @@ export interface StatMap {
 
 export interface ScoreEvent {
   seq: number;
+  /** Original TxLINE sequence retained when `seq` is tape-local. */
+  sourceSeq?: number;
   minute: number;
   type: string;
   team: number;

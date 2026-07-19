@@ -383,13 +383,15 @@ pnpm start
 ### TxLINE live mode
 
 ```powershell
-$env:EXPO_PUBLIC_TXLINE_BASE_URL='https://txline.txodds.com'
+$env:EXPO_PUBLIC_HILO_API_URL='https://hilo-royale.vercel.app'
 $env:EXPO_PUBLIC_TXLINE_FIXTURE_ID='<live fixture id>'
-$env:EXPO_PUBLIC_TXLINE_TOKEN='<activated TxLINE bearer token>'
 $env:EXPO_PUBLIC_LIVE_TEAM_1='<team one>'
 $env:EXPO_PUBLIC_LIVE_TEAM_2='<team two>'
 pnpm start
 ```
+
+`TXLINE_JWT` and `TXLINE_API_TOKEN` belong only in the backend environment.
+Never expose either through an `EXPO_PUBLIC_*` variable.
 
 Never commit these values. Expo `EXPO_PUBLIC_` variables are compiled into the client and are not secret storage; production should proxy privileged access through a backend with short-lived user/session authorization.
 

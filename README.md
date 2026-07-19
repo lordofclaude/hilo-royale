@@ -71,7 +71,7 @@ Everything data-shaped in this project comes from TxODDS's TxLINE feed
 | `GET /api/odds/updates/{epochDay}/{hourOfDay}/{interval}?fixtureId=` | historical 5-min odds intervals — the pre-captured win-probability series bundled with each tape |
 | `SSE GET /api/scores/stream?fixtureId=` | real-time score stream, wired in the iOS live service (`ios/src/lib/live-service.ts`) |
 | `GET /api/scores/stat-validation?fixtureId=&seq=&statKeys=` | Merkle proofs for individual stats |
-| `validateStatV2` (Anchor, devnet program `6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J`) | on-chain settlement of the featured fixture's final score |
+| `validateStatV2` (Anchor, devnet program `6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J`) | on-chain proof of the Argentina–Switzerland fixture's final score |
 
 Every data call carries both auth headers: `Authorization: Bearer <jwt>` and
 `X-Api-Token: <token>`. The full client (auth, SSE parsing, window math,

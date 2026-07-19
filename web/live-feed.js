@@ -105,6 +105,14 @@
     matchfinalised: "game_finalised",
   };
 
+  /* Feed lifecycle/control messages are not football events. Check these
+     before fuzzy matching: "action_discarded" contains the substring
+     "card" and previously appeared as a bogus booking. */
+  var DROP_ACTIONS = {
+    actiondiscarded: 1, actionamend: 1, actionamended: 1,
+    possible: 1, possibleaction: 1, actionpossible: 1,
+  };
+
   var VERDICT_WORDS = /(confirm|amend|uphold|upheld|overturn|cancel|noaction|rejected|awarded|decision|stands)/;
 
   function rawAction(u) {
@@ -134,6 +142,7 @@
   /** Map a raw action string (+ full update for context) to a tape event type. */
   function mapAction(raw, u) {
     var n = normAction(raw);
+    if (DROP_ACTIONS[n]) return "unknown";
     var statusId = u ? Number(pick(u, "StatusId", "statusId")) : NaN;
     if (statusId === 100) return "game_finalised";
     if (ACTION_MAP[n]) {
@@ -212,6 +221,7 @@
     kickoff: 1, goal: 1, corner: 1, shot: 1, card: 1, sub: 1, "var": 1, var_verdict: 1,
     penalty: 1, freekick: 1, halftime: 1, fulltime: 1, additionaltime: 1, game_finalised: 1,
   };
+  var REQUIRE_CONFIRMED = { goal: 1, corner: 1, shot: 1, card: 1, sub: 1, "var": 1, penalty: 1, freekick: 1 };
 
   // ---------------------------------------------------------- public: latestOdds
   function latestOdds(fixtureId) {
@@ -305,6 +315,8 @@
         var seq2 = normSeq(v);
         var ekey = (aid != null ? "a" + aid : "q" + seq2) + ":" + type;
         var firstSighting = !st.emitted[ekey];
+        var confirmed = pick(v, "Confirmed", "confirmed");
+        var canEmit = !REQUIRE_CONFIRMED[type] || confirmed !== false;
 
         // Stats: trust the on-chain stats map (keys 1..8) when present, clamped
         // monotonic; shots and map-less first sightings accumulate from the action.
@@ -320,7 +332,7 @@
             }
           }
         }
-        if (firstSighting && team) {
+        if (canEmit && firstSighting && team) {
           if (type === "shot") st.running["s" + team]++;
           else if (!applied) {
             var d = String(detail || "");
@@ -331,7 +343,7 @@
           }
         }
 
-        if (EMIT_TYPES[type] && firstSighting) {
+        if (EMIT_TYPES[type] && canEmit && firstSighting) {
           st.emitted[ekey] = 1;
           out.push({
             seq: seq2, minute: minute, type: type, team: team, detail: detail,

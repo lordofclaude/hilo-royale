@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
-import { C, displayFont, glow } from "../theme";
+import { C, displayFont, glow, type } from "../theme";
+import { FadeIn, Tap } from "../components/Motion";
 import { FanIdentity, makeGuestIdentity, saveIdentity } from "../lib/auth";
 import BrandHeader from "../components/BrandHeader";
 
@@ -38,8 +39,6 @@ function GoogleAuthButton({ onSignedIn, onError }: { onSignedIn: (identity: FanI
         const identity: FanIdentity = {
           id: info.sub,
           name: info.name || info.email?.split("@")[0] || "Royale Fan",
-          email: info.email,
-          avatarUrl: info.picture,
           provider: "google",
         };
         await saveIdentity(identity);
@@ -50,15 +49,15 @@ function GoogleAuthButton({ onSignedIn, onError }: { onSignedIn: (identity: FanI
   }, [onSignedIn, onError, response]);
 
   return (
-    <Pressable
+    <Tap
       accessibilityRole="button"
       accessibilityLabel="Continue with Google"
       disabled={!request || busy}
       onPress={() => { onError(null); void promptAsync(); }}
-      style={({ pressed }) => [styles.google, !request && styles.disabled, pressed && { opacity: 0.84 }]}
+      style={[styles.google, !request && styles.disabled]}
     >
       {busy ? <ActivityIndicator color="#111318" /> : <Text style={styles.googleTxt}>G  CONTINUE WITH GOOGLE</Text>}
-    </Pressable>
+    </Tap>
   );
 }
 
@@ -79,12 +78,16 @@ export default function LoginScreen({ onSignedIn }: Props) {
     <View style={styles.root}>
       <View style={styles.lightLeft} />
       <View style={styles.lightRight} />
-      <BrandHeader eyebrow="100 FANS · ONE CROWN" />
+      <FadeIn dy={8}>
+        <BrandHeader eyebrow="100 FANS · ONE CROWN" />
+      </FadeIn>
 
-      <Text style={styles.title}>ENTER THE{`\n`}ARENA</Text>
-      <Text style={styles.sub}>Live football predictions become a battle royale. Make the call. Beat the crowd. Survive the match.</Text>
+      <FadeIn delay={60} dy={12}>
+        <Text style={styles.title}>ENTER THE{`\n`}ARENA</Text>
+        <Text style={styles.sub}>Live football predictions become a battle royale. Make the call. Beat the crowd. Survive the match.</Text>
+      </FadeIn>
 
-      <View style={[styles.card, glow(C.hi, 14, 0.28)]}>
+      <FadeIn delay={140} dy={14} style={[styles.card, glow(C.hi, 12, 0.2)]}>
         <Text style={styles.cardKicker}>YOUR FAN ID</Text>
         <TextInput
           accessibilityLabel="Fan display name"
@@ -107,11 +110,11 @@ export default function LoginScreen({ onSignedIn }: Props) {
           </>
         )}
         <View style={styles.orRow}><View style={styles.orLine} /><Text style={styles.or}>OR</Text><View style={styles.orLine} /></View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Play demo now" onPress={continueAsGuest} style={({ pressed }) => [styles.demo, glow(C.gold, 10, 0.35), pressed && { opacity: 0.86 }]}>
+        <Tap accessibilityRole="button" accessibilityLabel="Play demo now" onPress={continueAsGuest} style={[styles.demo, glow(C.gold, 10, 0.3)]}>
           <Text style={styles.demoTxt}>PLAY DEMO NOW  →</Text>
-        </Pressable>
+        </Tap>
         {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
-      </View>
+      </FadeIn>
 
       <Text style={styles.legal}>Google OAuth is used for identity only. No Gmail or IMAP mailbox access is requested.</Text>
     </View>
@@ -124,9 +127,9 @@ const styles = StyleSheet.create({
   lightRight: { position: "absolute", width: 220, height: 220, borderRadius: 110, right: -140, bottom: 100, backgroundColor: C.loSoft },
   title: { color: C.text, fontSize: 48, lineHeight: 48, ...displayFont, textAlign: "center" },
   sub: { color: C.muted, fontSize: 14, lineHeight: 21, textAlign: "center", marginTop: 12, marginBottom: 24 },
-  card: { backgroundColor: C.panel, borderWidth: 1.5, borderColor: C.hi, borderRadius: 22, padding: 18 },
-  cardKicker: { color: C.hi, fontSize: 11, fontWeight: "900", letterSpacing: 2, marginBottom: 9 },
-  input: { color: C.text, borderColor: C.lineStrong, borderWidth: 1, borderRadius: 13, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, backgroundColor: C.panelDeep, marginBottom: 10 },
+  card: { backgroundColor: C.panel, borderWidth: 1, borderColor: C.hi, borderRadius: 20, padding: 18 },
+  cardKicker: { ...type.caption, color: C.hi, letterSpacing: 1.8, marginBottom: 9 },
+  input: { color: C.text, borderColor: C.lineStrong, borderWidth: 1, borderRadius: 13, paddingHorizontal: 14, paddingVertical: 13, fontSize: 16, backgroundColor: C.panelDeep, marginBottom: 12 },
   google: { backgroundColor: "#f4f7fb", borderRadius: 13, minHeight: 50, alignItems: "center", justifyContent: "center" },
   googleTxt: { color: "#111318", fontSize: 13, fontWeight: "900", letterSpacing: 0.6 },
   disabled: { opacity: 0.42 },

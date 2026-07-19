@@ -49,20 +49,19 @@ public cascade, and the last fan standing takes the crown.
 **Business highlights:** free-to-play and viral by design — 99 of 100 players
 lose, and losing produces the share artifact (elimination card + ghost
 challenge link that replays your exact run against a friend). Monetization
-path: cosmetic crowns and sponsored named lobbies now; entry-fee lobbies with
-**proof-settled prize pools** later — because every question resolves from a
-TxLINE stat that is Merkle-anchored on Solana, a paid lobby's payout needs no
-oracle and no trust.
+path: sponsored and branded lobbies for clubs, broadcasters, and brands, plus
+cosmetic crowns and ticket-card themes. The fan product stays free to play.
 
 **Technical highlights:** the whole game is a deterministic function of the
-TxLINE feed. Real captured fixtures (including the France–England
-quarter-final, captured live on July 18) are compiled into replay tapes with
+TxLINE feed. Six web captures are compiled into canonical replay tapes; the
+France–England third-place capture is explicitly partial through 60′. The
+complete Argentina–Switzerland tape is the judge fixture and carries
 their real 1X2 StablePrice series; a stat-aware question engine precomputes
 each lobby's schedule and only asks about stats the tape has signal for;
 during a live match window the web app polls real TxLINE odds/score updates
 through a serverless proxy (credentials server-side, graceful replay
 fallback); lobby randomness comes from a real ORAO VRF request; and the
-featured fixture's final score is settled with a real `validateStatV2`
+the Argentina 3–1 Switzerland final score is proven with a real `validateStatV2`
 transaction on devnet. Bots and the leaderboard are simulated/local today and
 the app says so — the honest ledger is in `ABOUT.md`.
 
@@ -75,7 +74,7 @@ the app says so — the honest ledger is in `ABOUT.md`.
 - `GET /api/scores/updates/{fixtureId}` — live ~5-min score windows (polled + accumulated)
 - `GET /api/odds/updates/{fixtureId}` — live ~5-min StablePrice 1X2 windows
 - `GET /api/odds/updates/{epochDay}/{hourOfDay}/{interval}?fixtureId=` — historical 5-min odds intervals (bundled odds series)
-- `SSE GET /api/scores/stream?fixtureId=` — real-time stream (iOS live service)
+- `SSE GET /api/scores/stream?fixtureId=` — upstream real-time stream, consumed by iOS through the credential-safe `/api/txline-stream` bridge
 - `GET /api/scores/stat-validation?fixtureId=&seq=&statKeys=` — Merkle proofs
 - `validateStatV2` on devnet program `6pW64gN1s2uqjHkn1unFeEjAwJkPGHoppGvS715wyP2J` — on-chain settlement
 - All data calls: dual headers `Authorization: Bearer <jwt>` + `X-Api-Token: <token>`
@@ -91,21 +90,21 @@ commentator, not a pitch deck.
 
 | Time | Scene | On screen | Voiceover |
 |---|---|---|---|
-| 0:00–0:20 | Hook | Cold open on the elimination cascade mid-game: avatars dying in a wave, alive-counter free-falling | "100 fans just entered a real World Cup match. In four minutes, 99 of them will be dead. This is Hi-Lo Royale." |
-| 0:20–1:00 | Lobby + kickoff | Load hilo-royale.vercel.app. Pick the France–England quarter-final lobby. Show the countdown, the 3-2-1, kickoff | "Every lobby is a real match from TxODDS's TxLINE feed — this is the actual France–England quarter-final, every goal and corner exactly as it happened. You and 99 fans lock in." |
-| 1:00–1:50 | Playing rounds | Answer 2–3 questions: an occurrence bet, a head-to-head, then an odds-swing question. Point at the crowd bar and the win-probability readout | "Every few minutes, a question. Corner in the next ten? More corners, France or England? And this one — will France's win probability be HIGHER in ten minutes — settles against the real bookmaker consensus, TxLINE's StablePrice. The crowd bar shows how the other 99 split. The crowd is often wrong." |
-| 1:50–2:20 | LIVE TxLINE moment | Open the live indicator / a fixture in its live window if one is on; otherwise show `/api/txline?fixtureId=18257865&mode=odds1x2` returning real JSON in a tab and the in-app live badge | "This isn't only replays. When a match is live, the app polls TxLINE's odds and score windows through our serverless proxy — real institutional data, updating in-game, credentials never touching the browser." |
-| 2:20–2:50 | Death + ghost challenge | Die on purpose (or finish a run). Show the elimination card, hit share, open the ghost link in the second window and show the ghost racing your picks | "Losing is the growth loop. Your death mints a challenge link — your exact run, every pick, every hesitation. Your friend replays the same match against your ghost." |
-| 2:50–3:30 | On-chain proofs | Click "VERIFIED ON SOLANA" → Solscan tab with the `validateStatV2` tx; then the ORAO VRF tx | "Two real devnet transactions. This one proves the final score against the Merkle root TxODDS publishes on Solana — trustless settlement, no oracle to build. And this one is the ORAO VRF request that seeds every lobby's luck. Provably fair, end to end." |
-| 3:30–4:10 | How TxLINE powers it | Quick cut over README endpoint table / architecture: tapes from `scores/historical`, live windows from `odds/updates` + `scores/updates`, SSE on iOS, stat-validation proofs | "TxLINE is the whole engine: historical scores become replay tapes, five-minute update windows become live mode, the stat-validation endpoint becomes the settlement layer. The game is a deterministic function of the feed." |
-| 4:10–4:40 | Monetization + close | Crown moment / winner overlay, then the lobby list | "Today: cosmetic crowns and sponsored lobbies. Tomorrow: entry-fee lobbies where the prize pool settles itself on-chain — because when the data is Merkle-anchored, the feed IS the escrow judge. 104 matches. 100 fans each. One crown. Hi-Lo Royale." |
+| 0:00–0:12 | Hook | Cold open mid-cascade: alive counter falling | "One wrong call just killed half this lobby." |
+| 0:12–0:25 | Product | Hero line over the arena | "Hi-Lo Royale turns every live match into a shared survival game." |
+| 0:25–0:55 | Play | Open `/login?fixture=18222446&demo=1`, join and settle one Argentina–Switzerland round | "Join 100 fans, predict the next match stat, and stay alive—one wrong answer knocks you out." |
+| 0:55–1:18 | Growth loop | Die, press Challenge a friend, open the link in a second tab | "Losing is the growth loop: your exact run becomes the rival your friend must beat." |
+| 1:18–1:55 | Data flow | Show TxLINE feed → question → lock → settlement | "Confirmed match events become deterministic questions and one shared crowd reveal." |
+| 1:55–2:20 | Receipts | Open the Argentina–Switzerland score proof, then the ORAO request | "This transaction proves this fixture's 3–1 score. This ORAO request proves the prototype seed source—not yet a full per-lobby transcript." |
+| 2:20–2:38 | iPhone | Native replay-mode round and HTTPS challenge | "The same canonical tape and rules run natively with haptics." |
+| 2:38–3:00 | Business + close | Sponsored lobby mock and crown | "Free for fans; branded lobbies for clubs, broadcasters and sponsors. The interactive game layer for live sport." |
 
 ---
 
 ## Judge quickstart
 
-**Play in 60 seconds:** open https://hilo-royale.vercel.app → pick the
-France–England lobby → when a question fires, tap HI or LO before the timer
+**Play in 60 seconds:** open https://hilo-royale.vercel.app/login?fixture=18222446&demo=1 → enter the
+Argentina–Switzerland lobby → when a question fires, tap HI or LO before the timer
 dies → survive all rounds to take the crown. Wrong or slow = eliminated (you
 will still see how far you'd have gone — and get a shareable card).
 
@@ -136,11 +135,9 @@ the settlement tx executes `validateStatV2` against TxODDS's published root.
 - **Originality** — not a betting clone: survival is the wager. The battle
   royale format turns one feed into 104 pieces of scheduled content, and
   losing (99% of outcomes) is the viral artifact.
-- **Monetization path** — cosmetic crowns, ticket-card themes, and sponsored
-  named lobbies now (app-store-safe, gambling-reg-safe); entry-fee lobbies
-  with proof-settled prize pools later, because `validateStatV2` makes payouts
-  trustless (see `web/VIRAL-PLAYBOOK.md`, section 6).
+- **Monetization path** — sponsored and branded lobbies for clubs,
+  broadcasters, and brands, plus cosmetic crowns and ticket-card themes.
 - **Completeness** — deployed web app, iOS app, tested shared engine
   (`node web/test.js`), two real on-chain transactions, real captured data
-  from four fixtures, honest ledger of what is simulated, and this submission
+  from six web fixture captures and four canonical iOS replays, an honest ledger of what is simulated, and this submission
   pack.

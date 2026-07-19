@@ -17,20 +17,27 @@
 <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,800,900&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#050608;--panel:#0b0e14;--panel2:#080b10;--ink:#07090d;--line:#1c2433;--line2:#334057;
-  --text:#f4f7fb;--muted:#93a1b5;--faint:#5f6d82;
+  --bg:#050608;--panel:#0b0e14;--panel2:#080b10;--ink:#07090d;
+  --line:rgba(244,247,251,.09);--line2:rgba(244,247,251,.18);
+  --text:#f4f7fb;--muted:#a9b5c6;--faint:#8996a9;
   --gold:#ffd54a;--accent:#ffc233;--accent2:#ff9f1a;--hi:#2ee6ff;--lo:#ff3b5c;
+  --hairline:rgba(244,247,251,.08);
+  --shadow-2:0 1px 2px rgba(0,0,0,.35),0 28px 80px -32px rgba(0,0,0,.85);
+  --ease:cubic-bezier(.23,1,.32,1);
+  --sheet:cubic-bezier(.32,.72,0,1);
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:radial-gradient(900px 520px at 85% -10%,rgba(46,230,255,.07),transparent 55%),radial-gradient(800px 500px at -5% 110%,rgba(255,59,92,.06),transparent 52%),var(--bg);color:var(--text);font-family:"DM Sans",system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.2rem;-webkit-font-smoothing:antialiased}
+body{background:radial-gradient(900px 520px at 85% -10%,rgba(46,230,255,.07),transparent 55%),radial-gradient(800px 500px at -5% 110%,rgba(255,59,92,.06),transparent 52%),var(--bg);color:var(--text);font-family:"DM Sans",system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:calc(1.2rem + env(safe-area-inset-top)) calc(1.2rem + env(safe-area-inset-right)) calc(1.2rem + env(safe-area-inset-bottom)) calc(1.2rem + env(safe-area-inset-left));-webkit-font-smoothing:antialiased}
 svg.ic{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.125em;flex:none}
 svg.ic.fill{fill:currentColor;stroke:none}
 button{font-family:inherit;cursor:pointer}
 button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 /* the input's focus indicator is the wrapper's gold border (.inwrap:focus-within) */
-.card{width:100%;max-width:430px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line2);border-radius:22px;padding:2rem 1.7rem;box-shadow:0 24px 80px -30px rgba(0,0,0,.9),0 0 40px rgba(255,213,74,.05);text-align:center}
+.card{width:100%;max-width:430px;background:linear-gradient(180deg,rgba(244,247,251,.035),rgba(244,247,251,0) 38%),var(--panel);border:1px solid var(--line2);border-radius:26px;padding:2rem 1.7rem;box-shadow:var(--shadow-2);text-align:center}
+@media (prefers-reduced-motion: no-preference){.card{animation:sheetIn .5s var(--sheet)}}
+@keyframes sheetIn{from{opacity:0;transform:translateY(24px) scale(.98)}}
 .brand{display:inline-flex;align-items:center;gap:.55rem;min-height:44px;font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:1.1rem;letter-spacing:.02em;text-decoration:none;color:var(--text)}
-.brand .mark{display:grid;place-items:center;width:29px;height:29px;border-radius:8px;background:linear-gradient(140deg,var(--accent),var(--accent2));color:#231703;box-shadow:0 0 14px rgba(255,194,51,.35)}
+.brand .mark{display:grid;place-items:center;width:29px;height:29px;border-radius:8px;background:linear-gradient(140deg,var(--accent),var(--accent2));color:#231703;box-shadow:0 2px 8px rgba(0,0,0,.5)}
 .brand em{font-style:italic;color:var(--gold)}
 h1{font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:clamp(1.6rem,6vw,2.1rem);margin:1.2rem 0 .4rem;letter-spacing:.01em}
 .sub{color:var(--muted);font-size:.92rem;margin-bottom:1.5rem;line-height:1.5}
@@ -40,17 +47,18 @@ h1{font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:cla
 .dots i.you{background:var(--gold);box-shadow:0 0 10px rgba(255,213,74,.7);outline:1.5px solid var(--gold);outline-offset:1.5px}
 /* handle input */
 .inrow{display:flex;gap:.55rem;margin-bottom:.9rem}
-.inwrap{flex:1;display:flex;align-items:center;background:var(--ink);border:1.5px solid var(--line);border-radius:13px;padding:0 .9rem;transition:border-color .15s}
+.inwrap{flex:1;display:flex;align-items:center;background:var(--ink);border:1px solid var(--line2);border-radius:13px;padding:0 .9rem;transition:border-color .15s var(--ease)}
 .inwrap:focus-within{border-color:var(--gold)}
 .inwrap .at{color:var(--gold);font-family:"Cabinet Grotesk";font-weight:900;font-size:1.1rem}
 input{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:"Cabinet Grotesk","DM Sans",sans-serif;font-weight:800;font-size:1.05rem;padding:.95rem .4rem;letter-spacing:.02em;min-width:0}
 input::placeholder{color:var(--faint);font-weight:600}
-.dice{display:grid;place-items:center;width:52px;flex:none;border-radius:13px;background:var(--ink);border:1.5px solid var(--line);color:var(--muted);font-size:1.1rem;transition:.15s}
+.dice{display:grid;place-items:center;width:52px;flex:none;border-radius:13px;background:var(--ink);border:1px solid var(--line2);color:var(--muted);font-size:1.1rem;transition:color .15s var(--ease),border-color .15s var(--ease),transform .16s var(--ease)}
 .dice:hover{color:var(--hi);border-color:rgba(46,230,255,.4)}
+.dice:active{transform:scale(.94)}
 .err{min-height:1.1rem;font-size:.78rem;color:var(--lo);margin-bottom:.5rem;font-weight:600}
-.btn{width:100%;display:inline-flex;align-items:center;justify-content:center;gap:.5rem;background:linear-gradient(120deg,var(--accent),var(--accent2));color:#231703;font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;border:none;border-radius:13px;padding:1rem;font-size:1.05rem;box-shadow:0 0 24px rgba(255,194,51,.3);transition:.15s}
+.btn{width:100%;display:inline-flex;align-items:center;justify-content:center;gap:.5rem;background:linear-gradient(120deg,var(--accent),var(--accent2));color:#231703;font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;border:none;border-radius:13px;padding:1rem;font-size:1.05rem;box-shadow:0 1px 2px rgba(0,0,0,.35),0 8px 24px -10px rgba(255,159,26,.5);transition:filter .15s var(--ease),transform .16s var(--ease)}
 .btn:hover{filter:brightness(1.08)}
-.btn:active{transform:translateY(1px)}
+.btn:active{transform:scale(.97)}
 .note{color:var(--faint);font-size:.73rem;line-height:1.55;margin-top:1.2rem}
 .note a{color:var(--muted)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
@@ -68,11 +76,12 @@ input::placeholder{color:var(--faint);font-weight:600}
   <h1>Claim your handle</h1>
   <p class="sub">This is how the arena knows which dot is yours. Type a handle — or just hit ENTER and we mint you one.</p>
   <div class="dots" id="dots" aria-hidden="true"></div>
+  <label for="handle" style="display:block;text-align:left;font-size:.78rem;color:var(--muted);margin-bottom:.35rem">Fan handle (optional)</label>
   <div class="inrow">
-    <div class="inwrap"><span class="at">@</span><input id="handle" maxlength="18" placeholder="YourHandle (optional)" autocomplete="off" spellcheck="false" autofocus></div>
+    <div class="inwrap"><span class="at">@</span><input id="handle" maxlength="18" placeholder="YourHandle" autocomplete="nickname" spellcheck="false" aria-describedby="err" autofocus></div>
     <button class="dice" id="dice" title="Random handle" aria-label="Random handle"><svg class="ic"><use href="#i-dice"/></svg></button>
   </div>
-  <div class="err" id="err"></div>
+  <div class="err" id="err" role="alert" aria-live="polite"></div>
   <button class="btn" id="enter"><svg class="ic"><use href="#i-bolt"/></svg>ENTER THE ARENA</button>
   <p class="note"><svg class="ic" style="color:#2ee6ff"><use href="#i-shield"/></svg> Guest identity, stored on this device only — no account, same model as the iOS app. Lobby fairness is <a href="https://solscan.io/tx/4Fn4icgVJEftWm5TuWKWejY3p1adboCydqvragTyEXrsN6yBPx12bdeynrsW6pkuFR3xgMYovV3bXp7DTEuuwikH?cluster=devnet" target="_blank" rel="noopener">ORAO-VRF-seeded on Solana devnet</a>.</p>
 </main>

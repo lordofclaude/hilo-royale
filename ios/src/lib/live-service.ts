@@ -18,10 +18,9 @@ function environment(): LiveEnvironment {
     // Native clients use our server-side SSE bridge. TxLINE credentials stay
     // in the backend environment and are never extractable from the app.
     baseUrl: (process.env.EXPO_PUBLIC_HILO_API_URL || "https://hilo-royale.vercel.app").replace(/\/$/, ""),
-    // Default to the featured France v England fixture. NOTE: live in-play data
-    // comes from /api/scores/stream (SSE) or /api/scores/updates — NOT
-    // /api/scores/historical, which stays locked until ~6h after kickoff.
-    fixtureId: process.env.EXPO_PUBLIC_TXLINE_FIXTURE_ID || "18257865",
+    // Live mode is opt-in. A hard-coded finished fixture would make the app
+    // display "LIVE NOW" when no match is actually in play.
+    fixtureId: process.env.EXPO_PUBLIC_TXLINE_FIXTURE_ID || "",
   };
 }
 
@@ -38,30 +37,80 @@ function numberOr(value: unknown, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-function normalizeStats(value: unknown): StatMap {
+function normalizeStats(value: unknown, previous: StatMap = EMPTY_STATS): StatMap {
   const source = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
   return {
-    c1: numberOr(source.c1), c2: numberOr(source.c2),
-    s1: numberOr(source.s1), s2: numberOr(source.s2),
-    y1: numberOr(source.y1), y2: numberOr(source.y2),
-    r1: numberOr(source.r1), r2: numberOr(source.r2),
-    g1: numberOr(source.g1), g2: numberOr(source.g2),
+    c1: Math.max(previous.c1, numberOr(source.c1 ?? source["7"])), c2: Math.max(previous.c2, numberOr(source.c2 ?? source["8"])),
+    s1: Math.max(previous.s1, numberOr(source.s1)), s2: Math.max(previous.s2, numberOr(source.s2)),
+    y1: Math.max(previous.y1, numberOr(source.y1 ?? source["3"])), y2: Math.max(previous.y2, numberOr(source.y2 ?? source["4"])),
+    r1: Math.max(previous.r1, numberOr(source.r1 ?? source["5"])), r2: Math.max(previous.r2, numberOr(source.r2 ?? source["6"])),
+    g1: Math.max(previous.g1, numberOr(source.g1 ?? source["1"])), g2: Math.max(previous.g2, numberOr(source.g2 ?? source["2"])),
   };
 }
 
-function normalizeEvent(value: unknown, fallbackSeq: number): ScoreEvent | null {
+const ACTION_TYPES: Record<string, string> = {
+  goal: "goal", owngoal: "goal", goalscored: "goal", corner: "corner", cornerkick: "corner",
+  shot: "shot", shotontarget: "shot", shotofftarget: "shot", shotblocked: "shot", attempt: "shot",
+  card: "card", yellowcard: "card", redcard: "card", secondyellowcard: "card", booking: "card",
+  substitution: "sub", sub: "sub", kickoff: "kickoff", periodstart: "kickoff",
+  halftime: "halftime", fulltime: "fulltime", gamefinalised: "game_finalised", matchfinalised: "game_finalised",
+  var: "var", varreview: "var", varend: "var_verdict", varverdict: "var_verdict",
+  penalty: "penalty", penaltyawarded: "penalty", freekick: "freekick", additionaltime: "additionaltime",
+};
+const CONFIRMED_ACTIONS = new Set(["goal", "corner", "shot", "card", "sub", "var", "penalty", "freekick"]);
+const DROPPED_ACTIONS = new Set(["actiondiscarded", "actionamend", "actionamended", "possible", "possibleaction"]);
+
+function normalizeAction(value: unknown): string {
+  const key = String(value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (DROPPED_ACTIONS.has(key)) return "unknown";
+  if (ACTION_TYPES[key]) return ACTION_TYPES[key];
+  if (key.includes("goalkick")) return "unknown";
+  if (key.includes("goal")) return "goal";
+  if (key.includes("corner")) return "corner";
+  if (key.includes("shot")) return "shot";
+  if (key.includes("yellow") || key.includes("red") || key.includes("card")) return "card";
+  if (key.includes("final")) return "game_finalised";
+  return "unknown";
+}
+
+function normalizeEvent(value: unknown, fallbackSeq: number, running: StatMap, emitted: Set<string>): ScoreEvent | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Record<string, unknown>;
-  const payload = (raw.data && typeof raw.data === "object" ? raw.data : raw) as Record<string, unknown>;
-  const minute = numberOr(payload.minute ?? payload.matchMinute, -1);
+  const nested = raw.data && typeof raw.data === "object" ? raw.data as Record<string, unknown> : null;
+  const payload = nested && (nested.Action !== undefined || nested.action !== undefined || nested.minute !== undefined) ? nested : raw;
+  const clock = payload.Clock && typeof payload.Clock === "object" ? payload.Clock as Record<string, unknown> : null;
+  const minute = numberOr(payload.minute ?? payload.matchMinute ?? (clock ? numberOr(clock.Seconds ?? clock.seconds, -60) / 60 : -1), -1);
   if (minute < 0) return null;
+  const type = normalizeAction(payload.type ?? payload.eventType ?? payload.Action ?? payload.action);
+  if (type === "unknown") return null;
+  if (CONFIRMED_ACTIONS.has(type) && (payload.Confirmed ?? payload.confirmed) === false) return null;
+  const seq = numberOr(payload.seq ?? payload.sequence ?? payload.Seq, fallbackSeq);
+  const actionId = String(payload.Id ?? payload.id ?? seq);
+  const dedupeKey = `${actionId}:${type}`;
+  if (emitted.has(dedupeKey)) return null;
+
+  let team = numberOr(payload.team ?? payload.participant ?? payload.Participant, 0);
+  if (team !== 1 && team !== 2) {
+    if (team === numberOr(payload.Participant1Id, -1)) team = 1;
+    else if (team === numberOr(payload.Participant2Id, -1)) team = 2;
+    else team = 0;
+  }
+  const next = normalizeStats(payload.stats ?? payload.Stats ?? EMPTY_STATS, running);
+  if (type === "shot" && team) next[`s${team}` as "s1" | "s2"] += 1;
+  else if (team && !(payload.stats || payload.Stats)) {
+    if (type === "goal") next[`g${team}` as "g1" | "g2"] += 1;
+    if (type === "corner") next[`c${team}` as "c1" | "c2"] += 1;
+    if (type === "card") next[`y${team}` as "y1" | "y2"] += 1;
+  }
+  Object.assign(running, next);
+  emitted.add(dedupeKey);
   return {
-    seq: numberOr(payload.seq ?? payload.sequence, fallbackSeq),
-    minute,
-    type: String(payload.type ?? payload.eventType ?? "update"),
-    team: numberOr(payload.team ?? payload.participant, 0),
+    seq,
+    minute: Math.floor(minute),
+    type,
+    team,
     detail: String(payload.detail ?? payload.description ?? ""),
-    stats: normalizeStats(payload.stats ?? EMPTY_STATS),
+    stats: { ...running },
     teamName: String(payload.teamName ?? payload.participantName ?? "—"),
   };
 }
@@ -76,10 +125,14 @@ export function streamLive(opts: {
   const controller = new AbortController();
   let lastEvent: ScoreEvent | null = null;
   let stopped = false;
+  const running: StatMap = { ...EMPTY_STATS };
+  const emitted = new Set<string>();
 
   const pump = async () => {
-    try {
-      const response = await fetch(`${env.baseUrl}/api/txline-stream?fixtureId=${encodeURIComponent(env.fixtureId)}`, {
+    let reconnects = 0;
+    while (!stopped) {
+      try {
+        const response = await fetch(`${env.baseUrl}/api/txline-stream?fixtureId=${encodeURIComponent(env.fixtureId)}`, {
         headers: {
           Accept: "text/event-stream",
         },
@@ -88,33 +141,37 @@ export function streamLive(opts: {
       if (!response.ok) throw new Error(`TxLINE returned HTTP ${response.status}`);
       if (!response.body) throw new Error("This runtime does not expose a streaming response body.");
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let fallbackSeq = 1;
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let fallbackSeq = (lastEvent?.seq || 0) + 1;
+        reconnects = 0;
 
-      while (!stopped) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const frames = buffer.split(/\r?\n\r?\n/);
-        buffer = frames.pop() || "";
-        for (const frame of frames) {
-          const data = frame
-            .split(/\r?\n/)
-            .filter(line => line.startsWith("data:"))
-            .map(line => line.slice(5).trim())
-            .join("\n");
-          if (!data || data === "[DONE]") continue;
-          const event = normalizeEvent(JSON.parse(data), fallbackSeq++);
-          if (!event) continue;
-          lastEvent = event;
-          opts.onEvent(event);
+        while (!stopped) {
+          const { value: chunk, done } = await reader.read();
+          if (done) throw new Error("Live feed disconnected before the final whistle.");
+          buffer += decoder.decode(chunk, { stream: true });
+          const frames = buffer.split(/\r?\n\r?\n/);
+          buffer = frames.pop() || "";
+          for (const frame of frames) {
+            const data = frame.split(/\r?\n/).filter(line => line.startsWith("data:")).map(line => line.slice(5).trim()).join("\n");
+            if (!data || data === "[DONE]") continue;
+            let parsed: unknown;
+            try { parsed = JSON.parse(data); } catch { opts.onError?.("Skipped one malformed live-feed frame."); continue; }
+            const event = normalizeEvent(parsed, fallbackSeq++, running, emitted);
+            if (!event) continue;
+            lastEvent = event;
+            opts.onEvent(event);
+            if (event.type === "game_finalised") { opts.onDone?.(event); return; }
+          }
         }
+      } catch (error) {
+        if (stopped) return;
+        reconnects += 1;
+        const detail = error instanceof Error ? error.message : "Live stream failed";
+        opts.onError?.(`${detail} Retrying…`);
+        await new Promise(resolve => setTimeout(resolve, Math.min(15000, 1000 * (2 ** Math.min(4, reconnects)))));
       }
-      if (!stopped) opts.onDone?.(lastEvent);
-    } catch (error) {
-      if (!stopped) opts.onError?.(error instanceof Error ? error.message : "Live stream failed");
     }
   };
 

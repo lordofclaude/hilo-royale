@@ -15,10 +15,7 @@
    at GET /api/scores/stream?fixtureId=… over SSE instead — see the
    ⟨REAL⟩ note in txline-mock.ts and shared/txline-real.js's streamLive().
    ============================================================ */
-import { FIXTURE as FIXTURE_18257865, EVENTS as EVENTS_18257865 } from "./real-data/18257865";
-import { FIXTURE as FIXTURE_18222446, EVENTS as EVENTS_18222446 } from "./real-data/18222446";
-import { FIXTURE as FIXTURE_18237038, EVENTS as EVENTS_18237038 } from "./real-data/18237038";
-import { FIXTURE as FIXTURE_18241006, EVENTS as EVENTS_18241006 } from "./real-data/18241006";
+import { CANONICAL_REPLAYS } from "./real-data/canonical";
 import { ONCHAIN_PROOF } from "./real-data/18222446.proof";
 
 /** A REAL devnet validateStatV2 transaction proving this fixture's final score
@@ -48,12 +45,16 @@ export interface ReplayFixture {
   finalScore: { g1: number; g2: number };
   proof?: typeof ONCHAIN_PROOF;
   proofExplorerUrl?: string;
+  captureStatus?: "complete" | "partial";
+  capturedThroughMinute?: number | null;
 }
 
 function makeReplay(
   fixture: ReplayFixture["fixture"],
   events: ScoreEvent[],
   proof?: typeof ONCHAIN_PROOF,
+  captureStatus: "complete" | "partial" = "complete",
+  capturedThroughMinute: number | null = null,
 ): ReplayFixture {
   const fixtureId = String(fixture.FixtureId);
   const lastEvent = events[events.length - 1];
@@ -66,6 +67,8 @@ function makeReplay(
     finalScore: { g1: lastEvent.stats.g1, g2: lastEvent.stats.g2 },
     proof,
     proofExplorerUrl: proof ? `https://solscan.io/tx/${proof.txSig}?cluster=devnet` : undefined,
+    captureStatus,
+    capturedThroughMinute,
   };
 }
 
@@ -74,10 +77,13 @@ function makeReplay(
  *  TxLINE /api/scores/updates feed while the match was in play (historical is
  *  locked ~6h post-kickoff), so it is the app's default lobby. */
 export const REPLAYS: ReplayFixture[] = [
-  makeReplay(FIXTURE_18257865, EVENTS_18257865),
-  makeReplay(FIXTURE_18222446, EVENTS_18222446, ONCHAIN_PROOF),
-  makeReplay(FIXTURE_18237038, EVENTS_18237038),
-  makeReplay(FIXTURE_18241006, EVENTS_18241006),
+  ...CANONICAL_REPLAYS.map(row => makeReplay(
+    row.fixture,
+    row.events,
+    row.fixtureId === "18222446" ? ONCHAIN_PROOF : undefined,
+    row.captureStatus as "complete" | "partial",
+    row.capturedThroughMinute,
+  )),
 ];
 
 export function replayForDate(date = new Date()): ReplayFixture {

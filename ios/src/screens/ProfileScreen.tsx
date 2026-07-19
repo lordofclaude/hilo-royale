@@ -1,12 +1,13 @@
 import React from "react";
-import { Image, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
-import { C, WALL, glow, displayFont } from "../theme";
+import { Image, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { C, WALL, glow, displayFont, hairline, type } from "../theme";
 import { Profile } from "../lib/storage";
 import { ladderRank } from "../lib/game-logic";
 import { BADGE_DEFS } from "../lib/badges";
 import { FanIdentity } from "../lib/auth";
-import BrandHeader from "../components/BrandHeader";
+import ScreenHeader from "../components/ScreenHeader";
 import Icon from "../components/Icon";
+import { FadeIn, Tap } from "../components/Motion";
 
 interface Props { identity: FanIdentity; profile: Profile; onBack: () => void; onSettings: () => void; }
 
@@ -45,15 +46,15 @@ export default function ProfileScreen({ identity, profile, onBack, onSettings }:
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
-      <BrandHeader eyebrow="PLAYER PROFILE" />
-      <View style={styles.profileTop}>
+      <ScreenHeader title="Profile" caption="PLAYER" />
+      <FadeIn dy={10} style={styles.profileTop}>
         {identity.avatarUrl ? <Image source={{ uri: identity.avatarUrl }} style={styles.avatarImage} /> : <View style={styles.avatarFallback}><Text style={styles.avatarFallbackTxt}>{identity.name.slice(0, 1).toUpperCase()}</Text></View>}
         <Text style={styles.playerName}>{identity.name.toUpperCase()}</Text>
-        <Pressable onPress={onSettings} style={styles.settings}><Icon name="gear" size={10} color={C.muted} style={{ marginRight: 5 }} /><Text style={styles.settingsTxt}>SETTINGS</Text></Pressable>
-      </View>
+        <Tap onPress={onSettings} hitSlop={8} accessibilityRole="button" style={styles.settings}><Icon name="gear" size={10} color={C.muted} style={{ marginRight: 5 }} /><Text style={styles.settingsTxt}>SETTINGS</Text></Tap>
+      </FadeIn>
 
       {/* royal status */}
-      <View style={[styles.royalCard, glow(C.gold, 10, 0.4)]}>
+      <FadeIn delay={60} dy={10} style={[styles.royalCard, glow(C.gold, 10, 0.3)]}>
         <View style={styles.royalKickerRow}>
           <Icon name="crown" size={12} color={C.gold} style={{ marginRight: 8 }} />
           <Text style={styles.royalKicker}>ROYAL STATUS</Text>
@@ -61,13 +62,13 @@ export default function ProfileScreen({ identity, profile, onBack, onSettings }:
         </View>
         <Text style={styles.royalLevel}>LEVEL {level}</Text>
         <Text style={styles.royalTitle}>{title.toUpperCase()}</Text>
-      </View>
+      </FadeIn>
 
       {/* lifetime score */}
-      <View style={[styles.scoreCard, glow(C.hi, 10, 0.35)]}>
+      <FadeIn delay={110} dy={10} style={[styles.scoreCard, glow(C.hi, 10, 0.25)]}>
         <Text style={styles.scoreLbl}>LIFETIME SCORE</Text>
         <Text style={styles.scoreVal}>{profile.ladderPoints.toLocaleString()}</Text>
-      </View>
+      </FadeIn>
 
       <View style={styles.statsRow}>
         <Stat label="WIN RATE" value={`${winRate}%`} color={C.hi} />
@@ -96,7 +97,10 @@ export default function ProfileScreen({ identity, profile, onBack, onSettings }:
 
       {/* ladder wall */}
       <View style={styles.card}>
-        <Text style={styles.cardLabel}>♛ ROYALE LADDER · YOU ARE #{rank}</Text>
+        <View style={styles.cardLabelRow}>
+          <Icon name="crown" size={11} color={C.gold} style={{ marginRight: 6 }} />
+          <Text style={styles.cardLabel}>ROYALE LADDER · YOU ARE #{rank}</Text>
+        </View>
         {rows.map((r, i) => (
           <View key={r.name + i} style={[styles.wrow, r.you && [styles.wrowYou, glow(C.gold, 6, 0.3)]]}>
             <Text style={[styles.wname, r.you && { color: C.gold }]}>
@@ -113,13 +117,13 @@ export default function ProfileScreen({ identity, profile, onBack, onSettings }:
         The ladder above is a local demo — cross-device ranking ships with the multiplayer backend.
       </Text>
 
-      <Pressable style={[styles.shareProfile, glow(C.hi, 8, 0.25)]} onPress={() => Share.share({ message: `${identity.name} is level ${level} ${title} on Hi-Lo Royale with ${profile.ladderPoints.toLocaleString()} points. Join the next lobby: hiloroyale://lobby` }).catch(() => {})}>
+      <Tap style={[styles.shareProfile, glow(C.hi, 8, 0.2)]} accessibilityRole="button" onPress={() => Share.share({ message: `${identity.name} is level ${level} ${title} on Hi-Lo Royale with ${profile.ladderPoints.toLocaleString()} points. Join the next lobby: hiloroyale://lobby` }).catch(() => {})}>
         <Text style={styles.shareProfileTxt}>↗  SHARE PROFILE</Text>
-      </Pressable>
+      </Tap>
 
-      <Pressable style={({ pressed }) => [styles.ghost, pressed && { opacity: 0.85 }]} onPress={onBack}>
+      <Tap style={styles.ghost} accessibilityRole="button" onPress={onBack}>
         <Text style={styles.ghostTxt}>← Back to lobby</Text>
-      </Pressable>
+      </Tap>
     </ScrollView>
   );
 }
@@ -144,36 +148,37 @@ const styles = StyleSheet.create({
   settings: { flexDirection: "row", alignItems: "center", borderColor: C.lineStrong, borderWidth: 1, borderRadius: 99, paddingHorizontal: 11, paddingVertical: 5, marginTop: 7 },
   settingsTxt: { color: C.muted, fontSize: 9, fontWeight: "900", letterSpacing: 0.7 },
   royalCard: {
-    backgroundColor: "rgba(255,213,74,0.05)", borderColor: C.gold, borderWidth: 1.5, borderRadius: 18,
+    backgroundColor: "rgba(255,213,74,0.05)", borderColor: C.gold, borderWidth: 1, borderRadius: 18,
     alignItems: "center", paddingVertical: 16, marginBottom: 12,
   },
   royalKickerRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
-  royalKicker: { color: C.gold, fontSize: 11, fontWeight: "900", letterSpacing: 2 },
-  royalLevel: { color: C.text, fontSize: 14, fontWeight: "800", letterSpacing: 1 },
+  royalKicker: { ...type.caption, color: C.gold, letterSpacing: 1.8 },
+  royalLevel: { color: C.text, fontSize: 14, fontWeight: "700", letterSpacing: 0.6 },
   royalTitle: { color: C.gold, fontSize: 26, ...displayFont, marginTop: 2 },
   scoreCard: {
-    backgroundColor: C.panel, borderColor: C.hi, borderWidth: 1.5, borderRadius: 18,
+    backgroundColor: C.panel, borderColor: C.hi, borderWidth: 1, borderRadius: 18,
     alignItems: "center", paddingVertical: 16, marginBottom: 12,
   },
-  scoreLbl: { color: C.muted, fontSize: 11, letterSpacing: 2, fontWeight: "800", marginBottom: 4 },
+  scoreLbl: { ...type.section, marginBottom: 4 },
   scoreVal: { color: C.hi, fontSize: 42, ...displayFont, fontVariant: ["tabular-nums"] },
   statsRow: { flexDirection: "row", gap: 10, marginBottom: 10 },
   stat: {
-    flex: 1, backgroundColor: C.panel, borderColor: C.line, borderWidth: 1, borderRadius: 14,
+    flex: 1, backgroundColor: C.panel, borderColor: C.line, borderWidth: hairline, borderRadius: 14,
     alignItems: "center", paddingVertical: 14, paddingHorizontal: 4,
   },
-  statVal: { fontWeight: "900", fontSize: 20 },
-  statLbl: { color: C.muted, fontSize: 9, letterSpacing: 1.5, marginTop: 4 },
-  sectionLbl: { color: C.muted, fontSize: 11, fontWeight: "800", letterSpacing: 2, textAlign: "center", marginVertical: 10 },
+  statVal: { fontWeight: "800", fontSize: 20, fontVariant: ["tabular-nums"] },
+  statLbl: { ...type.caption, fontSize: 10, marginTop: 4 },
+  sectionLbl: { ...type.section, textAlign: "center", marginVertical: 10 },
   badgeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 },
   badgeTile: {
-    width: "47.5%", alignItems: "center", backgroundColor: C.panelDeep, borderWidth: 1.5,
-    borderRadius: 12, paddingVertical: 14,
+    width: "47.5%", alignItems: "center", backgroundColor: C.panelDeep, borderWidth: 1,
+    borderRadius: 14, paddingVertical: 14,
   },
   badgeTileLocked: { opacity: 0.4 },
-  badgeTileLabel: { fontSize: 11, fontWeight: "900", textAlign: "center", letterSpacing: 0.5 },
-  card: { backgroundColor: C.panel, borderColor: C.line, borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 14 },
-  cardLabel: { color: C.muted, fontSize: 10, letterSpacing: 1, marginBottom: 10, fontWeight: "800" },
+  badgeTileLabel: { fontSize: 11, fontWeight: "800", textAlign: "center", letterSpacing: 0.4 },
+  card: { backgroundColor: C.panel, borderColor: C.line, borderWidth: hairline, borderRadius: 16, padding: 14, marginBottom: 14 },
+  cardLabelRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
+  cardLabel: { ...type.caption, fontSize: 11 },
   wrow: {
     flexDirection: "row", justifyContent: "space-between",
     backgroundColor: C.panelDeep, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 5,

@@ -125,11 +125,11 @@ export function predictionPoints(verdict: Verdict, correctShare: number): number
   return Math.round(10 + 40 * (1 - share));
 }
 
-/** Local calendar key used by the offline Daily Lobby rotation. */
+/** UTC calendar key shared by web and iOS Daily Lobby rotation. */
 export function dailyKey(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 

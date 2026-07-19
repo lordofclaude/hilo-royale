@@ -46,6 +46,7 @@ const var454 = { ...BASE, Action: "var", Id: 423, Ts: 1784410673296, Seq: 454, S
 const varEnd456 = { ...BASE, Action: "var_end", Id: 423, Ts: 1784410682257, Seq: 456, StatusId: 2, Confirmed: true, Clock: { Running: true, Seconds: 2268 }, Data: { Outcome: "Stands" }, Stats: smap(0, 1, 0, 2), Participant: 2 };
 // pure noise — must never emit
 const noise = { ...BASE, Action: "safe_possession", Id: 141, Ts: 1784409405000, Seq: 122, StatusId: 2, Clock: { Running: true, Seconds: 965 }, Stats: smap(0, 1, 0, 2) };
+const discarded = { ...BASE, Action: "action_discarded", Id: 56, Ts: 1784409406000, Seq: 123, StatusId: 2, Confirmed: true, Clock: { Running: true, Seconds: 966 }, Stats: smap(0, 1, 0, 2) };
 
 const odds1x2 = (mid, ts, p1, dr, p2) => ({ FixtureId: 18257865, MessageId: mid, Ts: ts, Bookmaker: "bk", SuperOddsType: "1X2_PARTICIPANT_RESULT", InRunning: true, Prices: [3.01, 2.35, 4.13], Pct: [String(p1), String(dr), String(p2)] });
 const oddsNA = { FixtureId: 18257865, MessageId: 900003, Ts: 1784408400500, SuperOddsType: "1X2_PARTICIPANT_RESULT", Pct: ["NA", "NA", "NA"] };
@@ -53,7 +54,7 @@ const oddsOther = { FixtureId: 18257865, MessageId: 900002, Ts: 1784408401000, S
 
 // window 1 and window 2 overlap (Seq 51/52 repeat) — dedupe must hold
 const scoresWin1 = [kickoff17, goal51, goal52];
-const scoresWin2 = [goal52, goal53, corner102, corner101, shot120, cornerStale, noise, var454, varEnd456]; // shuffled on purpose
+const scoresWin2 = [goal52, goal53, corner102, corner101, shot120, cornerStale, noise, discarded, var454, varEnd456]; // shuffled on purpose
 const oddsWin1 = [oddsNA, oddsOther, odds1x2(900001, 1784408405000, 33.2, 42.6, 24.2)];
 const oddsWin2 = [odds1x2(900001, 1784408405000, 33.2, 42.6, 24.2), odds1x2(900004, 1784409000000, 43.7, 27.4, 28.9)];
 
@@ -111,7 +112,7 @@ async function main() {
   eq("fixtureId digits-only in proxy calls", calls.filter(u => /mode=scores/.test(u)).every(u => u.includes("fixtureId=18257865")), true);
   eq("status went live", statuses[0], "live");
 
-  eq("event types in order", events.map(e => e.type), ["kickoff", "goal", "corner", "shot", "corner", "var", "var_verdict"]);
+  eq("event types in order", events.map(e => e.type), ["kickoff", "goal", "corner", "shot", "corner", "var_verdict"]);
   eq("one goal despite 3 feed updates (Id 56 over Seq 51/52/53)", events.filter(e => e.type === "goal").length, 1);
   eq("goal minute from Clock.Seconds (137s -> 2)", events.find(e => e.type === "goal").minute, 2);
   eq("goal team resolved (England = 2)", events.find(e => e.type === "goal").team, 2);
@@ -122,6 +123,7 @@ async function main() {
   eq("second corner c2=2", events.filter(e => e.type === "corner")[1].stats.c2, 2);
   eq("var verdict detail carried (Stands)", events.find(e => e.type === "var_verdict").detail, "Stands");
   eq("no noise events (possession etc.)", events.some(e => !["kickoff", "goal", "corner", "shot", "var", "var_verdict"].includes(e.type)), false);
+  eq("action_discarded never becomes a bogus card", events.some(e => e.seq === 123 || (e.type === "card" && e.minute === 16)), false);
 
   // monotonicity across the whole emission stream
   const KEYS = ["c1", "c2", "g1", "g2", "y1", "y2", "r1", "r2", "s1", "s2"];
