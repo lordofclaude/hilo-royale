@@ -9,6 +9,7 @@ import { clearIdentity, FanIdentity, loadIdentity } from "./src/lib/auth";
 import { clearGameSettings, DEFAULT_GAME_SETTINGS, GameSettings, loadGameSettings, saveGameSettings } from "./src/lib/settings";
 import { joinRoom } from "./src/lib/room-service";
 import { liveStatus } from "./src/lib/live-service";
+import { arenaEntryMode, type ArenaEntryMode } from "./src/lib/arena-entry";
 import { replayByFixtureId, replayForDate, ReplayFixture } from "./src/lib/txline-real";
 import { dailyKey, decodeGhostPicks } from "./src/lib/game-logic";
 import Icon, { IconName } from "./src/components/Icon";
@@ -57,6 +58,7 @@ export default function App() {
   const [profile, setProfile] = useState<Profile>(EMPTY_PROFILE);
   const [identity, setIdentity] = useState<FanIdentity | null>(null);
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
+  const [activeGameMode, setActiveGameMode] = useState<ArenaEntryMode>("replay");
   const [activeReplay, setActiveReplay] = useState<ReplayFixture>(() => replayForDate());
   const [todayKey, setTodayKey] = useState(() => dailyKey(new Date()));
   const [challenge, setChallenge] = useState<ChallengeRun | null>(null);
@@ -84,6 +86,7 @@ export default function App() {
           const replay = replayByFixtureId(nextChallenge.fixtureId);
           if (replay) {
             setActiveReplay(replay);
+            setActiveGameMode("replay");
             setChallenge(nextChallenge);
             setSettings(current => ({ ...current, mode: "replay" }));
             setScreen("game");
@@ -158,14 +161,16 @@ export default function App() {
 
   const joinGame = async () => {
     if (!identity) return;
-    if (settings.mode === "live" && !liveStatus().ready) return;
     const now = new Date();
     const dailyReplay = replayForDate(now);
-    const replay = settings.mode === "live"
-      ? replayByFixtureId(liveStatus().fixtureId || "") || dailyReplay
+    const live = liveStatus();
+    const entryMode = arenaEntryMode(settings.mode, live.ready);
+    const replay = entryMode === "live"
+      ? replayByFixtureId(live.fixtureId || "") || dailyReplay
       : dailyReplay;
     setTodayKey(dailyKey(now));
     setActiveReplay(replay);
+    setActiveGameMode(entryMode);
     setChallenge(null);
     setScreen("game");
     void joinRoom(replay.lobbyId, identity).catch(() => { /* Presence is optional; never block the arena. */ });
@@ -193,7 +198,7 @@ export default function App() {
         {/* True live only when a real fixture is in its window — otherwise the
             join runs SIM LIVE (the real replay presented as if live), so the
             arena is never dead. */}
-        {screen === "game" && (settings.mode === "live" && liveStatus().ready ? <LiveGameScreen settings={settings} onEnd={onGameEnd} /> : <GameScreen settings={settings} replay={activeReplay} dailyKey={todayKey} challenge={challenge} onEnd={onGameEnd} />)}
+        {screen === "game" && (activeGameMode === "live" ? <LiveGameScreen settings={settings} onEnd={onGameEnd} /> : <GameScreen settings={settings} replay={activeReplay} dailyKey={todayKey} challenge={challenge} onEnd={onGameEnd} />)}
         {screen === "result" && lastResult && (
           <ResultScreen
             result={lastResult}
