@@ -179,6 +179,12 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
               <Text style={styles.tChain}>FINAL SCORE PROVEN ON SOLANA DEVNET · {replay.proof.txSig.slice(0, 8)}…</Text>
             </View>
           )}
+          {r.settlement && (
+            <View style={styles.tChainRow}>
+              <Icon name="chain" size={10} color={C.success} style={{ marginRight: 5 }} />
+              <Text style={styles.tChain}>FAN VOTES SETTLED · ROUND {r.settlement.round} · {r.settlement.signature.slice(0, 8)}…</Text>
+            </View>
+          )}
           {r.badges.length > 0 && (
             <View style={styles.badgeRow}>
               {r.badges.map(id => {
@@ -195,6 +201,15 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
         </View>
       </ViewShot>
 
+      {r.settlement && <Tap
+        style={[styles.chainPill, glow(C.success, 8, 0.3)]}
+        accessibilityRole="link"
+        onPress={() => Linking.openURL(r.settlement!.explorerUrl).catch(() => {})}
+      >
+        <Icon name="chain" size={12} color={C.success} style={{ marginRight: 7 }} />
+        <Text style={styles.chainPillTxt}>ROUND {r.settlement.round} VOTES · {r.settlement.counts.total} INCLUDED · VIEW SOLANA TX ↗</Text>
+      </Tap>}
+
       {/* real on-chain proof: one devnet validateStatV2 tx per fixture, proving
           the final score against TxODDS's Merkle root — tap to view on Solscan */}
       {replay.proofExplorerUrl && <Tap
@@ -206,8 +221,7 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
         <Text style={styles.chainPillTxt}>SCORE PROOF · SOLANA DEVNET — VIEW TX  ↗</Text>
       </Tap>}
 
-      {/* Verifiable seed source: bots/tie-breaks use a fulfilled ORAO request.
-          Per-lobby commitments and transcripts remain roadmap work. */}
+      {/* Verifiable seed source: bots/tie-breaks use a fulfilled ORAO request. */}
       <Tap
         style={[styles.chainPill, glow(C.hi, 8, 0.25)]}
         accessibilityRole="link"

@@ -1,5 +1,5 @@
-/* AUTO-GENERATED from live TxLINE /api/scores/updates/18257865 (historical is locked ~6h post-KO).
-   Fixture: France 2-4 England, FIFA World Cup 2026 (real live capture 2026-07-18). */
+/* LEGACY 60′ live snapshot retained for provenance; the app imports the completed
+   France 4-6 England history from canonical.ts instead. */
 import type { ScoreEvent } from "../txline-mock";
 
 export const FIXTURE = {

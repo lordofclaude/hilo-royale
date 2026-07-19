@@ -310,6 +310,7 @@ footer b{color:var(--muted)}
   <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.4 2.4 4.8-5.4"/></symbol>
   <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.6-9-9c-1.3-3 1-7 4.6-7 2 0 3.4 1 4.4 2.6C13 5 14.4 4 16.4 4c3.6 0 5.9 4 4.6 7-2 4.4-9 9-9 9z"/></symbol>
   <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></symbol>
+  <symbol id="i-chain" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.1.1l2-2a5 5 0 00-7.1-7.1l-1.1 1.1M14 11a5 5 0 00-7.1-.1l-2 2A5 5 0 0012 20l1.1-1.1"/></symbol>
 </svg>
 
 <header><div class="wrap hrow">
@@ -317,6 +318,7 @@ footer b{color:var(--muted)}
   <div class="hbtns">
     <span class="pill" style="color:var(--gold);border-color:rgba(255,213,74,.35)"><svg class="ic"><use href="#i-crown"/></svg><b id="fanhandle">…</b></span>
     <span class="pill" id="datachip" title="Where this lobby's data is coming from"><span class="dpulse"></span><b id="datatxt" style="font-size:.72rem;letter-spacing:.08em">REPLAY TAPE</b></span>
+    <span class="pill" id="roomchip" hidden><svg class="ic" style="color:var(--hi)"><use href="#i-users"/></svg><b id="roomtxt">CONNECTING</b></span>
     <button class="iconbtn" id="snd" aria-label="Toggle sound"><svg class="ic"><use href="#i-sound" id="snduse"/></svg></button>
     <span class="pill"><svg class="ic" style="color:var(--gold)"><use href="#i-users"/></svg><b id="alivecount" aria-live="polite">100</b>&nbsp;alive</span>
     <button class="iconbtn" id="leave" aria-label="Leave arena" title="Leave the arena"><svg class="ic"><use href="#i-x"/></svg></button>
@@ -404,8 +406,9 @@ footer b{color:var(--muted)}
         <button class="btn" id="start"><svg class="ic"><use href="#i-bolt"/></svg>Join lobby &amp; start</button>
         <button class="btn ghost" id="startlive" style="display:none;margin-top:.6rem"><svg class="ic" style="color:var(--success)"><use href="#i-bolt"/></svg>ENTER LIVE LOBBY</button>
         <div class="note" id="livenote" style="display:none"><b>This fixture is inside its live window.</b> LIVE LOBBY drives the scoreboard from the real TxLINE feed as it updates; questions still come from the schedule engine. If the feed goes quiet for ~20s we fall back to the replay tape and say so.</div>
-        <div class="note" id="vrfnote" style="display:none"><svg class="ic" style="color:var(--hi)"><use href="#i-shield"/></svg> <b>Verifiable seed source</b> — prototype bots and tie-breaks use <a id="vrflink" href="#" target="_blank" rel="noopener">ORAO VRF randomness on Solana</a>; per-lobby commitments are next.</div>
+        <div class="note" id="vrfnote" style="display:none"><svg class="ic" style="color:var(--hi)"><use href="#i-shield"/></svg> <b>Verifiable seed source</b> — prototype bots and tie-breaks use <a id="vrflink" href="#" target="_blank" rel="noopener">ORAO VRF randomness on Solana</a>; real fan-vote commitments appear here after each settled round.</div>
         <div class="note" id="proofnote" style="display:none"><svg class="ic" style="color:var(--gold)"><use href="#i-check"/></svg> <b>Score proven on-chain</b> — <a id="prooflink" href="#" target="_blank" rel="noopener">validateStatV2 tx on Solscan</a>.</div>
+        <div class="note" id="settlementnote" style="display:none"><svg class="ic" style="color:var(--success)"><use href="#i-chain"/></svg> <b id="settlementtext">Fan votes settled on Solana</b> — <a id="settlementlink" href="#" target="_blank" rel="noopener">view receipt and Merkle root</a>.</div>
         <div class="note" id="capturenote" style="display:none"></div>
         <div class="note">Replay lobbies use real World Cup matches pulled from TxLINE. Web and iOS share canonical match data and core survival rules; web currently ships additional question types.</div>
       </div>
@@ -416,7 +419,7 @@ footer b{color:var(--muted)}
     <b>Real data, honest ledger.</b> Every lobby replays a real fixture pulled from the TxLINE feed (score events + StablePrice odds); questions come from the shared
     <code>HiLoLogic.buildSchedule</code> engine (unit-tested, mirrored in the iOS app). Rounds run a solora-anchor-style lifecycle (open → locked → settled; a feedless window voids the round).
     The 99 other fans are simulated bots<span id="vrffootwrap" style="display:none">, seeded by <b>ORAO VRF</b> verifiable randomness on Solana devnet (<a id="vrffoot" href="#" target="_blank" rel="noopener">request tx</a>)</span>.
-    Ladder points and streaks are stored in this browser only. Where a lobby shows a proof link, its final score is proven by a real <code>validateStatV2</code> devnet transaction.
+    Ladder points and streaks are stored in this browser only. When the room service is connected, real fan picks are immutable in the shared backend and every resolved round commits their pseudonymous vote transcript to a Solana devnet Memo transaction with a verifiable Merkle root.
   </footer>
 </div>
 
@@ -428,6 +431,7 @@ footer b{color:var(--muted)}
     <a class="btn" id="openchal" style="display:none" target="_blank" rel="noopener"><svg class="ic"><use href="#i-share"/></svg>Open challenge</a>
     <button class="btn ghost" id="copychal" style="display:none"><svg class="ic"><use href="#i-share"/></svg>Copy challenge link</button>
     <button class="btn ghost" id="share"><svg class="ic"><use href="#i-share"/></svg>Share</button>
+    <a class="btn ghost" id="settlementresult" style="display:none" target="_blank" rel="noopener"><svg class="ic"><use href="#i-chain"/></svg>View fan-vote settlement</a>
     <button class="btn ghost" id="dl"><svg class="ic"><use href="#i-download"/></svg>Save streak card</button>
     <button class="btn ghost" id="again"><svg class="ic"><use href="#i-refresh"/></svg>Play another lobby</button>
   </div>
@@ -484,19 +488,98 @@ function dailyIdx(){
   const pin=LOBBIES.findIndex(l=>l.fixtureId===FEATURED_ID);if(pin>=0)return pin;
   const k=new Date().toISOString().slice(0,10);let h=2166136261;for(const c of k)h=Math.imul(h^c.charCodeAt(0),16777619);const id=DAILY_IDS[(h>>>0)%DAILY_IDS.length];return Math.max(0,LOBBIES.findIndex(l=>l.fixtureId===id));}
 const wanted=new URLSearchParams(location.search).get('fixture');
+const privateParam=new URLSearchParams(location.search).get('squad')||'';
+const PRIVATE_CODE=/^[A-Za-z0-9_-]{1,40}$/.test(privateParam)?privateParam.toUpperCase():'';
 const LOBBY=LOBBIES.find(l=>l.fixtureId===wanted)||LOBBIES[dailyIdx()]||LOBBIES[0];
 const DEMO=new URLSearchParams(location.search).get('demo')==='1';
 const FIXTURE=LOBBY.fixture,E=LOBBY.events;
 const teamCode=n=>String(n||'').slice(0,3).toUpperCase();
 const CODE1=teamCode(FIXTURE.Participant1),CODE2=teamCode(FIXTURE.Participant2);
 const LOBBY_ID=`${CODE1}-${CODE2}-${LOBBY.fixtureId.slice(-3)}`;
+const ROOM_ID=PRIVATE_CODE?`private-${PRIVATE_CODE}`:LOBBY_ID;
 const FINAL_SCORE=LOBBY.finalScore||LOBBY.observedScore;
 /* hero */
-$('lobbyid').textContent=LOBBY_ID;
+$('lobbyid').textContent=PRIVATE_CODE?`PRIVATE-${PRIVATE_CODE}`:LOBBY_ID;
 $('comp').textContent=FIXTURE.Competition+(LOBBY.tag?' · '+LOBBY.tag:'');
 $('crest1').textContent=CODE1;$('crest2').textContent=CODE2;
 $('name1').textContent=FIXTURE.Participant1;$('name2').textContent=FIXTURE.Participant2;
 $('score').textContent='0 – 0';
+if(PRIVATE_CODE){
+  $('quickstart').innerHTML=icon('i-users')+'ENTER PRIVATE BATTLE';
+  $('question').innerHTML=`Private battle <b>${esc(PRIVATE_CODE)}</b>. Friends play the same real fixture; locked picks and final scores are saved to the shared room.`;
+}
+
+/* ---------------- durable room presence + immutable picks ---------------- */
+let roomSessionToken=null,roomPoll=null,roomReadyPromise=null,latestSettlement=null;
+let roomClientKey=store.get('roomClientKey','');
+if(!roomClientKey){roomClientKey=(crypto.randomUUID?crypto.randomUUID():`web-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`);store.set('roomClientKey',roomClientKey);}
+function paintRoom(room){
+  const count=Array.isArray(room&&room.players)?room.players.length:0;
+  $('roomchip').hidden=false;
+  $('roomtxt').textContent=PRIVATE_CODE?`PRIVATE · ${count} JOINED`:`${count} REAL`;
+}
+async function roomRequest(body){
+  const response=await fetch('/api/rooms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const value=await response.json().catch(()=>({ok:false}));
+  if(!response.ok){const error=new Error(value.reason||`room-${response.status}`);error.reason=value.reason;error.status=response.status;throw error;}
+  return value;
+}
+async function refreshRoom(){
+  const response=await fetch('/api/rooms?roomId='+encodeURIComponent(ROOM_ID),{cache:'no-store'});
+  if(!response.ok)throw new Error(`room-${response.status}`);
+  paintRoom(await response.json());
+}
+async function joinSharedRoom(){
+  const room=await roomRequest({action:'join',roomId:ROOM_ID,playerKey:roomClientKey,name:(FAN&&FAN.handle)||'Guest Fan'});
+  roomSessionToken=room.sessionToken;paintRoom(room);
+  if(!roomPoll)roomPoll=setInterval(()=>{refreshRoom().catch(()=>{});},3000);
+}
+async function submitSharedPick(q,pick,msRemaining){
+  if(!roomSessionToken&&roomReadyPromise)await roomReadyPromise.catch(()=>{});
+  if(!roomSessionToken)return;
+  roomRequest({action:'pick',roomId:ROOM_ID,sessionToken:roomSessionToken,fixtureId:LOBBY.fixtureId,round:q.n,questionId:`${q.kind||'compare_window'}:${q.key}:${q.fromMin}:${q.windowLen}`,pick,msRemaining}).catch(()=>{});
+}
+async function submitSharedResult(result){
+  if(!roomSessionToken&&roomReadyPromise)await roomReadyPromise.catch(()=>{});
+  if(!roomSessionToken)return;
+  roomRequest({action:'result',roomId:ROOM_ID,sessionToken:roomSessionToken,fixtureId:LOBBY.fixtureId,result}).catch(()=>{});
+}
+async function getSharedSettlement(round){
+  const query=`roomId=${encodeURIComponent(ROOM_ID)}&fixtureId=${encodeURIComponent(LOBBY.fixtureId)}&round=${round}`;
+  const response=await fetch('/api/rooms?'+query,{cache:'no-store'});
+  if(response.status===404)return null;
+  if(!response.ok)throw new Error(`settlement-${response.status}`);
+  return (await response.json()).settlement||null;
+}
+function paintSettlement(settlement){
+  if(!settlement)return;
+  latestSettlement=settlement;
+  $('settlementnote').style.display='block';
+  $('settlementtext').textContent=`Round ${settlement.round} · ${settlement.counts.total} real vote${settlement.counts.total===1?'':'s'} settled on Solana`;
+  $('settlementlink').href=settlement.explorerUrl;
+  $('settlementresult').style.display='inline-flex';
+  $('settlementresult').href=settlement.explorerUrl;
+}
+async function submitSharedSettlement(q,answer){
+  if(!roomSessionToken&&roomReadyPromise)await roomReadyPromise.catch(()=>{});
+  if(!roomSessionToken)return;
+  try{
+    const value=await roomRequest({action:'settle',roomId:ROOM_ID,sessionToken:roomSessionToken,fixtureId:LOBBY.fixtureId,round:q.n,answer});
+    paintSettlement(value.settlement);
+  }catch(error){
+    if(error&&error.reason==='settlement-in-progress'){
+      for(let attempt=0;attempt<5;attempt++){
+        await new Promise(resolve=>setTimeout(resolve,700+attempt*300));
+        const settlement=await getSharedSettlement(q.n).catch(()=>null);
+        if(settlement){paintSettlement(settlement);return;}
+      }
+    }
+  }
+}
+roomReadyPromise=joinSharedRoom().catch(()=>{
+  $('roomchip').hidden=false;$('roomtxt').textContent='ROOM OFFLINE';
+  if(PRIVATE_CODE)$('question').innerHTML=`Private battle <b>${esc(PRIVATE_CODE)}</b>. Shared room storage is temporarily offline; you can still play the solo replay while the host reconnects it.`;
+});
 /* lobby switcher chips (stage/tag metadata + live window flags; UPCOMING is optional) */
 const isLiveNow=ms=>!!(LF&&LF.isLive&&ms&&LF.isLive(ms));
 const LIVE_OK=!!(LF&&LOBBY.kickoffMs&&isLiveNow(LOBBY.kickoffMs));
@@ -813,6 +896,7 @@ function pickSide(p){if(!pending)return;
   if(pending.myPick)return;
   pending.myPick=p;pending.myPickAtMs=pending.msRemaining;
   pending.revealed.push(p);updateCrowdBar(pending.revealed);
+  submitSharedPick(pending.q,p,pending.myPickAtMs);
   $(p).classList.add('picked');$(p).setAttribute('aria-pressed','true');$('hi').disabled=$('lo').disabled=true;AudioFX.lock();}
 
 function resolveRound(){
@@ -821,6 +905,7 @@ function resolveRound(){
   $('hi').disabled=$('lo').disabled=true;
   const {val,answer}=P.outcome;const q=P.q;
   settleEvent(answer);
+  void submitSharedSettlement(q,answer);
   /* ghost rival replays the recorded pick for this round (revealed only after the lock) */
   let gpick=null,ghostWasAlive=!!(ghostBot&&ghostBot.alive);
   if(ghostWasAlive){
@@ -942,6 +1027,7 @@ function endGame(){
   const won=me.alive&&oa===0;
   const outlivedCount=me.alive?100-aliveTotal():me.outlivedAtDeath??0;
   const pts=HiLoLogic.ladderPoints({streak:me.streak,outlivedCount,won});
+  submitSharedResult({pts,streak:me.streak,outlivedCount,won});
   ladder.points+=pts;ladder.matches++;if(won)ladder.crowns++;
   store.set('ladder',ladder.points);store.set('matches',ladder.matches);store.set('crowns',ladder.crowns);
   renderLadder();

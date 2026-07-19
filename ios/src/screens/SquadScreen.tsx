@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { C, displayFont, glow, hairline, type } from "../theme";
@@ -6,21 +6,30 @@ import { FanIdentity } from "../lib/auth";
 import ScreenHeader from "../components/ScreenHeader";
 import Icon from "../components/Icon";
 import { FadeIn, Tap } from "../components/Motion";
-import { joinRoom, roomServiceStatus } from "../lib/room-service";
+import { joinRoom, RoomPlayer, RoomResult, roomServiceStatus, watchRoom } from "../lib/room-service";
 
-interface Props { identity: FanIdentity; initialCode?: string | null; }
+interface Props { identity: FanIdentity; fixtureId: string; initialCode?: string | null; onEnterBattle: (code: string) => void; }
 
-const MEMBERS = ["LUNA7", "KICKER88", "ONYX", "RIRI_10"];
-const SQUAD_WALL = [
-  ["GOAL DIGGERS", 2950], ["NET BUSTERS", 2420], ["PITCH KINGS", 2050], ["CROWN CREW", 1840],
-] as const;
-
-export default function SquadScreen({ identity, initialCode }: Props) {
+export default function SquadScreen({ identity, fixtureId, initialCode, onEnterBattle }: Props) {
   const generatedCode = useMemo(() => `BATTLE-${identity.id.slice(-4).toUpperCase()}`, [identity.id]);
   const [code, setCode] = useState(initialCode || generatedCode);
-  const [joined, setJoined] = useState(Boolean(initialCode));
-  const inviteUrl = `https://hilo-royale.vercel.app/play?squad=${encodeURIComponent(code)}`;
+  const [joined, setJoined] = useState(false);
+  const [players, setPlayers] = useState<RoomPlayer[]>([]);
+  const [results, setResults] = useState<RoomResult[]>([]);
+  const [roomError, setRoomError] = useState<string | null>(null);
+  const normalizedCode = code.toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 40);
+  const roomId = `private-${normalizedCode}`;
+  const inviteUrl = `https://hilo-royale.vercel.app/play?fixture=${encodeURIComponent(fixtureId)}&squad=${encodeURIComponent(normalizedCode)}`;
   const roomService = roomServiceStatus();
+
+  useEffect(() => {
+    if (!joined || !normalizedCode) return;
+    const watcher = watchRoom(roomId, {
+      onSnapshot: room => { setPlayers(room.players); setResults(room.results); setRoomError(null); },
+      onError: () => setRoomError("Could not refresh this room."),
+    });
+    return () => watcher.stop();
+  }, [joined, normalizedCode, roomId]);
 
   const invite = () => Share.share({
     title: "Join my Hi-Lo Royale private battle",
@@ -30,26 +39,36 @@ export default function SquadScreen({ identity, initialCode }: Props) {
 
   const copy = async () => { await Clipboard.setStringAsync(code); };
   const joinSquad = async () => {
-    try { await joinRoom(`squad-${code}`, identity, code); } catch { /* Local squad UI remains available offline. */ }
-    setJoined(true);
+    if (!normalizedCode) return;
+    setRoomError(null);
+    try {
+      const room = await joinRoom(roomId, identity, normalizedCode);
+      if (room) { setPlayers(room.players); setResults(room.results); }
+      setCode(normalizedCode);
+      setJoined(true);
+    } catch {
+      setRoomError("Private rooms are temporarily unavailable. Your public arena still works.");
+    }
   };
+
+  const visiblePlayers = players.length ? players : [{ id: identity.id, name: identity.name, joinedAt: new Date().toISOString() }];
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <ScreenHeader
         title="Private Battle"
         caption="INVITE FRIENDS"
-        right={<View style={styles.liveRow}><View style={styles.liveDot} /><Text style={styles.liveTxt}>{roomService.ready ? "5 ONLINE" : "DEMO CREW"}</Text></View>}
+        right={<View style={styles.liveRow}><View style={[styles.liveDot, roomError && { backgroundColor: C.lo }]} /><Text style={styles.liveTxt}>{joined ? `${visiblePlayers.length} JOINED` : "NOT CREATED"}</Text></View>}
       />
 
       <FadeIn dy={12} style={[styles.hero, glow(C.hi, 12, 0.22)]}>
         <Icon name="crown" size={32} color={C.gold} style={{ marginBottom: 6 }} />
         <Text style={styles.heroTitle} numberOfLines={1} adjustsFontSizeToFit>YOUR BATTLE ROOM</Text>
         <View style={styles.members}>
-          {[identity.name, ...MEMBERS].map((name, i) => (
-            <View key={name} style={styles.member}>
-              <View style={[styles.avatar, { borderColor: i === 0 ? C.gold : C.hi }]}><Text style={[styles.avatarTxt, { color: i === 0 ? C.gold : C.hi }]}>{name.slice(0, 1).toUpperCase()}</Text><View style={styles.online} /></View>
-              <Text numberOfLines={1} style={styles.memberName}>{i === 0 ? "YOU" : name}</Text>
+          {visiblePlayers.slice(0, 5).map((player, i) => (
+            <View key={player.id} style={styles.member}>
+              <View style={[styles.avatar, { borderColor: i === 0 ? C.gold : C.hi }]}><Text style={[styles.avatarTxt, { color: i === 0 ? C.gold : C.hi }]}>{player.name.slice(0, 1).toUpperCase()}</Text><View style={styles.online} /></View>
+              <Text numberOfLines={1} style={styles.memberName}>{player.name === identity.name ? "YOU" : player.name}</Text>
             </View>
           ))}
         </View>
@@ -66,28 +85,30 @@ export default function SquadScreen({ identity, initialCode }: Props) {
         <Text style={styles.cardKicker}>{joined ? "BATTLE READY" : "CREATE YOUR BATTLE"}</Text>
         <Text style={styles.cardText}>Create the room, then share its private code so friends can join your next match.</Text>
         <View style={styles.codeRow}>
-          <TextInput value={code} onChangeText={setCode} autoCapitalize="characters" style={styles.codeInput} />
+          <TextInput value={code} onChangeText={value => { setCode(value); setJoined(false); setPlayers([]); setResults([]); }} autoCapitalize="characters" style={styles.codeInput} />
           <Tap onPress={() => { void joinSquad(); }} accessibilityRole="button" style={styles.joinBtn}><Text style={styles.joinBtnTxt}>{initialCode ? "JOIN" : "CREATE"}</Text></Tap>
         </View>
+        {roomError && <Text style={styles.error}>{roomError}</Text>}
         <View style={styles.actionRow}>
-          <Tap onPress={invite} accessibilityRole="button" style={[styles.action, { borderColor: C.hi }]}><Text style={[styles.actionTxt, { color: C.hi }]}>↗ SHARE INVITE</Text></Tap>
+          <Tap onPress={invite} disabled={!joined} accessibilityRole="button" style={[styles.action, { borderColor: C.hi }, !joined && styles.disabled]}><Text style={[styles.actionTxt, { color: C.hi }]}>↗ SHARE INVITE</Text></Tap>
           <Tap onPress={copy} accessibilityRole="button" style={[styles.action, { borderColor: C.gold }]}><Text style={[styles.actionTxt, { color: C.gold }]}>COPY CODE</Text></Tap>
         </View>
+        {joined && <Tap onPress={() => onEnterBattle(normalizedCode)} accessibilityRole="button" style={[styles.enterBattle, glow(C.gold, 8, 0.28)]}><Text style={styles.enterBattleTxt}>ENTER PRIVATE BATTLE  →</Text></Tap>}
       </FadeIn>
 
       <FadeIn delay={130} dy={10} style={[styles.groupPick, glow(C.lo, 10, 0.18)]}>
-        <Text style={styles.groupLabel}>NEXT GROUP PICK · CORNERS</Text>
+        <Text style={styles.groupLabel}>PRIVATE PICKS · SERVER LOCKED</Text>
         <View style={styles.pickRow}><Text style={styles.pickHi}>HI</Text><Icon name="ball" size={24} color={C.text} /><Text style={styles.pickLo}>LO</Text></View>
-        <Text style={styles.groupMeta}>3 crew members are leaning HI</Text>
+        <Text style={styles.groupMeta}>Friends' picks stay hidden and cannot be changed after locking.</Text>
       </FadeIn>
 
       <Text style={styles.section}>PRIVATE BATTLE LEADERBOARD</Text>
       <View style={styles.wall}>
-        {SQUAD_WALL.map(([name, points], i) => (
-          <View key={name} style={[styles.wallRow, i === 3 && styles.wallYou]}><Text style={[styles.wallRank, i === 3 && { color: C.hi }]}>{i + 1}</Text><Text style={[styles.wallName, i === 3 && { color: C.hi }]}>{name}</Text><Text style={styles.wallPts}>{points.toLocaleString()}</Text></View>
-        ))}
+        {results.length ? results.map((result, i) => (
+          <View key={result.playerId} style={[styles.wallRow, result.name === identity.name && styles.wallYou]}><Text style={[styles.wallRank, result.name === identity.name && { color: C.hi }]}>{i + 1}</Text><Text style={[styles.wallName, result.name === identity.name && { color: C.hi }]}>{result.name}</Text><Text style={styles.wallPts}>{result.pts.toLocaleString()}</Text></View>
+        )) : <Text style={styles.empty}>No completed runs yet. Results appear here when friends finish.</Text>}
       </View>
-      <Text style={styles.note}>Deep-link invites open this private battle room. {roomService.ready ? "Cross-device room presence is connected." : roomService.message + "."}</Text>
+      <Text style={styles.note}>Deep-link invites open this private battle room. {roomService.ready ? "Presence, picks, and results use the shared backend." : roomService.message + "."}</Text>
     </ScrollView>
   );
 }
@@ -109,11 +130,13 @@ const styles = StyleSheet.create({
   codeRow: { flexDirection: "row", gap: 8 }, codeInput: { flex: 1, color: C.text, backgroundColor: C.panelDeep, borderColor: C.lineStrong, borderWidth: 1, borderRadius: 11, paddingHorizontal: 12, minHeight: 44, fontSize: 14, fontWeight: "800", letterSpacing: 1 },
   joinBtn: { backgroundColor: C.gold, borderRadius: 11, paddingHorizontal: 18, minHeight: 44, justifyContent: "center" }, joinBtnTxt: { color: "#120d03", fontWeight: "800" },
   actionRow: { flexDirection: "row", gap: 8, marginTop: 10 }, action: { flex: 1, borderWidth: 1, borderRadius: 11, minHeight: 42, alignItems: "center", justifyContent: "center" }, actionTxt: { fontSize: 11, fontWeight: "700", letterSpacing: 0.3 },
+  disabled: { opacity: 0.35 }, error: { color: C.lo, fontSize: 10, lineHeight: 14, marginTop: 7 }, enterBattle: { backgroundColor: C.gold, borderRadius: 11, minHeight: 46, alignItems: "center", justifyContent: "center", marginTop: 10 }, enterBattleTxt: { color: "#120d03", fontSize: 12, fontWeight: "900", letterSpacing: 0.4 },
   groupPick: { backgroundColor: C.panel, borderColor: C.lo, borderWidth: 1, borderRadius: 16, padding: 14, alignItems: "center", marginBottom: 16 },
   groupLabel: { ...type.caption, color: C.text, letterSpacing: 1.1 }, pickRow: { flexDirection: "row", alignItems: "center", gap: 22, marginVertical: 8 },
   pickHi: { color: C.hi, fontSize: 38, ...displayFont }, pickLo: { color: C.lo, fontSize: 38, ...displayFont }, groupMeta: { color: C.muted, fontSize: 11 },
   section: { ...type.section, marginBottom: 8 }, wall: { backgroundColor: C.panel, borderColor: C.line, borderWidth: hairline, borderRadius: 16, padding: 9 },
   wallRow: { flexDirection: "row", alignItems: "center", borderBottomColor: C.line, borderBottomWidth: hairline, paddingHorizontal: 8, minHeight: 42, paddingVertical: 9 }, wallYou: { borderColor: C.hi, borderWidth: 1, borderRadius: 9, backgroundColor: C.hiSoft },
   wallRank: { color: C.muted, width: 28, fontWeight: "700", fontVariant: ["tabular-nums"] }, wallName: { flex: 1, color: C.text, fontWeight: "600", fontSize: 13, letterSpacing: -0.1 }, wallPts: { color: C.gold, fontWeight: "700", fontVariant: ["tabular-nums"] },
+  empty: { ...type.footnote, padding: 12, textAlign: "center", lineHeight: 17 },
   note: { ...type.footnote, fontSize: 10, lineHeight: 15, marginTop: 10 },
 });

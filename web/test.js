@@ -221,7 +221,7 @@ function mkTape(rows) {
 }
 
 // 16-event goals+corners-only tape mirroring the real France-England capture
-// (final 2-4, no shots/cards/subs/VAR recorded even though the real match had
+// (the old 60′ score was 2-4, with no shots/cards/subs/VAR recorded even though the real match had
 // them — a THIN capture, the exact case that used to produce nonsense bets).
 const THIN = mkTape([
   [0, "kickoff", 0], [2, "goal", 2], [6, "corner", 2], [11, "goal", 2],

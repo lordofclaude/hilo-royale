@@ -29,6 +29,11 @@ import { buildSchedule, dailyIndex, dailyKey, Question } from "./game-logic";
 
 export type { ScoreEvent, StatMap, StreamHandle };
 
+export interface ReplayStreamHandle extends StreamHandle {
+  /** Advance the recorded tape through a known round boundary immediately. */
+  settleThrough: (minute: number) => void;
+}
+
 export interface ReplayFixture {
   fixtureId: string;
   fixture: {
@@ -73,9 +78,8 @@ function makeReplay(
 }
 
 /** Named real replays bundled for the backend-free Daily Lobby rotation.
- *  France v England (18257865) is featured first — captured live from the
- *  TxLINE /api/scores/updates feed while the match was in play (historical is
- *  locked ~6h post-kickoff), so it is the app's default lobby. */
+ *  France v England (18257865) is featured first and now carries the completed
+ *  TxLINE score history, so it is the app's default lobby. */
 export const REPLAYS: ReplayFixture[] = [
   ...CANONICAL_REPLAYS.map(row => makeReplay(
     row.fixture,
@@ -87,7 +91,7 @@ export const REPLAYS: ReplayFixture[] = [
 ];
 
 /** DEMO PIN: France v England (18257865) is the featured Daily Lobby — real
- *  data captured live during the Jul 18 quarter-final. Remove the pin (set to
+ *  completed data from the Jul 18 third-place match. Remove the pin (set to
  *  null) to restore the date-hashed daily rotation. */
 const FEATURED_FIXTURE_ID: string | null = "18257865";
 
@@ -132,7 +136,7 @@ export function stream(opts: {
   from?: number;
   onEvent?: (e: ScoreEvent) => void;
   onDone?: (e: ScoreEvent) => void;
-}): StreamHandle {
+}): ReplayStreamHandle {
   return streamReplay(DEFAULT_REPLAY, opts);
 }
 
@@ -142,16 +146,17 @@ export function streamReplay(replay: ReplayFixture, opts: {
   from?: number;
   onEvent?: (e: ScoreEvent) => void;
   onDone?: (e: ScoreEvent) => void;
-}): StreamHandle {
+}): ReplayStreamHandle {
   const { playbackRate = 30, speed, from = 0, onEvent, onDone } = opts;
   const events = replay.events;
   const simMinutesPerRealSecond = speed ?? playbackRate / 60;
   let i = 0, stopped = false, completed = false;
   while (i < events.length && events[i].minute < from) i++;
   let simMin = from;
-  const iv = setInterval(() => {
+  let iv: ReturnType<typeof setInterval>;
+  const emitThrough = (targetMinute: number) => {
     if (stopped) return;
-    simMin += simMinutesPerRealSecond * 0.25;
+    simMin = Math.max(simMin, targetMinute);
     while (i < events.length && events[i].minute <= simMin) {
       const e = events[i++];
       onEvent && onEvent(e);
@@ -159,7 +164,7 @@ export function streamReplay(replay: ReplayFixture, opts: {
         completed = true;
         clearInterval(iv);
         onDone && onDone(e);
-        break;
+        return;
       }
     }
     if (!completed && i >= events.length) {
@@ -167,6 +172,12 @@ export function streamReplay(replay: ReplayFixture, opts: {
       clearInterval(iv);
       onDone && onDone(events[events.length - 1]);
     }
+  };
+  iv = setInterval(() => {
+    emitThrough(simMin + simMinutesPerRealSecond * 0.25);
   }, 250);
-  return { stop() { stopped = true; clearInterval(iv); } };
+  return {
+    settleThrough(minute) { if (!completed) emitThrough(minute); },
+    stop() { stopped = true; clearInterval(iv); },
+  };
 }

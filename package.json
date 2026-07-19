@@ -6,11 +6,13 @@
   "scripts": {
     "dev": "node web/dev-server.js",
     "build:lobbies": "node shared/build-lobbies.js",
-    "test:web": "node web/test.js && node web/share.test.js && node web/live-feed.test.js && node web/api.test.js && node web/test-integration.js",
+    "test:web": "node web/test.js && node web/share.test.js && node web/live-feed.test.js && node web/api.test.js && node web/settlement.test.js && node web/rooms-api.test.js && node web/test-integration.js",
     "test:arena-entry": "node ios/src/lib/arena-entry.test.mjs",
+    "test:room-client": "node ios/src/lib/room-service.test.mjs",
+    "test:replay-settlement": "node ios/src/lib/replay-settlement.test.mjs && node ios/src/lib/replay-stream.test.cjs",
     "typecheck:ios": "corepack pnpm --dir ios typecheck",
     "test:room": "node ios/server/room-server.test.js",
-    "verify": "npm run test:web && npm run test:room && npm run test:arena-entry && npm run typecheck:ios"
+    "verify": "npm run test:web && npm run test:room && npm run test:arena-entry && npm run test:room-client && npm run test:replay-settlement && npm run typecheck:ios"
   },
   "engines": {
     "node": ">=20"
