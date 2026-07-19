@@ -322,7 +322,7 @@
         // monotonic; shots and map-less first sightings accumulate from the action.
         var statsMap = pick(v, "Stats", "stats");
         var applied = false;
-        if (statsMap && typeof statsMap === "object") {
+        if (canEmit && type !== "unknown" && statsMap && typeof statsMap === "object") {
           for (var k in statsMap) {
             var f = STATKEY_TO_STAT[Number(k)];
             if (f) {
@@ -367,14 +367,18 @@
         var mid = pick(o, "MessageId", "messageId");
         var ts = normTs(o);
         var market = pick(o, "SuperOddsType", "superOddsType", "type") || "";
+        var bookmakerId = Number(pick(o, "BookmakerId", "bookmakerId"));
+        var marketPeriod = pick(o, "MarketPeriod", "marketPeriod");
         var key = mid != null ? "m" + mid : "t" + ts + ":" + market;
         if (st.seenOdds[key]) continue;
         st.seenOdds[key] = 1;
-        if (market !== "1X2_PARTICIPANT_RESULT") continue;
+        if (bookmakerId !== 10021 || marketPeriod != null || market !== "1X2_PARTICIPANT_RESULT") continue;
         var pct = pick(o, "Pct", "pct");
         if (!Array.isArray(pct) || pct.length !== 3) continue;
         var p1 = Number(pct[0]), draw = Number(pct[1]), p2 = Number(pct[2]); // "NA" → NaN → skipped
         if (![p1, draw, p2].every(function (n) { return isFinite(n) && n >= 0 && n <= 100; })) continue;
+        var total = p1 + draw + p2;
+        if (total < 95 || total > 105) continue;
         if (!best || !isFinite(best.ts) || (isFinite(ts) && ts >= best.ts)) best = { p1: p1, draw: draw, p2: p2, ts: ts };
       }
       if (!best) return false;

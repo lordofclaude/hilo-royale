@@ -7,21 +7,25 @@
 // Failures are structured JSON and never include an env value. Config via env: TXLINE_JWT, TXLINE_API_TOKEN,
 // TXLINE_HOST (optional).
 const HOST = process.env.TXLINE_HOST || "https://txline-dev.txodds.com";
-const DEFAULT_FIXTURES = ["18257865", "18241006", "18237038", "18222446", "18213979", "17588232"];
+const DEFAULT_FIXTURES = ["18257865", "18241006", "18237038", "18222446", "18213979", "17588232", "18257739" /* WC final Spain v Argentina (UPCOMING live lobby) */];
 const FIXTURE_ALLOWLIST = new Set(DEFAULT_FIXTURES.concat(String(process.env.TXLINE_FIXTURE_ALLOWLIST || "").split(",").map(v => v.trim()).filter(Boolean)));
 const MODES = new Set(["odds1x2", "scores", "odds"]);
+// Raw pass-through modes are capped tight (the array goes back to the browser);
+// odds1x2 digests server-side into ~100 bytes, so it may read a bigger backlog
+// (finished fixtures' odds/updates can exceed 2MB and were tripping the guard).
 const MAX_UPSTREAM_BYTES = 2 * 1024 * 1024;
+const MAX_DIGEST_BYTES = 12 * 1024 * 1024;
 
 function send(res, status, body, cache = "no-store") {
   res.setHeader("Cache-Control", cache);
   res.status(status).json(body);
 }
 
-async function upstreamText(url, headers) {
+async function upstreamText(url, headers, maxBytes = MAX_UPSTREAM_BYTES) {
   const r = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
   if (!r.ok) return { error: `http-${r.status}` };
   const text = await r.text();
-  if (Buffer.byteLength(text, "utf8") > MAX_UPSTREAM_BYTES) return { error: "response-too-large" };
+  if (Buffer.byteLength(text, "utf8") > maxBytes) return { error: "response-too-large" };
   return { text };
 }
 
@@ -78,7 +82,7 @@ export default async function handler(req, res) {
 
   // mode=odds1x2 (default): latest 1X2 win-probability triple — original behavior.
   try {
-    const up = await upstreamText(`${HOST}/api/odds/updates/${fixtureId}`, headers);
+    const up = await upstreamText(`${HOST}/api/odds/updates/${fixtureId}`, headers, MAX_DIGEST_BYTES);
     if (up.error) { send(res, 502, { ok: false, reason: up.error }); return; }
     const arr = parseBody(up.text);
     if (arr === null) { send(res, 502, { ok: false, reason: "bad-json" }); return; }

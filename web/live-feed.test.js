@@ -48,7 +48,7 @@ const varEnd456 = { ...BASE, Action: "var_end", Id: 423, Ts: 1784410682257, Seq:
 const noise = { ...BASE, Action: "safe_possession", Id: 141, Ts: 1784409405000, Seq: 122, StatusId: 2, Clock: { Running: true, Seconds: 965 }, Stats: smap(0, 1, 0, 2) };
 const discarded = { ...BASE, Action: "action_discarded", Id: 56, Ts: 1784409406000, Seq: 123, StatusId: 2, Confirmed: true, Clock: { Running: true, Seconds: 966 }, Stats: smap(0, 1, 0, 2) };
 
-const odds1x2 = (mid, ts, p1, dr, p2) => ({ FixtureId: 18257865, MessageId: mid, Ts: ts, Bookmaker: "bk", SuperOddsType: "1X2_PARTICIPANT_RESULT", InRunning: true, Prices: [3.01, 2.35, 4.13], Pct: [String(p1), String(dr), String(p2)] });
+const odds1x2 = (mid, ts, p1, dr, p2) => ({ FixtureId: 18257865, MessageId: mid, Ts: ts, BookmakerId: 10021, MarketPeriod: null, SuperOddsType: "1X2_PARTICIPANT_RESULT", InRunning: true, Prices: [3.01, 2.35, 4.13], Pct: [String(p1), String(dr), String(p2)] });
 const oddsNA = { FixtureId: 18257865, MessageId: 900003, Ts: 1784408400500, SuperOddsType: "1X2_PARTICIPANT_RESULT", Pct: ["NA", "NA", "NA"] };
 const oddsOther = { FixtureId: 18257865, MessageId: 900002, Ts: 1784408401000, SuperOddsType: "TOTAL_POINTS_OVER_UNDER", Pct: ["55.1", "44.9"] };
 

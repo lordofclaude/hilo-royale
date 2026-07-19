@@ -1,12 +1,13 @@
 # Hi-Lo Royale
 
 **100 fans enter. One survives the stats.** A prediction battle royale on real
-World Cup data — live TxLINE odds when a match is on, real replay tapes when it
-isn't — with results provable on Solana.
+World Cup data — a server-proxied live path when a match is on, real replay tapes
+when it isn't, and one proof-backed final score on Solana devnet.
 
 - **Play it:** https://hilo-royale.vercel.app
 - **Full story:** [ABOUT.md](ABOUT.md) — what it is, what's real vs. simulated, roadmap
 - **Hackathon pack:** [SUBMISSION.md](SUBMISSION.md) (form draft + demo script) · [TXLINE-FEEDBACK.md](TXLINE-FEEDBACK.md) (API feedback for TxODDS)
+- **Top-20 review:** [HACKATHON-REVIEW.md](HACKATHON-REVIEW.md) · local pitch at `/pitch`
 
 ## Repo layout
 
