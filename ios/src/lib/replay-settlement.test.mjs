@@ -2,12 +2,14 @@ import assert from "node:assert/strict";
 import {
   MAX_REPLAY_ROUND_MS,
   replaySettlementBoundary,
+  replaySettlementDeadline,
   replaySettlementSecondsLeft,
 } from "./replay-settlement.ts";
 import { CANONICAL_REPLAYS } from "./real-data/canonical.ts";
 import { buildSchedule } from "./game-logic.ts";
 
 assert.equal(MAX_REPLAY_ROUND_MS, 30_000);
+assert.equal(replaySettlementDeadline(12_000), 42_000);
 assert.equal(replaySettlementBoundary(0, 45), 45);
 assert.equal(replaySettlementBoundary(15, 5), 20);
 assert.equal(replaySettlementSecondsLeft(1_000, 1_000), 30);
@@ -31,4 +33,4 @@ assert.deepEqual(
   { prompt: "Will there be a goal before halftime?", answer: "hi" },
 );
 
-console.log("replay-settlement.test.mjs: 14 passed, 0 failed");
+console.log("replay-settlement.test.mjs: 15 passed, 0 failed");

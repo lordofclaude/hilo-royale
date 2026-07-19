@@ -37,6 +37,7 @@ interface Pending {
   started: number;
   durationMs: number;
   answerLocked: boolean;
+  settlementStartedAt: number | null;
 }
 
 interface Props {
@@ -199,6 +200,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
       q: question, outcome, botPicks, myPick: null, myPickAtMs: null,
       deadline: now + durationMs, started: now, durationMs,
       answerLocked: false,
+      settlementStartedAt: null,
     };
     setQ(question);
     setAnswerSide(null);
@@ -215,13 +217,6 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
     setSettlesIn(MAX_REPLAY_ROUND_MS / 1000);
     nextBeatRef.current = 0;
 
-    later(() => {
-      const current = pendingRef.current;
-      if (!current || current.q.n !== question.n) return;
-      streamRef.current?.settleThrough(replaySettlementBoundary(question.fromMin, question.windowLen));
-      if (pendingRef.current === current) resolveRound();
-    }, MAX_REPLAY_ROUND_MS);
-
     tickIvRef.current && clearInterval(tickIvRef.current);
     tickIvRef.current = setInterval(() => {
       const P = pendingRef.current;
@@ -229,7 +224,9 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
       const t = Date.now();
       const rem = Math.max(0, P.deadline - t);
       const elapsed = t - P.started;
-      setSettlesIn(replaySettlementSecondsLeft(P.started, t));
+      if (P.settlementStartedAt != null) {
+        setSettlesIn(replaySettlementSecondsLeft(P.settlementStartedAt, t));
+      }
       setRemainingPct((rem / P.durationMs) * 100);
       // crowd bar: bot picks stream in before the lock
       const revealed: L.Side[] = [];
@@ -246,10 +243,22 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
       }
       if (rem <= 0 && !P.answerLocked) {
         P.answerLocked = true;
+        armReplaySettlement(P);
         setLocked(true);
         drainWindowIntoView(); // no pick = still locked in — the window plays out either way
       }
     }, 50);
+  }
+
+  function armReplaySettlement(P: Pending) {
+    if (P.settlementStartedAt != null) return;
+    P.settlementStartedAt = Date.now();
+    setSettlesIn(MAX_REPLAY_ROUND_MS / 1000);
+    later(() => {
+      if (pendingRef.current !== P) return;
+      streamRef.current?.settleThrough(replaySettlementBoundary(P.q.fromMin, P.q.windowLen));
+      if (pendingRef.current === P) resolveRound();
+    }, MAX_REPLAY_ROUND_MS);
   }
 
   function pick(side: L.Side) {
@@ -258,6 +267,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
     P.myPick = side;
     P.myPickAtMs = Math.max(0, P.deadline - Date.now());
     P.answerLocked = true;
+    armReplaySettlement(P);
     setMyPick(side);
     setLocked(true);
     setRemainingPct(0);
@@ -625,7 +635,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
             <Text style={styles.windowChipTxt}>PICK LOCKED · RESULT IN {settlesIn}s</Text>
           </View>
           <Text style={styles.windowSub}>
-            real {CODE1}–{CODE2} TxLINE tape · settles by {q.fromMin + q.windowLen}' or the 30-second limit
+            real {CODE1}–{CODE2} TxLINE tape · match outcome resolves 30 seconds after your pick
           </Text>
         </FadeIn>
       )}

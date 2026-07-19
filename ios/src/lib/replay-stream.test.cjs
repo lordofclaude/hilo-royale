@@ -53,4 +53,9 @@ const appSource = fs.readFileSync(path.join(__dirname, "..", "..", "App.tsx"), "
 assert.match(appSource, /TAB_SCREENS\.includes\(screen\) \|\| screen === "game"/);
 assert.match(appSource, /screen === "game" \? "Exit" : "Play"/);
 
-console.log("replay-stream.test.cjs: 7 passed, 0 failed");
+const gameSource = fs.readFileSync(path.join(__dirname, "..", "screens", "GameScreen.tsx"), "utf8");
+assert.match(gameSource, /P\.settlementStartedAt = Date\.now\(\)/);
+assert.match(gameSource, /function pick[\s\S]*?armReplaySettlement\(P\);/);
+assert.match(gameSource, /settleThrough\(replaySettlementBoundary\(P\.q\.fromMin, P\.q\.windowLen\)\)/);
+
+console.log("replay-stream.test.cjs: 10 passed, 0 failed");
