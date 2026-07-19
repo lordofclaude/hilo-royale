@@ -11,7 +11,7 @@ import { lobbyRng } from "../lib/vrf";
 import Icon, { IconName, KEY_ICON } from "../components/Icon";
 
 interface Bot { alive: boolean; isMe: boolean; name: string; }
-interface LivePending { question: L.Question; myPick: L.Side | null; botPicks: Array<{ index: number; pick: L.Side }>; deadline: number; }
+interface LivePending { question: L.Question; myPick: L.Side | null; botPicks: Array<{ index: number; pick: L.Side }>; deadline: number; resolved: boolean; }
 interface Props { settings: GameSettings; onEnd: (result: GameResult) => void; }
 
 const WINDOW_MINUTES = 5;
@@ -89,7 +89,7 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
 
     if (nextWindowRef.current == null) nextWindowRef.current = Math.max(WINDOW_MINUTES, Math.ceil(event.minute / WINDOW_MINUTES) * WINDOW_MINUTES);
     const pending = pendingRef.current;
-    if (pending && event.minute >= pending.question.fromMin + pending.question.windowLen) {
+    if (pending && !pending.resolved && event.minute >= pending.question.fromMin + pending.question.windowLen) {
       resolveWindow();
       return;
     }
@@ -107,7 +107,7 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
     const botPicks = botsRef.current.flatMap((bot, index) => !bot.alive || bot.isMe ? [] : [{ index, pick: (rng() < 0.5 ? "hi" : "lo") as L.Side }]);
     const split = L.crowdSplit(botPicks.map(entry => entry.pick));
     const answerMs = L.answerWindowMs(settings.answerSeconds * 1000, aliveTotal());
-    pendingRef.current = { question: q, myPick: null, botPicks, deadline: Date.now() + answerMs };
+    pendingRef.current = { question: q, myPick: null, botPicks, deadline: Date.now() + answerMs, resolved: false };
     setQuestion(q);
     setMyPick(null);
     setAnswer(null);
@@ -146,7 +146,10 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
 
   function resolveWindow() {
     const current = pendingRef.current;
-    if (!current) return;
+    if (!current || current.resolved) return;
+    // Multiple SSE updates can share a match minute. Claim resolution before
+    // any state work so only the first boundary event can settle this round.
+    current.resolved = true;
     if (tickRef.current) clearInterval(tickRef.current);
     const outcome = L.resolveQuestion(eventsRef.current, current.question);
     const playerVerdict = L.judge(outcome.answer, current.myPick);
@@ -289,15 +292,15 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
       </View>
 
       <View style={styles.answers}>
-        <Pressable disabled={locked || !question} onPress={() => pick("hi")} style={[styles.answerBtn, styles.hiBtn, myPick === "hi" && [styles.selectedHi, glow(C.hi, 14, 0.7)], (locked || !question) && myPick !== "hi" && styles.dim]}><Text style={styles.hiTxt}>{question?.hiLabel || "HI"}</Text></Pressable>
-        <Pressable disabled={locked || !question} onPress={() => pick("lo")} style={[styles.answerBtn, styles.loBtn, myPick === "lo" && [styles.selectedLo, glow(C.lo, 14, 0.7)], (locked || !question) && myPick !== "lo" && styles.dim]}><Text style={styles.loTxt}>{question?.loLabel || "LO"}</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={question?.hiLabel || "Higher"} accessibilityState={{ disabled: locked || !question, selected: myPick === "hi" }} disabled={locked || !question} onPress={() => pick("hi")} style={[styles.answerBtn, styles.hiBtn, myPick === "hi" && [styles.selectedHi, glow(C.hi, 14, 0.7)], (locked || !question) && myPick !== "hi" && styles.dim]}><Text style={styles.hiTxt}>{question?.hiLabel || "HI"}</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={question?.loLabel || "Lower"} accessibilityState={{ disabled: locked || !question, selected: myPick === "lo" }} disabled={locked || !question} onPress={() => pick("lo")} style={[styles.answerBtn, styles.loBtn, myPick === "lo" && [styles.selectedLo, glow(C.lo, 14, 0.7)], (locked || !question) && myPick !== "lo" && styles.dim]}><Text style={styles.loTxt}>{question?.loLabel || "LO"}</Text></Pressable>
       </View>
 
       <View style={styles.crowdRow}><Text style={styles.crowdHi}>{crowdHi}% HI</Text><View style={styles.crowdTrack}><View style={[styles.crowdHiFill, { flex: Math.max(4, crowdHi) }]} /><View style={[styles.crowdLoFill, { flex: Math.max(4, 100 - crowdHi) }]} /></View><Text style={styles.crowdLo}>{100 - crowdHi}% LO</Text></View>
       <Text style={styles.crowdMeta}>{question ? `${aliveCount - 1} LIVE PICKS · RESULT AT ${resolvingAt}'` : "THE NEXT PICK OPENS ON A FIVE-MINUTE BOUNDARY"}</Text>
 
       <View style={[styles.timer, glow(secondsLeft <= 3 ? C.lo : C.hi, 10, 0.5)]}><Text style={[styles.timerNum, secondsLeft <= 3 && { color: C.lo }]}>{question && !answer ? String(secondsLeft).padStart(2, "0") : "—"}</Text><Text style={styles.timerLabel}>{question ? (locked ? "LOCKED" : "SECONDS TO PICK") : "STANDBY"}</Text></View>
-      {!!verdict && <Text style={[styles.verdict, answer === "hi" && { color: C.hi }, answer === "lo" && { color: C.lo }]}>{verdict}</Text>}
+      {!!verdict && <Text accessibilityLiveRegion="polite" style={[styles.verdict, answer === "hi" && { color: C.hi }, answer === "lo" && { color: C.lo }]}>{verdict}</Text>}
       {roundReward && <Text style={[styles.reward, roundReward.points === 0 && { color: C.muted }]}>{roundReward.points > 0 ? `+${roundReward.points} PTS · ONLY ${roundReward.correctPct}% GOT IT RIGHT` : "0 PTS · WRONG / PUSH"}</Text>}
       {ghostMessage && <Text style={styles.ghostMode}>{ghostMessage} · KEEP WATCHING</Text>}
       <View style={styles.streak}><Icon name="bolt" size={12} color={C.gold} style={{ marginRight: 6 }} /><Text style={styles.streakTxt}>STREAK x{streak}  ·  {predictionPoints} SKILL PTS</Text></View>

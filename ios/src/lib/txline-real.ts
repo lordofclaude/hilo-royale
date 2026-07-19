@@ -131,7 +131,7 @@ export function streamReplay(replay: ReplayFixture, opts: {
   const { playbackRate = 30, speed, from = 0, onEvent, onDone } = opts;
   const events = replay.events;
   const simMinutesPerRealSecond = speed ?? playbackRate / 60;
-  let i = 0, stopped = false;
+  let i = 0, stopped = false, completed = false;
   while (i < events.length && events[i].minute < from) i++;
   let simMin = from;
   const iv = setInterval(() => {
@@ -140,9 +140,18 @@ export function streamReplay(replay: ReplayFixture, opts: {
     while (i < events.length && events[i].minute <= simMin) {
       const e = events[i++];
       onEvent && onEvent(e);
-      if (e.type === "game_finalised") { clearInterval(iv); onDone && onDone(e); }
+      if (e.type === "game_finalised") {
+        completed = true;
+        clearInterval(iv);
+        onDone && onDone(e);
+        break;
+      }
     }
-    if (i >= events.length) { clearInterval(iv); onDone && onDone(events[events.length - 1]); }
+    if (!completed && i >= events.length) {
+      completed = true;
+      clearInterval(iv);
+      onDone && onDone(events[events.length - 1]);
+    }
   }, 250);
   return { stop() { stopped = true; clearInterval(iv); } };
 }

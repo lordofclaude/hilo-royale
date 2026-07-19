@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
 import { C, displayFont, glow } from "../theme";
@@ -51,6 +51,8 @@ function GoogleAuthButton({ onSignedIn, onError }: { onSignedIn: (identity: FanI
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Continue with Google"
       disabled={!request || busy}
       onPress={() => { onError(null); void promptAsync(); }}
       style={({ pressed }) => [styles.google, !request && styles.disabled, pressed && { opacity: 0.84 }]}
@@ -63,7 +65,9 @@ function GoogleAuthButton({ onSignedIn, onError }: { onSignedIn: (identity: FanI
 export default function LoginScreen({ onSignedIn }: Props) {
   const [handle, setHandle] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const googleConfigured = Boolean(process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID);
+  const googleConfigured = Platform.OS === "ios"
+    ? Boolean(process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID)
+    : Boolean(process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
 
   const continueAsGuest = async () => {
     const identity = makeGuestIdentity(handle.trim() || "Demo Fan");
@@ -83,6 +87,7 @@ export default function LoginScreen({ onSignedIn }: Props) {
       <View style={[styles.card, glow(C.hi, 14, 0.28)]}>
         <Text style={styles.cardKicker}>YOUR FAN ID</Text>
         <TextInput
+          accessibilityLabel="Fan display name"
           value={handle}
           onChangeText={setHandle}
           placeholder="Choose a display name"
@@ -102,10 +107,10 @@ export default function LoginScreen({ onSignedIn }: Props) {
           </>
         )}
         <View style={styles.orRow}><View style={styles.orLine} /><Text style={styles.or}>OR</Text><View style={styles.orLine} /></View>
-        <Pressable onPress={continueAsGuest} style={({ pressed }) => [styles.demo, glow(C.gold, 10, 0.35), pressed && { opacity: 0.86 }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Play demo now" onPress={continueAsGuest} style={({ pressed }) => [styles.demo, glow(C.gold, 10, 0.35), pressed && { opacity: 0.86 }]}>
           <Text style={styles.demoTxt}>PLAY DEMO NOW  →</Text>
         </Pressable>
-        {!!error && <Text style={styles.error}>{error}</Text>}
+        {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
       </View>
 
       <Text style={styles.legal}>Google OAuth is used for identity only. No Gmail or IMAP mailbox access is requested.</Text>
@@ -134,4 +139,3 @@ const styles = StyleSheet.create({
   error: { color: C.lo, textAlign: "center", fontSize: 11, marginTop: 10 },
   legal: { color: C.muted, opacity: 0.72, fontSize: 10, lineHeight: 15, textAlign: "center", marginTop: 16 },
 });
-

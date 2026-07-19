@@ -11,6 +11,7 @@
 <meta name="twitter:title" content="Hi-Lo Royale — 100 fans enter. One survives the stats.">
 <meta name="twitter:description" content="A prediction battle royale on real World Cup data via TxLINE. Last fan standing takes the crown.">
 <meta name="twitter:image" content="https://hilo-royale.vercel.app/og.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23050608'/%3E%3Cpath d='M4.5 8l3.2 3.2L12 5.6l4.3 5.6L19.5 8l-1.2 9.5H5.7L4.5 8z' fill='%23ffd54a'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
 <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,800,900&display=swap" rel="stylesheet">
@@ -36,10 +37,10 @@ a{color:var(--muted)}
 /* ---------- nav ---------- */
 nav{position:fixed;top:0;left:0;right:0;z-index:10;padding:.9rem 0;background:linear-gradient(180deg,rgba(5,6,8,.92),rgba(5,6,8,0))}
 .nrow{display:flex;justify-content:space-between;align-items:center}
-.brand{display:inline-flex;align-items:center;gap:.55rem;font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:1.12rem;text-decoration:none;color:var(--text)}
+.brand{display:inline-flex;align-items:center;gap:.55rem;min-height:44px;font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:1.12rem;text-decoration:none;color:var(--text)}
 .brand .mark{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:linear-gradient(140deg,var(--accent),var(--accent2));color:#231703;box-shadow:0 0 14px rgba(255,194,51,.35)}
 .brand em{font-style:italic;color:var(--gold)}
-.navcta{display:inline-flex;align-items:center;gap:.45rem;background:var(--ink);border:1px solid var(--line2);border-radius:999px;padding:.55rem 1.1rem;color:var(--text);font-family:"Cabinet Grotesk";font-weight:800;font-style:italic;font-size:.85rem;text-decoration:none;transition:.15s}
+.navcta{display:inline-flex;align-items:center;gap:.45rem;min-height:44px;background:var(--ink);border:1px solid var(--line2);border-radius:999px;padding:.6rem 1.15rem;color:var(--text);font-family:"Cabinet Grotesk";font-weight:800;font-style:italic;font-size:.85rem;text-decoration:none;transition:.15s}
 .navcta:hover{border-color:var(--gold);color:var(--gold)}
 
 /* ---------- hero: the arena at night ---------- */
@@ -75,6 +76,7 @@ section{min-height:100svh;display:grid;align-content:center;padding:clamp(2.5rem
 .beat.b1 .bi{background:rgba(46,230,255,.1);color:var(--hi);box-shadow:0 0 18px rgba(46,230,255,.2)}
 .beat.b2 .bi{background:rgba(255,213,74,.1);color:var(--gold);box-shadow:0 0 18px rgba(255,213,74,.2)}
 .beat.b3 .bi{background:rgba(255,59,92,.1);color:var(--lo);box-shadow:0 0 18px rgba(255,59,92,.2)}
+.beat.b4 .bi{background:rgba(49,242,139,.1);color:var(--success);box-shadow:0 0 18px rgba(49,242,139,.2)}
 .beat h3{font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:1.15rem;margin-bottom:.45rem}
 .beat p{color:var(--muted);font-size:.92rem;line-height:1.6}
 .beat p b{color:var(--text)}
@@ -86,6 +88,8 @@ section{min-height:100svh;display:grid;align-content:center;padding:clamp(2.5rem
 .lobbies{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.9rem}
 .lob{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.15rem;text-decoration:none;transition:.15s;display:block}
 .lob:hover{border-color:var(--gold);transform:translateY(-2px)}
+.lob.up{border-color:rgba(46,230,255,.3);cursor:default}
+.lob.up:hover{border-color:rgba(46,230,255,.45);transform:none}
 .lob .vs{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.6rem}
 .lob .tc{font-family:"Cabinet Grotesk";font-weight:900;font-style:italic;font-size:1.25rem;color:var(--text)}
 .lob .tc.home{color:var(--hi)}
@@ -137,6 +141,7 @@ footer b{color:var(--muted)}
   <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
   <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 1.5M9 2h6"/></symbol>
   <symbol id="i-out" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></symbol>
 </svg>
 
 <nav><div class="wrap nrow">
@@ -156,7 +161,7 @@ footer b{color:var(--muted)}
   <canvas id="arena" aria-hidden="true"></canvas>
   <div class="veil"></div>
   <div class="hcontent">
-    <span class="livechip"><span class="d"></span>REAL WORLD CUP DATA · LIVE TXLINE FEED</span>
+    <span class="livechip"><span class="d"></span>REAL TXLINE WORLD CUP DATA · LIVE ODDS IN PLAY</span>
     <h1><span class="g">100 FANS</span> ENTER.<br>ONE SURVIVES <span class="c">THE</span> <span class="r">STATS</span>.</h1>
     <p class="tag">One real match. Every stat window is a question — corners, shots, cards, VAR. Call it <b>HI</b> or <b>LO</b> before the lock. Wrong answer, you're out. <b>Last fan standing takes the crown.</b></p>
     <div class="ctarow">
@@ -165,9 +170,9 @@ footer b{color:var(--muted)}
     </div>
   </div>
   <div class="herofoot">
-    <span><svg class="ic"><use href="#i-ball"/></svg>4 real fixtures</span>
+    <span><svg class="ic"><use href="#i-ball"/></svg>6 real fixtures</span>
     <span><svg class="ic"><use href="#i-shield"/></svg>Provably fair (ORAO VRF)</span>
-    <span><svg class="ic"><use href="#i-check"/></svg>Scores proven on Solana</span>
+    <span><svg class="ic"><use href="#i-check"/></svg>Score proof on Solana devnet</span>
   </div>
 </header>
 
@@ -188,15 +193,20 @@ footer b{color:var(--muted)}
     </div>
     <div class="beat b3 rv">
       <div class="bi"><svg class="ic"><use href="#i-out"/></svg></div>
-      <h3>Outlive 99 fans</h3>
-      <p>Every wrong call is an elimination you watch happen — a named fan's dot going dark. Survive every round and the <b>crown</b> (plus the ladder points) is yours.</p>
+      <h3>Outlive 99 rivals</h3>
+      <p>Your 99 rivals are <b>provably-fair bots</b> — skill and picks seeded by ORAO VRF on Solana devnet. Every wrong call is an elimination you watch: a named dot going dark. Survive every round and the <b>crown</b> is yours.</p>
+    </div>
+    <div class="beat b4 rv">
+      <div class="bi"><svg class="ic"><use href="#i-share"/></svg></div>
+      <h3>Send your ghost</h3>
+      <p>Finish a run and share a <b>ghost challenge link</b> — a friend faces the same fixture and the same questions with your picks replaying against theirs. Crowns are settled head to head.</p>
     </div>
   </div>
 </div></section>
 
 <section id="lobbies-sec"><div class="wrap">
   <h2 class="kick rv"><svg class="ic ki" style="color:var(--hi)"><use href="#i-ball"/></svg>Tonight's lobbies</h2>
-  <p class="kicksub rv">Every lobby replays a real FIFA World Cup 2026 fixture pulled from the live TxLINE feed. A new featured lobby rotates in daily — same match for everyone, no spoilers.</p>
+  <p class="kicksub rv">Six real FIFA World Cup 2026 fixtures, captured event-by-event from the TxLINE feed. A new featured lobby rotates in daily — same match for everyone, no spoilers. When a fixture is actually in play, the arena polls live 1X2 odds straight from TxLINE.</p>
   <div class="lobbies" id="lobbies"></div>
 </div></section>
 
@@ -205,11 +215,11 @@ footer b{color:var(--muted)}
     <h2 class="kick" style="font-size:clamp(1.4rem,4vw,2rem)"><svg class="ic ki" style="color:var(--success)"><use href="#i-shield"/></svg>Rigged is impossible. Here are the receipts.</h2>
     <div class="prows">
       <div class="prow p1"><div class="pi"><svg class="ic"><use href="#i-check"/></svg></div>
-        <div><h4>Real data, proven on-chain</h4><p>Match events come from TxODDS's TxLINE feed via an on-chain Solana subscription. The featured fixture's final score is proven by a real <a href="https://solscan.io/tx/47rYc5tphp3y3MuyCfr4KSgHLtCYZfCVknhZB57SzTPVpyWSkVUgkkvmw4kS4nGyzN2Eb49oyAUYkPJsiX4uRdhA?cluster=devnet" target="_blank" rel="noopener">validateStatV2 transaction</a> against the Merkle root published on-chain.</p></div></div>
+        <div><h4>Real data, proven on-chain</h4><p>Match events come from TxODDS's TxLINE feed via an on-chain Solana subscription. The Argentina 3&ndash;1 Switzerland final score is proven by a real <a href="https://solscan.io/tx/47rYc5tphp3y3MuyCfr4KSgHLtCYZfCVknhZB57SzTPVpyWSkVUgkkvmw4kS4nGyzN2Eb49oyAUYkPJsiX4uRdhA?cluster=devnet" target="_blank" rel="noopener">validateStatV2 transaction on devnet</a> against the Merkle root TxODDS publishes on-chain.</p></div></div>
       <div class="prow p2"><div class="pi"><svg class="ic"><use href="#i-shield"/></svg></div>
-        <div><h4>Provably fair lobbies</h4><p>The 99 other fans — their skill, their picks, the elimination order — are seeded by <a href="https://solscan.io/tx/4Fn4icgVJEftWm5TuWKWejY3p1adboCydqvragTyEXrsN6yBPx12bdeynrsW6pkuFR3xgMYovV3bXp7DTEuuwikH?cluster=devnet" target="_blank" rel="noopener">ORAO VRF verifiable randomness</a> requested on Solana. Same lobby, reproducible by anyone.</p></div></div>
+        <div><h4>Provably fair lobbies</h4><p>The 99 rival bots — their skill, their picks, the elimination order — are seeded by <a href="https://solscan.io/tx/4Fn4icgVJEftWm5TuWKWejY3p1adboCydqvragTyEXrsN6yBPx12bdeynrsW6pkuFR3xgMYovV3bXp7DTEuuwikH?cluster=devnet" target="_blank" rel="noopener">ORAO VRF verifiable randomness</a> requested on Solana devnet. Same lobby, reproducible by anyone.</p></div></div>
       <div class="prow p3"><div class="pi"><svg class="ic"><use href="#i-up"/></svg></div>
-        <div><h4>On-chain round lifecycle</h4><p>Every round runs a solora-anchor-style state machine — open, locked, settled — the exact lock→settle flow used by on-chain prediction markets, ready to deploy as a program.</p></div></div>
+        <div><h4>Rounds built for the chain</h4><p>Every round runs a solora-anchor-style state machine — open, locked, settled — in-app today. It is the exact lock-then-settle flow on-chain prediction markets use, ready to deploy as a program.</p></div></div>
     </div>
   </div>
 </div></section>
@@ -222,7 +232,7 @@ footer b{color:var(--muted)}
 
 <footer><div class="wrap">
   <b>Hi-Lo Royale</b> — a prediction battle royale on real World Cup data, built for the TxODDS × Solana hackathon (July 2026).
-  Web arena + iOS app share one tested game engine. Match data: TxLINE (devnet, on-chain subscription). Fairness: ORAO VRF. Settlement proofs: validateStatV2 on Solana devnet.
+  Web arena + iOS app share one tested game engine. Match data: TxLINE (devnet, on-chain subscription) — six real fixtures, live 1X2 odds while a match is in play. Fairness: ORAO VRF (devnet). Score proof: validateStatV2 on Solana devnet. Lobbies are you versus 99 VRF-seeded bots; ghost links let real friends duel the same tape.
 </div></footer>
 
 <script src="lobbies.js"></script>
@@ -290,6 +300,16 @@ $('lobbies').innerHTML=LOBBIES.map((l,i)=>{
     <div class="meta">${meta} · ${l.fixture.Competition}</div>
   </a>`;
 }).join('');
+/* upcoming fixture (real schedule, from lobbies.js) — shown as up-next, not a playable lobby yet */
+(function(){
+  const up=(window.UPCOMING||[])[0];if(!up)return;
+  const d=new Date(up.kickoffMs),MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const when=`${MON[d.getUTCMonth()]} ${d.getUTCDate()} · ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')} UTC`;
+  $('lobbies').insertAdjacentHTML('beforeend',`<div class="lob up rv">
+    <div class="vs"><span class="tc home">${code(up.t1)}</span><span class="x">VS</span><span class="tc away">${code(up.t2)}</span></div>
+    <div class="meta"><svg class="ic" style="color:var(--hi)"><use href="#i-timer"/></svg> <b style="color:var(--hi)">UP NEXT — ${(up.stage||'FIXTURE').toUpperCase()}</b> · ${when}</div>
+  </div>`);
+})();
 
 /* ---------- crowd-bar demo animates forever ---------- */
 (function(){

@@ -43,12 +43,14 @@ export default function ResultScreen({ result, profile, replay, onAgain, onLobby
     : `${r.aliveAtEnd} fans outlasted you.${r.ghostRankAtEnd ? ` In ghost mode, your run would have reached top ${r.ghostRankAtEnd}.` : ""}`;
 
   const ghostCode = encodeGhostPicks(r.history.map(record => record.pick));
-  const challengeUrl = `hiloroyale://challenge/${r.fixtureId}?p=${ghostCode}&target=${r.pts}`;
+  const challengeUrl = `${WEB_URL}/play?fixture=${encodeURIComponent(r.fixtureId)}` +
+    `&p=${ghostCode}&streak=${r.streak}&outlived=${r.outlivedCount}&target=${r.pts}` +
+    `&challenger=${encodeURIComponent("A rival")}`;
   const message =
     `I outlived ${r.outlivedCount} of 99 fans on Hi-Lo Royale ` +
     `(streak ${r.streak}, ${r.predictionPoints} crowd-difficulty points${r.won ? ", LOBBY CHAMPION" : ""}) — ${code1} ${finalScore.g1}–${finalScore.g2} ${code2}. ` +
     `${survived ? "Think you can outlast my run? Same match, same questions — prove it." : `I died on round ${r.death?.round || r.rounds}. Beat my ghost if you can.`} ` +
-    `Play now: ${WEB_URL} · In-app challenge: ${challengeUrl}`;
+    `Beat my run: ${challengeUrl}`;
 
   const shareText = () => {
     Share.share({

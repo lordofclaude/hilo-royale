@@ -18,8 +18,8 @@
 /* Neon sports-broadcast theme — ported 1:1 from the iOS app (src/theme.ts):
    pure black arena, cyan-vs-red duel, gold for rewards, colored glows. */
 :root{
-  --bg:#050608;--panel:#0b0e14;--panel2:#080b10;--ink:#07090d;--line:#1c2433;--line2:#334057;
-  --text:#f4f7fb;--muted:#93a1b5;--faint:#5f6d82;
+  --bg:#050608;--panel:#0b0e14;--panel2:#080b10;--ink:#07090d;--line:#35445b;--line2:#51627b;
+  --text:#f4f7fb;--muted:#a9b5c6;--faint:#8996a9;
   --t1:#2ee6ff;--t2:#ff3b5c;--gold:#ffd54a;--accent:#ffc233;--accent2:#ff9f1a;
   --hi:#2ee6ff;--lo:#ff3b5c;--push:#93a1b5;--success:#31f28b;
   --hisoft:rgba(46,230,255,.12);--losoft:rgba(255,59,92,.12);--goldsoft:rgba(255,213,74,.1);
@@ -46,7 +46,7 @@ header{padding:1rem 0 .35rem}
 .hbtns{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .pill{display:inline-flex;align-items:center;gap:.42rem;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:.42rem .85rem;font-size:.82rem;color:var(--muted);font-weight:500}
 .pill b{color:var(--text);font-variant-numeric:tabular-nums}
-.iconbtn{display:grid;place-items:center;width:37px;height:37px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--muted);transition:.15s}
+.iconbtn{display:grid;place-items:center;width:44px;height:44px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--muted);transition:.15s}
 .iconbtn:hover{color:var(--text);border-color:var(--line2)}
 
 /* ---------- match hero ---------- */
@@ -91,6 +91,8 @@ main{display:grid;grid-template-columns:1fr minmax(285px,340px);gap:1.15rem;padd
 .question b{color:var(--gold)}
 .lastval{text-align:center;color:var(--muted);font-size:.9rem;margin-bottom:.85rem;min-height:1.35rem}
 .lastval b{color:var(--text);font-size:1.15rem;font-variant-numeric:tabular-nums}
+.stageStart{max-width:460px;margin:0 auto .9rem}
+.stageStart[hidden]{display:none}
 /* crowd bar */
 .crowd{max-width:460px;margin:0 auto .8rem}
 .crowdlbl{font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.32rem;font-weight:600;text-align:center}
@@ -175,6 +177,7 @@ main{display:grid;grid-template-columns:1fr minmax(285px,340px);gap:1.15rem;padd
 #cardcanvas{width:min(300px,72vw);border-radius:14px;border:1px solid var(--line);display:block;margin:0 auto 1.1rem;box-shadow:0 18px 60px rgba(255,213,74,.16)}
 .wbtns{display:flex;gap:.7rem;justify-content:center;flex-wrap:wrap}
 .wbtns .btn{width:auto;padding:.85rem 1.5rem}
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 /* ---------- juice ---------- */
 @keyframes shakeX{10%,90%{transform:translate(-2px,1px)}20%,80%{transform:translate(5px,-2px)}30%,50%,70%{transform:translate(-9px,3px)}40%,60%{transform:translate(9px,-3px)}}
@@ -271,7 +274,7 @@ footer b{color:var(--muted)}
     <span class="pill" style="color:var(--gold);border-color:rgba(255,213,74,.35)"><svg class="ic"><use href="#i-crown"/></svg><b id="fanhandle">…</b></span>
     <span class="pill" id="datachip" title="Where this lobby's data is coming from"><span class="dpulse"></span><b id="datatxt" style="font-size:.72rem;letter-spacing:.08em">REPLAY TAPE</b></span>
     <button class="iconbtn" id="snd" aria-label="Toggle sound"><svg class="ic"><use href="#i-sound" id="snduse"/></svg></button>
-    <span class="pill"><svg class="ic" style="color:var(--gold)"><use href="#i-users"/></svg><b id="alivecount">100</b>&nbsp;alive</span>
+    <span class="pill"><svg class="ic" style="color:var(--gold)"><use href="#i-users"/></svg><b id="alivecount" aria-live="polite">100</b>&nbsp;alive</span>
     <button class="iconbtn" id="leave" aria-label="Leave arena" title="Leave the arena"><svg class="ic"><use href="#i-x"/></svg></button>
   </div>
 </div></header>
@@ -303,26 +306,27 @@ footer b{color:var(--muted)}
         <span class="chip" id="upnext" style="display:none"></span>
         <span class="chip watching" id="watchchip" style="display:none"><svg class="ic"><use href="#i-monitor"/></svg>WATCHING</span>
       </div>
-      <div class="question" id="question">100 fans. One real match. Every stat window is a question — wrong answer, you're out. <b>Last fan standing takes the crown.</b></div>
+      <div class="question" id="question" aria-live="polite">100 fans. One real match. Every stat window is a question — wrong answer, you're out. <b>Last fan standing takes the crown.</b></div>
       <div class="lastval" id="lastval"></div>
-      <div class="crowd">
+      <button class="btn stageStart" id="quickstart"><svg class="ic"><use href="#i-bolt"/></svg>JOIN LOBBY &amp; START</button>
+      <div class="crowd" aria-label="Crowd picks">
         <div class="crowdlbl" id="crowdlbl">the lobby is deciding…</div>
         <div class="cbar">
           <div class="cb cb-hi" id="cbhi">50%</div>
           <div class="cb cb-lo" id="cblo">50%</div>
         </div>
       </div>
-      <div class="timerbar" id="timerbar"><i id="timer"></i></div>
+      <div class="timerbar" id="timerbar" role="timer" aria-label="Time remaining"><i id="timer"></i></div>
       <div class="answers">
-        <button class="abtn hi" id="hi" disabled><svg class="ic"><use href="#i-up"/></svg><span id="hitxt">HIGHER</span></button>
-        <button class="abtn lo" id="lo" disabled><svg class="ic"><use href="#i-down"/></svg><span id="lotxt">LOWER</span></button>
+        <button class="abtn hi" id="hi" aria-keyshortcuts="H ArrowUp" aria-pressed="false" disabled><svg class="ic"><use href="#i-up"/></svg><span id="hitxt">HIGHER</span></button>
+        <button class="abtn lo" id="lo" aria-keyshortcuts="L ArrowDown" aria-pressed="false" disabled><svg class="ic"><use href="#i-down"/></svg><span id="lotxt">LOWER</span></button>
       </div>
-      <div class="verdict" id="verdict"></div>
+      <div class="verdict" id="verdict" role="status" aria-live="assertive"></div>
       <div class="ghostline" id="ghostline"></div>
       <div class="neardeath" id="neardeath"></div>
       <div class="streak">your streak <b id="streak">0</b><span class="best">best <b id="beststreak" style="font-size:.95rem">0</b></span></div>
       <div class="gl"><span>the arena</span><span id="glcount">100 alive</span></div>
-      <div class="grid" id="crowd"></div>
+      <div class="grid" id="crowd" role="img" aria-label="Arena: 100 fans alive"></div>
       <div class="ticker" id="ticker"></div>
       <div class="spectcta" id="spectcta"><a id="nextlobby" href="/play"><svg class="ic"><use href="#i-refresh"/></svg>Play another lobby</a></div>
       <div class="livenotice" id="livenotice"></div>
@@ -358,6 +362,7 @@ footer b{color:var(--muted)}
         <div class="note" id="livenote" style="display:none"><b>This fixture is inside its live window.</b> LIVE LOBBY drives the scoreboard from the real TxLINE feed as it updates; questions still come from the schedule engine. If the feed goes quiet for ~20s we fall back to the replay tape and say so.</div>
         <div class="note" id="vrfnote" style="display:none"><svg class="ic" style="color:var(--hi)"><use href="#i-shield"/></svg> <b>Provably fair</b> — bots, picks and tie-breaks are seeded by <a id="vrflink" href="#" target="_blank" rel="noopener">ORAO VRF randomness on Solana</a>.</div>
         <div class="note" id="proofnote" style="display:none"><svg class="ic" style="color:var(--gold)"><use href="#i-check"/></svg> <b>Score proven on-chain</b> — <a id="prooflink" href="#" target="_blank" rel="noopener">validateStatV2 tx on Solscan</a>.</div>
+        <div class="note" id="capturenote" style="display:none"></div>
         <div class="note">Replay lobbies run on real World Cup matches pulled from the live TxLINE feed. Same engine as the iOS app.</div>
       </div>
     </aside>
@@ -371,22 +376,22 @@ footer b{color:var(--muted)}
   </footer>
 </div>
 
-<div class="winner" id="winner"><div class="wcard">
-  <h1 id="wtitle"><svg class="ic fill" style="color:var(--gold)"><use href="#i-crown"/></svg>LAST FAN STANDING</h1>
+<div class="winner" id="winner" role="dialog" aria-modal="true" aria-labelledby="wtitle"><div class="wcard">
+  <h1 id="wtitle" tabindex="-1"><svg class="ic fill" style="color:var(--gold)"><use href="#i-crown"/></svg>LAST FAN STANDING</h1>
   <p id="wsub"></p>
   <canvas id="cardcanvas" width="1000" height="1400"></canvas>
   <div class="wbtns">
-    <button class="btn" id="dl"><svg class="ic"><use href="#i-download"/></svg>Save streak card</button>
+    <button class="btn" id="copychal" style="display:none"><svg class="ic"><use href="#i-share"/></svg>Challenge a friend</button>
     <button class="btn ghost" id="share"><svg class="ic"><use href="#i-share"/></svg>Share</button>
-    <button class="btn ghost" id="copychal" style="display:none"><svg class="ic"><use href="#i-share"/></svg>Copy challenge link</button>
-    <button class="btn ghost" onclick="location.reload()"><svg class="ic"><use href="#i-refresh"/></svg>Play another lobby</button>
+    <button class="btn ghost" id="dl"><svg class="ic"><use href="#i-download"/></svg>Save streak card</button>
+    <button class="btn ghost" id="again"><svg class="ic"><use href="#i-refresh"/></svg>Play another lobby</button>
   </div>
 </div></div>
 <div class="count" id="count"><span id="countn">3</span></div>
 <canvas id="fx"></canvas>
 
-<div class="howto" id="howto" role="dialog" aria-label="How Hi-Lo Royale works"><div class="howcard">
-  <h2>HOW YOU <em>SURVIVE</em></h2>
+<div class="howto" id="howto" role="dialog" aria-modal="true" aria-labelledby="howtitle"><div class="howcard">
+  <h2 id="howtitle">HOW YOU <em>SURVIVE</em></h2>
   <div class="hstep"><div class="hn">1</div><div><h4>The tape rolls</h4><p>A real fixture's TxLINE events replay — goals, corners, the lot. Roughly every stat window, the arena asks one question.</p></div></div>
   <div class="hstep"><div class="hn">2</div><div><h4>Call it before the lock</h4><p>Six seconds to pick HIGHER or LOWER while the crowd bar splits live. No pick counts as a timeout.</p></div></div>
   <div class="hstep"><div class="hn">3</div><div><h4>Outlive 99 bots</h4><p>Wrong or too slow, your dot goes dark. Survive every round and the crown — plus the ladder points — is yours.</p></div></div>
@@ -593,6 +598,18 @@ function updateAlive(){const a=aliveTotal(),el=$('alivecount');
 /* ---------------- ghost challenge: a friend's recorded run rides along as a rival dot ---------------- */
 let GHOST=null,ghostBot=null;
 if(SHARE){try{GHOST=SHARE.parseGhost(location.search)}catch(e){GHOST=null}}
+/* iOS shares the readable HTTPS fallback format (h/l/x picks) so recipients
+   without the native app still enter this exact fixture and race the run. */
+if(!GHOST){
+  const qp=new URLSearchParams(location.search),pc=qp.get('p')||'';
+  if(/^[hlx]{1,32}$/.test(pc))GHOST={
+    fixtureId:qp.get('fixture')||'',
+    name:(qp.get('challenger')||'A RIVAL').slice(0,24),
+    picks:pc.split('').map(v=>v==='h'?'hi':v==='l'?'lo':null),
+    streak:Math.max(0,Math.min(99,Number(qp.get('streak'))||0)),
+    outlived:Math.max(0,Math.min(99,Number(qp.get('outlived'))||0))
+  };
+}
 if(GHOST&&GHOST.fixtureId&&String(GHOST.fixtureId)!==String(LOBBY.fixtureId))GHOST=null;
 if(GHOST&&Array.isArray(GHOST.picks)&&GHOST.picks.length){
   ghostBot=bots[7];

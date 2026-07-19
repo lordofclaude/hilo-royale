@@ -129,7 +129,12 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
   // ----- event pump (buffer during questions so reveals can't be spoiled) -----
   function handleEvent(e: TxMock.ScoreEvent) {
     if (gameOverRef.current) return;
-    if (pendingRef.current) { bufferRef.current.push(e); return; }
+    if (pendingRef.current) {
+      bufferRef.current.push(e);
+      const boundary = pendingRef.current.q.fromMin + pendingRef.current.q.windowLen;
+      if (e.minute >= boundary) resolveRound();
+      return;
+    }
     setScore(`${CODE1} ${e.stats.g1} – ${e.stats.g2} ${CODE2}`);
     setMatchMinute(e.minute);
     matchMinuteRef.current = e.minute;
@@ -201,7 +206,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
       }
       if (rem <= 0) {
         tickIvRef.current && clearInterval(tickIvRef.current);
-        resolveRound();
+        setLocked(true);
       }
     }, 50);
   }
@@ -281,7 +286,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
         }
         // survival push notification demo (round 3 = the promised moment)
         if (question.n === 3) {
-          notifySurvival(3, aliveTotal() - dying.length).catch(() => {});
+          notifySurvival(3, aliveTotal()).catch(() => {});
         }
       } else {
         me.alive = false;
@@ -458,6 +463,9 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
       {/* the duel */}
       <View style={styles.answers}>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={q?.hiLabel || "Higher"}
+          accessibilityState={{ disabled: locked, selected: myPick === "hi" }}
           disabled={locked}
           onPress={() => pick("hi")}
           style={[
@@ -471,6 +479,9 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
           </Text>
         </Pressable>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={q?.loLabel || "Lower"}
+          accessibilityState={{ disabled: locked, selected: myPick === "lo" }}
           disabled={locked}
           onPress={() => pick("lo")}
           style={[
@@ -512,7 +523,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
       </View>
 
       {verdict && (
-        <Text style={[styles.verdict, verdict.kind === "ok" && { color: C.hi }, verdict.kind === "out" && { color: C.lo }]}>
+        <Text accessibilityLiveRegion="polite" style={[styles.verdict, verdict.kind === "ok" && { color: C.hi }, verdict.kind === "out" && { color: C.lo }]}>
           {verdict.text}
         </Text>
       )}

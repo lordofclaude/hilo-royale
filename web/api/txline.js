@@ -64,7 +64,8 @@ export default async function handler(req, res) {
   try {
     const r = await fetch(`${HOST}/api/odds/updates/${fixtureId}`, { headers });
     if (!r.ok) { send(res, { ok: false, reason: `http-${r.status}` }); return; }
-    const arr = await r.json();
+    const arr = parseBody(await r.text());
+    if (arr === null) { send(res, { ok: false, reason: "bad-json" }); return; }
     let latest = null;
     for (let i = arr.length - 1; i >= 0; i--) {
       const o = arr[i];
@@ -72,7 +73,11 @@ export default async function handler(req, res) {
       const pct = o.Pct || [];
       if (ty === "1X2_PARTICIPANT_RESULT" && pct.length === 3 && pct[0] !== "NA") {
         const p1 = +pct[0], draw = +pct[1], p2 = +pct[2];
-        if ([p1, draw, p2].every(Number.isFinite)) { latest = { p1, draw, p2, ts: o.Ts }; break; }
+        const sum = p1 + draw + p2;
+        if ([p1, draw, p2].every(v => Number.isFinite(v) && v >= 0 && v <= 100) && sum >= 95 && sum <= 105) {
+          latest = { p1, draw, p2, ts: o.Ts };
+          break;
+        }
       }
     }
     send(res, latest ? { ok: true, fixtureId, ...latest } : { ok: false, reason: "no-1x2" });

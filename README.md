@@ -23,10 +23,12 @@ onchain/ ORAO VRF request script + the fulfilled randomness proof
 The deployed app is served from `web/` and is self-contained. Locally:
 
 ```powershell
-cd web
-python -m http.server 8080
-# → http://localhost:8080/
+npm run dev
+# → http://127.0.0.1:8080/
 ```
+
+The included zero-dependency server mirrors Vercel's clean URLs, so `/login`,
+`/play`, challenge links, and the pitch page work exactly as they do after deploy.
 
 **Live mode is an enhancement, not a requirement.** With `TXLINE_JWT` and
 `TXLINE_API_TOKEN` configured in the environment (Vercel project env in
@@ -50,8 +52,7 @@ More detail (TestFlight shipping, swapping fixtures, feed wiring): `ios/RUN.md`.
 ## Run the tests
 
 ```powershell
-node web/test.js           # full engine suite: schedule builder, question
-                           # kinds, tape integrity, share codecs
+npm run verify             # web engine/integration/share/live tests + iOS typecheck
 ```
 
 ## TxLINE endpoints used

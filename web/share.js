@@ -247,7 +247,9 @@
     var q = '';
     if (decoded && decoded.fixtureId) q += 'fixture=' + encodeURIComponent(decoded.fixtureId) + '&';
     q += 'ghost=' + p;
-    return origin + '/?' + q;
+    // Land directly in the arena. /play preserves the payload through the
+    // guest-login redirect; the landing page previously dropped it.
+    return origin + '/play?' + q;
   }
 
   /* ---------------- parseGhost (hostile-input tolerant) ------------------ */

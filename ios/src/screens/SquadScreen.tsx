@@ -18,7 +18,7 @@ export default function SquadScreen({ identity, initialCode }: Props) {
   const generatedCode = useMemo(() => `CROWN-${identity.id.slice(-4).toUpperCase()}`, [identity.id]);
   const [code, setCode] = useState(initialCode || generatedCode);
   const [joined, setJoined] = useState(Boolean(initialCode));
-  const inviteUrl = `hiloroyale://squad/${encodeURIComponent(code)}`;
+  const inviteUrl = `https://hilo-royale.vercel.app/play?squad=${encodeURIComponent(code)}`;
   const roomService = roomServiceStatus();
 
   const invite = () => Share.share({

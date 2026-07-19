@@ -55,6 +55,8 @@ const META = {
   "18257865": {
     p1: "France", p2: "England", stage: "Third-place play-off", tag: "3RD",
     expected: { g1: 2, g2: 4 },
+    captureStatus: "partial",
+    capturedThroughMinute: 60,
     note: "Live capture (scores to ~60', odds to ~84'); score was already 2-4 at capture end — verified final result.",
   },
   "18241006": {
@@ -406,12 +408,17 @@ function buildLobby(fid, messages, fixture, oddsBuilder) {
 
   const lb = {
     fixtureId: fid, fixture: fx,
-    events: events.map(e => ({ seq: e.seq, minute: e.minute, type: e.type, team: e.team, detail: e.detail, stats: e.stats, teamName: e.teamName })),
+    // One TxLINE update can emit multiple semantic events (for example a
+    // goal plus its VAR verdict). Use a strict tape sequence while keeping
+    // the upstream sequence number alongside it for audit provenance.
+    events: events.map((e, index) => ({ seq: index + 1, sourceSeq: e.seq, minute: e.minute, type: e.type, team: e.team, detail: e.detail, stats: e.stats, teamName: e.teamName })),
     finalScore,
     stage: meta.stage, tag: meta.tag, kickoffMs,
   };
   if (odds && odds.winpct && odds.winpct.length >= 5) lb.odds = odds;
   if (meta.proof) lb.proof = meta.proof;
+  if (meta.captureStatus) lb.captureStatus = meta.captureStatus;
+  if (meta.capturedThroughMinute != null) lb.capturedThroughMinute = meta.capturedThroughMinute;
   if (meta.note) lb.note = meta.note;
   return lb;
 }

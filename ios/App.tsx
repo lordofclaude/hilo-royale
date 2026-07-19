@@ -7,6 +7,7 @@ import { loadProfile, saveProfile, Profile, EMPTY_PROFILE } from "./src/lib/stor
 import { clearIdentity, FanIdentity, loadIdentity } from "./src/lib/auth";
 import { DEFAULT_GAME_SETTINGS, GameSettings, loadGameSettings, saveGameSettings } from "./src/lib/settings";
 import { joinRoom } from "./src/lib/room-service";
+import { liveStatus } from "./src/lib/live-service";
 import { replayByFixtureId, replayForDate, ReplayFixture } from "./src/lib/txline-real";
 import { dailyKey, decodeGhostPicks } from "./src/lib/game-logic";
 import Icon, { IconName } from "./src/components/Icon";
@@ -25,19 +26,33 @@ const TAB_SCREENS: Screen[] = ["lobby", "rank", "squad", "profile"];
 
 function squadCodeFromUrl(url: string): string | null {
   const match = url.match(/^hiloroyale:\/\/squad\/([^/?#]+)/i);
-  return match ? decodeURIComponent(match[1]) : null;
+  if (match) return decodeURIComponent(match[1]);
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname === "hilo-royale.vercel.app" ? parsed.searchParams.get("squad") : null;
+  } catch { return null; }
 }
 
 function challengeFromUrl(url: string): ChallengeRun | null {
-  const match = url.match(/^hiloroyale:\/\/challenge\/([0-9]+)(?:\?([^#]*))?/i);
-  if (!match) return null;
+  const custom = url.match(/^hiloroyale:\/\/challenge\/([0-9]+)(?:\?([^#]*))?/i);
+  let fixtureId = custom?.[1] || "";
+  let query = custom?.[2] || "";
+  if (!custom) {
+    try {
+      const parsed = new URL(url);
+      if (parsed.hostname !== "hilo-royale.vercel.app" || parsed.pathname !== "/play") return null;
+      fixtureId = parsed.searchParams.get("fixture") || "";
+      query = parsed.search.slice(1);
+    } catch { return null; }
+  }
+  if (!/^\d+$/.test(fixtureId)) return null;
   const params: Record<string, string> = {};
-  for (const pair of (match[2] || "").split("&")) {
+  for (const pair of query.split("&")) {
     const [key, value] = pair.split("=");
     if (key) params[decodeURIComponent(key)] = decodeURIComponent(value || "");
   }
   const targetPoints = Math.max(0, Math.min(10000, Number(params.target) || 0));
-  return { fixtureId: match[1], picks: decodeGhostPicks(params.p || ""), targetPoints };
+  return { fixtureId, picks: decodeGhostPicks(params.p || ""), targetPoints };
 }
 
 export default function App() {
@@ -137,7 +152,10 @@ export default function App() {
   const joinGame = async () => {
     if (!identity) return;
     const now = new Date();
-    const replay = replayForDate(now);
+    const dailyReplay = replayForDate(now);
+    const replay = settings.mode === "live"
+      ? replayByFixtureId(liveStatus().fixtureId || "") || dailyReplay
+      : dailyReplay;
     setTodayKey(dailyKey(now));
     setActiveReplay(replay);
     setChallenge(null);
@@ -194,7 +212,7 @@ export default function App() {
 
 function TabButton({ icon, label, active, onPress }: { icon: IconName; label: string; active: boolean; onPress: () => void }) {
   return (
-    <Pressable style={[styles.tabBtn, active && styles.tabBtnOn]} onPress={onPress}>
+    <Pressable accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: active }} style={[styles.tabBtn, active && styles.tabBtnOn]} onPress={onPress}>
       <Icon name={icon} size={21} color={active ? C.hi : "#7c8aa0"} style={{ marginBottom: 4 }} />
       <Text style={[styles.tabLabel, active && styles.tabActive]}>{label}</Text>
     </Pressable>

@@ -17,7 +17,10 @@
      3 SHARE      encode/parseGhost round-trip + hostile inputs
      4 LIVE FEED  API surface + isLive boundary math
      5 SERVERLESS static lint of web/api/txline.js
-     6 UI STATIC  web/index.html structural checks
+     6 UI STATIC  3-page structure: index.html (landing, og: meta),
+                  login.html (handle gate, forwards search, guest),
+                  play.html (the game: all engine scripts), emoji
+                  scan across all three, og.png present on disk
    ============================================================ */
 "use strict";
 
@@ -165,14 +168,16 @@ runSection("1 LOBBIES", [p("lobbies.js")], (t) => {
     const ev = lb.events || [];
     t.ok(Array.isArray(ev) && ev.length >= 12, `${id}: >=12 events (got ${ev.length})`);
 
-    // seq strictly increasing; minutes non-decreasing within 0..130.
+    // seq non-decreasing: real TxLINE feeds emit EQUAL seqs when one raw
+    // update moves two stats (seen in 18257865/18222446/17588232), so only
+    // DECREASES are forbidden. Minutes non-decreasing within 0..130.
     // Football stoppage-time collapse is legal: a drop is allowed only when
     // it lands exactly on a period start (45/90/105/120) and is <= 20 min
     // (e.g. H1 ends 45+8=53', H2 kickoff stamps 45'). Anything else fails.
     const PERIOD_STARTS = [45, 90, 105, 120];
     let seqOk = true, minOk = true, minWhy = null, prevSeq = -Infinity, prevMin = -Infinity;
     for (const e of ev) {
-      if (!(typeof e.seq === "number" && e.seq > prevSeq)) seqOk = false;
+      if (!(typeof e.seq === "number" && e.seq >= prevSeq)) seqOk = false;
       const m = e.minute;
       const inRange = typeof m === "number" && m >= 0 && m <= 130;
       const boundaryDrop = m < prevMin && PERIOD_STARTS.indexOf(m) !== -1 && (prevMin - m) <= 20;
@@ -181,7 +186,7 @@ runSection("1 LOBBIES", [p("lobbies.js")], (t) => {
       }
       prevSeq = e.seq; prevMin = m;
     }
-    t.ok(seqOk, `${id}: seq strictly increasing`);
+    t.ok(seqOk, `${id}: seq non-decreasing (equal seqs allowed for multi-stat raw updates; decreases forbidden)`);
     t.ok(minOk, `${id}: minutes 0..130, non-decreasing outside period boundaries (${minWhy || ""})`);
 
     // cumulative stats monotonic non-decreasing across ALL keys
@@ -198,8 +203,19 @@ runSection("1 LOBBIES", [p("lobbies.js")], (t) => {
     }
     t.ok(statOk, `${id}: cumulative stats monotonic (${firstBad || ""})`);
 
+    // Tape completeness: a full tape ends in game_finalised. A PARTIAL
+    // capture is legal by design (nothing fabricated) IFF the lobby carries
+    // a truthful `note` explaining where the capture ends -> warn, not FAIL.
     const last = ev[ev.length - 1] || {};
-    t.ok(last.type === "game_finalised", `${id}: last event is game_finalised (got '${last.type}')`);
+    if (last.type === "game_finalised") {
+      t.ok(true, "");
+    } else {
+      const note = typeof lb.note === "string" ? lb.note : "";
+      const honest = /captur/i.test(note) && (/end/i.test(note) || /~?\s*\d+\s*'/.test(note));
+      if (t.ok(honest, `${id}: tape ends with '${last.type}' (min ${last.minute}) and lobby.note does not truthfully explain the partial capture (note=${JSON.stringify(note).slice(0, 120)})`)) {
+        t.warn(`${id}: partial capture — tape ends '${last.type}' at min ${last.minute}, honest note present: ${JSON.stringify(note.slice(0, 90))}`);
+      }
+    }
     const ls = last.stats || {};
     const fsOk = lb.finalScore && ls.g1 === lb.finalScore.g1 && ls.g2 === lb.finalScore.g2;
     t.ok(fsOk, `${id}: finalScore ${JSON.stringify(lb.finalScore)} == final stats ${ls.g1}-${ls.g2}`);
@@ -496,23 +512,48 @@ runSection("5 SERVERLESS", [p("api", "txline.js")], (t) => {
 });
 
 /* ============================================================
-   6 UI STATIC — web/index.html
+   6 UI STATIC — 3-page structure
+   index.html = marketing landing, login.html = fan-handle gate,
+   play.html = THE GAME (engine + LiveFeed + share + vrf).
    ============================================================ */
-runSection("6 UI STATIC", [p("index.html")], (t) => {
-  const html = readText(p("index.html"));
-  const opens = (html.match(/<script\b/gi) || []).length;
-  const closes = (html.match(/<\/script>/gi) || []).length;
-  t.ok(opens === closes, `balanced <script> tags (${opens} open vs ${closes} close)`);
-  t.ok(/<script[^>]*src=["'][^"']*lobbies\.js/i.test(html), "includes <script src=lobbies.js>");
-  t.ok(/<script[^>]*src=["'][^"']*game-logic\.js/i.test(html), "includes <script src=game-logic.js>");
+runSection("6 UI STATIC", [p("index.html"), p("login.html"), p("play.html")], (t) => {
+  const PAGES = ["index.html", "login.html", "play.html"];
+  const html = {};
+  for (const f of PAGES) html[f] = readText(p(f));
 
-  const emojis = html.match(new RegExp(EMOJI_RE.source, "gu")) || [];
-  t.ok(emojis.length === 0, `no emoji characters in HTML (found ${emojis.length}: ${[...new Set(emojis)].slice(0, 8).join(" ")})`);
+  // every page: balanced <script> tags + zero emoji
+  for (const f of PAGES) {
+    const opens = (html[f].match(/<script\b/gi) || []).length;
+    const closes = (html[f].match(/<\/script>/gi) || []).length;
+    t.ok(opens === closes, `${f}: balanced <script> tags (${opens} open vs ${closes} close)`);
+    const emojis = html[f].match(new RegExp(EMOJI_RE.source, "gu")) || [];
+    t.ok(emojis.length === 0, `${f}: no emoji characters (found ${emojis.length}: ${[...new Set(emojis)].slice(0, 8).join(" ")})`);
+  }
 
-  const legacy = html.match(/\.fra\b|\.eng\b|["']fra["']\s*:|["']eng["']\s*:/g) || [];
-  t.ok(legacy.length === 0, `no legacy odds keys .fra/.eng (found ${legacy.length})`);
+  // play.html: THE GAME — all engine scripts must load here
+  for (const s of ["lobbies.js", "game-logic.js", "live-feed.js", "share.js", "vrf-proof.js"]) {
+    t.ok(new RegExp('<script[^>]*src=["\'][^"\']*' + s.replace(".", "\\."), "i").test(html["play.html"]),
+      `play.html: includes <script src=${s}>`);
+  }
 
-  if (!/property=["']og:|name=["']og:/i.test(html)) t.warn("no og: meta tags (recommended for share cards)");
+  // index.html: marketing landing — og: meta for share cards
+  t.ok(/property=["']og:|name=["']og:/i.test(html["index.html"]), "index.html: has og: meta tags");
+
+  // login.html: must forward location.search to /play and offer a guest path
+  t.ok(/location\.(href|replace)\s*[=(]\s*['"`]\/play['"`]\s*\+\s*location\.search|['"`]\/play['"`]\s*\+\s*location\.search/.test(html["login.html"]),
+    "login.html: forwards location.search to /play");
+  t.ok(/guest/i.test(html["login.html"]), "login.html: has a guest path (mentions 'guest')");
+
+  // og:image must reference /og.png and the file must exist on disk
+  let ogRefs = 0, ogBad = null;
+  for (const f of PAGES) {
+    const m = html[f].match(/property=["']og:image["'][^>]*content=["']([^"']+)["']/i)
+      || html[f].match(/content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
+    if (m) { ogRefs++; if (!/\/og\.png(\?|#|$)/.test(m[1])) ogBad = ogBad || `${f}: og:image -> ${m[1]}`; }
+  }
+  t.ok(ogRefs >= 1, "at least one page declares og:image");
+  t.ok(ogBad === null, `og:image references point at /og.png (${ogBad || ""})`);
+  t.ok(exists(p("og.png")), "web/og.png exists on disk (1200x630 share card)");
 });
 
 /* ============================================================

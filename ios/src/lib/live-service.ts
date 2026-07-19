@@ -2,7 +2,6 @@ import type { ScoreEvent, StatMap, StreamHandle } from "./txline-mock";
 
 interface LiveEnvironment {
   baseUrl: string;
-  token: string;
   fixtureId: string;
 }
 
@@ -16,9 +15,9 @@ const EMPTY_STATS: StatMap = { c1: 0, c2: 0, s1: 0, s2: 0, y1: 0, y2: 0, r1: 0, 
 
 function environment(): LiveEnvironment {
   return {
-    // Devnet host matches the guest/token auth used for the World Cup free tier.
-    baseUrl: (process.env.EXPO_PUBLIC_TXLINE_BASE_URL || "https://txline-dev.txodds.com").replace(/\/$/, ""),
-    token: process.env.EXPO_PUBLIC_TXLINE_TOKEN || "",
+    // Native clients use our server-side SSE bridge. TxLINE credentials stay
+    // in the backend environment and are never extractable from the app.
+    baseUrl: (process.env.EXPO_PUBLIC_HILO_API_URL || "https://hilo-royale.vercel.app").replace(/\/$/, ""),
     // Default to the featured France v England fixture. NOTE: live in-play data
     // comes from /api/scores/stream (SSE) or /api/scores/updates — NOT
     // /api/scores/historical, which stays locked until ~6h after kickoff.
@@ -30,9 +29,6 @@ export function liveStatus(): LiveStatus {
   const env = environment();
   if (!env.fixtureId) {
     return { ready: false, message: "Set EXPO_PUBLIC_TXLINE_FIXTURE_ID to enable a live lobby." };
-  }
-  if (!env.token) {
-    return { ready: false, message: "Set EXPO_PUBLIC_TXLINE_TOKEN after TxLINE guest/token activation." };
   }
   return { ready: true, message: "TxLINE live stream configured", fixtureId: env.fixtureId };
 }
@@ -70,8 +66,7 @@ function normalizeEvent(value: unknown, fallbackSeq: number): ScoreEvent | null 
   };
 }
 
-/** Connects directly to the TxLINE SSE endpoint. Credentials stay in Expo
- *  public build-time variables; no token is committed to the repository. */
+/** Connects to the app's server-side TxLINE SSE bridge. */
 export function streamLive(opts: {
   onEvent: (event: ScoreEvent) => void;
   onDone?: (event: ScoreEvent | null) => void;
@@ -84,10 +79,9 @@ export function streamLive(opts: {
 
   const pump = async () => {
     try {
-      const response = await fetch(`${env.baseUrl}/api/scores/stream?fixtureId=${encodeURIComponent(env.fixtureId)}`, {
+      const response = await fetch(`${env.baseUrl}/api/txline-stream?fixtureId=${encodeURIComponent(env.fixtureId)}`, {
         headers: {
           Accept: "text/event-stream",
-          Authorization: `Bearer ${env.token}`,
         },
         signal: controller.signal,
       });
@@ -132,4 +126,3 @@ export function streamLive(opts: {
     },
   };
 }
-

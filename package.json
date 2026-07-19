@@ -1,0 +1,16 @@
+{
+  "name": "hilo-royale",
+  "version": "1.1.0",
+  "private": true,
+  "description": "A 100-fan prediction battle royale powered by real TxLINE match data.",
+  "scripts": {
+    "dev": "node web/dev-server.js",
+    "build:lobbies": "node shared/build-lobbies.js",
+    "test:web": "node web/test.js && node web/share.test.js && node web/live-feed.test.js && node web/test-integration.js",
+    "typecheck:ios": "corepack pnpm --dir ios typecheck",
+    "verify": "npm run test:web && npm run typecheck:ios"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
