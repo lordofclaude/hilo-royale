@@ -12,6 +12,7 @@ import { lobbyRng } from "../lib/vrf";
 import Icon, { IconName, KEY_ICON, KIND_ICON } from "../components/Icon";
 import { FanIdentity } from "../lib/auth";
 import { RoundSettlement, submitPrediction, submitRoundSettlement } from "../lib/room-service";
+import { MAX_REPLAY_ROUND_MS, replaySettlementBoundary, replaySettlementSecondsLeft } from "../lib/replay-settlement";
 
 
 // Precomputed once (in txline-real.ts) from the static real-match tape: every
@@ -35,6 +36,7 @@ interface Pending {
   deadline: number;
   started: number;
   durationMs: number;
+  answerLocked: boolean;
 }
 
 interface Props {
@@ -72,7 +74,8 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
   const ghostRankRef = useRef<number | undefined>(undefined);
   const matchMinuteRef = useRef(0);
   const gameOverRef = useRef(false);
-  const streamRef = useRef<TxMock.StreamHandle | null>(null);
+  const roundResolvingRef = useRef(false);
+  const streamRef = useRef<TxMock.ReplayStreamHandle | null>(null);
   const timersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const tickIvRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const nextBeatRef = useRef(0);
@@ -104,6 +107,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
   const [lastEvent, setLastEvent] = useState<{ icon: IconName | null; text: string }>({ icon: null, text: "kickoff imminent…" });
   const [matchMinute, setMatchMinute] = useState(0);
   const [roundSettlement, setRoundSettlement] = useState<RoundSettlement | null>(null);
+  const [settlesIn, setSettlesIn] = useState(MAX_REPLAY_ROUND_MS / 1000);
 
   const later = (fn: () => void, ms: number) => { timersRef.current.push(setTimeout(fn, ms)); };
   const aliveTotal = () => botsRef.current.filter(b => b.alive).length;
@@ -122,7 +126,9 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
         streamRef.current = TxMock.streamReplay(replay, {
           playbackRate: settings.playbackRate,
           onEvent: handleEvent,
-          onDone: () => { if (pendingRef.current) resolveRound(); else if (!gameOverRef.current) endGame(); },
+          onDone: () => {
+            if (!pendingRef.current && !roundResolvingRef.current && scheduleIdxRef.current >= SCHEDULE.length && !gameOverRef.current) endGame();
+          },
         });
       }
     }, 800);
@@ -149,10 +155,9 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
   }
   function handleEvent(e: TxMock.ScoreEvent) {
     if (gameOverRef.current) return;
+    if (roundResolvingRef.current) { bufferRef.current.push(e); return; }
     const P = pendingRef.current;
     if (P) {
-      const boundary = P.q.fromMin + P.q.windowLen;
-      if (e.minute >= boundary) { bufferRef.current.push(e); resolveRound(); return; }
       const lockedIn = P.myPick != null || Date.now() >= P.deadline;
       if (lockedIn) { renderMatchEvent(e); return; }
       bufferRef.current.push(e);
@@ -174,13 +179,10 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
     for (const e of queued) renderMatchEvent(e);
     setWindowPhase(true);
   }
-  function flushBuffer() {
+  function renderBufferedEvents() {
     const queued = bufferRef.current;
     bufferRef.current = [];
-    for (const e of queued) {
-      if (pendingRef.current) bufferRef.current.push(e);
-      else handleEvent(e);
-    }
+    for (const e of queued) renderMatchEvent(e);
   }
 
   // ----- question loop -----
@@ -196,6 +198,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
     pendingRef.current = {
       q: question, outcome, botPicks, myPick: null, myPickAtMs: null,
       deadline: now + durationMs, started: now, durationMs,
+      answerLocked: false,
     };
     setQ(question);
     setAnswerSide(null);
@@ -209,7 +212,15 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
     setCrowd({ hi: 0.5, n: 0 });
     setRemainingPct(100);
     setPanic(false);
+    setSettlesIn(MAX_REPLAY_ROUND_MS / 1000);
     nextBeatRef.current = 0;
+
+    later(() => {
+      const current = pendingRef.current;
+      if (!current || current.q.n !== question.n) return;
+      streamRef.current?.settleThrough(replaySettlementBoundary(question.fromMin, question.windowLen));
+      if (pendingRef.current === current) resolveRound();
+    }, MAX_REPLAY_ROUND_MS);
 
     tickIvRef.current && clearInterval(tickIvRef.current);
     tickIvRef.current = setInterval(() => {
@@ -218,6 +229,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
       const t = Date.now();
       const rem = Math.max(0, P.deadline - t);
       const elapsed = t - P.started;
+      setSettlesIn(replaySettlementSecondsLeft(P.started, t));
       setRemainingPct((rem / P.durationMs) * 100);
       // crowd bar: bot picks stream in before the lock
       const revealed: L.Side[] = [];
@@ -225,15 +237,15 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
       if (P.myPick) revealed.push(P.myPick);
       setCrowd({ hi: L.crowdSplit(revealed).hi, n: revealed.length });
       // heartbeat haptics as the timer dies
-      if (rem < 2200) {
+      if (!P.answerLocked && rem < 2200) {
         setPanic(true);
         if (t >= nextBeatRef.current) {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
           nextBeatRef.current = t + Math.max(280, (rem / 2200) * 820);
         }
       }
-      if (rem <= 0) {
-        tickIvRef.current && clearInterval(tickIvRef.current);
+      if (rem <= 0 && !P.answerLocked) {
+        P.answerLocked = true;
         setLocked(true);
         drainWindowIntoView(); // no pick = still locked in — the window plays out either way
       }
@@ -245,8 +257,10 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
     if (!P || !meRef.current.alive || P.myPick) return;
     P.myPick = side;
     P.myPickAtMs = Math.max(0, P.deadline - Date.now());
+    P.answerLocked = true;
     setMyPick(side);
     setLocked(true);
+    setRemainingPct(0);
     Haptics.selectionAsync().catch(() => {});
     void submitPrediction(roomId, identity, {
       fixtureId: replay.fixtureId,
@@ -262,7 +276,10 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
     const P = pendingRef.current;
     if (!P) return;
     pendingRef.current = null;
+    roundResolvingRef.current = true;
+    if (tickIvRef.current) { clearInterval(tickIvRef.current); tickIvRef.current = null; }
     setWindowPhase(false);
+    setSettlesIn(0);
     const { val, answer } = P.outcome;
     const question = P.q;
     const settlementTask = submitRoundSettlement(roomId, identity, {
@@ -384,6 +401,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
     );
 
     later(() => {
+      roundResolvingRef.current = false;
       setAliveCount(aliveTotal());
       if (!meRef.current.alive) {
         const ghostRank = Math.max(2, aliveTotal() + 1);
@@ -391,7 +409,11 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
         setGhostMessage(`GHOST MODE · YOU WOULD NOW BE TOP ${ghostRank}`);
       }
       if (scheduleIdxRef.current >= SCHEDULE.length || aliveTotal() <= 1 || othersAlive() === 0) endGame();
-      else flushBuffer();
+      else {
+        renderBufferedEvents();
+        const next = SCHEDULE[scheduleIdxRef.current++];
+        startQuestion(next);
+      }
     }, settings.revealSeconds * 1000 + Math.min(1400, dying.length * 40));
   }
 
@@ -600,12 +622,10 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, room
         <FadeIn dy={6} duration={240} style={styles.windowRow}>
           <View style={[styles.windowChip, glow(C.gold, 9, 0.4)]}>
             <Icon name="clock" size={12} color={C.gold} style={{ marginRight: 6 }} />
-            <Text style={styles.windowChipTxt}>WINDOW IN PLAY · SETTLES AT {q.fromMin + q.windowLen}'</Text>
+            <Text style={styles.windowChipTxt}>PICK LOCKED · RESULT IN {settlesIn}s</Text>
           </View>
           <Text style={styles.windowSub}>
-            {settings.mode === "live"
-              ? `${q.windowLen} real minutes — hold your nerve`
-              : `replay ×${settings.playbackRate} — this is ${q.windowLen} real minutes in live mode`}
+            real {CODE1}–{CODE2} TxLINE tape · settles by {q.fromMin + q.windowLen}' or the 30-second limit
           </Text>
         </FadeIn>
       )}

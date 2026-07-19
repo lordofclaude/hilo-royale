@@ -235,9 +235,9 @@ export default function App() {
         {screen === "squad" && <SquadScreen identity={identity} fixtureId={activeReplay.fixtureId} initialCode={initialSquadCode} onEnterBattle={startPrivateBattle} />}
         {screen === "settings" && <SettingsScreen identity={identity} settings={settings} onChange={updateSettings} onBack={() => setScreen("lobby")} onSignOut={signOut} onDeleteData={deleteLocalData} />}
       </View>
-      {TAB_SCREENS.includes(screen) && (
+      {(TAB_SCREENS.includes(screen) || screen === "game") && (
         <FadeIn dy={6} duration={260} style={[styles.tabBar, cardShadow()]}>
-          <TabButton icon="play" label="Play" active={screen === "lobby"} onPress={() => setScreen("lobby")} />
+          <TabButton icon="play" label={screen === "game" ? "Exit" : "Play"} active={screen === "lobby" || screen === "game"} onPress={() => setScreen("lobby")} />
           <TabButton icon="chart" label="Rank" active={screen === "rank"} onPress={() => setScreen("rank")} />
           <TabButton icon="users" label="Private" active={screen === "squad"} onPress={() => setScreen("squad")} />
           <TabButton icon="user" label="Me" active={screen === "profile"} onPress={() => setScreen("profile")} />
