@@ -89,6 +89,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
   const [roundReward, setRoundReward] = useState<{ points: number; correctPct: number } | null>(null);
   const [questionDurationMs, setQuestionDurationMs] = useState(baseQms);
   const [suddenDeath, setSuddenDeath] = useState(false);
+  const [windowPhase, setWindowPhase] = useState(false); // pick locked, window playing out on screen
   const [ghostMessage, setGhostMessage] = useState<string | null>(null);
   const [aliveCount, setAliveCount] = useState(FANS);
   const [dead, setDead] = useState<boolean[]>(() => Array(FANS).fill(false));
@@ -127,25 +128,44 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ----- event pump (buffer during questions so reveals can't be spoiled) -----
-  function handleEvent(e: TxMock.ScoreEvent) {
-    if (gameOverRef.current) return;
-    if (pendingRef.current) {
-      bufferRef.current.push(e);
-      const boundary = pendingRef.current.q.fromMin + pendingRef.current.q.windowLen;
-      if (e.minute >= boundary) resolveRound();
-      return;
-    }
+  // ----- event pump -----
+  // Before the lock, window events buffer (no spoilers while you can still
+  // pick). AFTER the lock the window plays out ON SCREEN — score, minute and
+  // feed fast-forward through the real events while the pick is locked, so
+  // the wait for settlement is visible drama, exactly like live mode at 1×.
+  function renderMatchEvent(e: TxMock.ScoreEvent) {
     setScore(`${CODE1} ${e.stats.g1} – ${e.stats.g2} ${CODE2}`);
     setMatchMinute(e.minute);
     matchMinuteRef.current = e.minute;
     const feedTypes = ["goal", "corner", "card", "shot", "var", "penalty"];
     if (feedTypes.includes(e.type)) setLastEvent({ icon: KEY_ICON[e.type] || null, text: `${e.minute}' ${e.type} — ${e.teamName}` });
+  }
+  function handleEvent(e: TxMock.ScoreEvent) {
+    if (gameOverRef.current) return;
+    const P = pendingRef.current;
+    if (P) {
+      const boundary = P.q.fromMin + P.q.windowLen;
+      if (e.minute >= boundary) { bufferRef.current.push(e); resolveRound(); return; }
+      const lockedIn = P.myPick != null || Date.now() >= P.deadline;
+      if (lockedIn) { renderMatchEvent(e); return; }
+      bufferRef.current.push(e);
+      return;
+    }
+    renderMatchEvent(e);
     const next = SCHEDULE[scheduleIdxRef.current];
     if (next && e.minute >= next.fromMin && !pendingRef.current) {
       scheduleIdxRef.current++;
       startQuestion(next);
     }
+  }
+  /** On lock, spill any events buffered during the answer window into the
+   *  live view — they are all inside the window (boundary events resolve). */
+  function drainWindowIntoView() {
+    if (!pendingRef.current) return;
+    const queued = bufferRef.current;
+    bufferRef.current = [];
+    for (const e of queued) renderMatchEvent(e);
+    setWindowPhase(true);
   }
   function flushBuffer() {
     const queued = bufferRef.current;
@@ -208,6 +228,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
       if (rem <= 0) {
         tickIvRef.current && clearInterval(tickIvRef.current);
         setLocked(true);
+        drainWindowIntoView(); // no pick = still locked in — the window plays out either way
       }
     }, 50);
   }
@@ -220,12 +241,14 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
     setMyPick(side);
     setLocked(true);
     Haptics.selectionAsync().catch(() => {});
+    drainWindowIntoView(); // pick locked — start sweating the window immediately
   }
 
   function resolveRound() {
     const P = pendingRef.current;
     if (!P) return;
     pendingRef.current = null;
+    setWindowPhase(false);
     const { val, answer } = P.outcome;
     const question = P.q;
     setAnswerSide(answer);
@@ -303,7 +326,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
           eliminatedWith: dying.length,
         };
         const why = verdictNow === "timeout" ? "TOO SLOW" : `✗ WRONG`;
-        setVerdict({ text: `${why}. Eliminated at streak ${me.streak} — you outlived ${me.outlivedAtDeath} of 99 fans`, kind: "out" });
+        setVerdict({ text: `${why}. Eliminated at streak ${me.streak} — you outlived ${me.outlivedAtDeath} of 99 bot rivals`, kind: "out" });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
         setDead(d => { const nd = [...d]; nd[ME_INDEX] = true; return nd; });
       }
@@ -525,6 +548,21 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
         <View style={[styles.pulseLine, { backgroundColor: C.lo }]} />
       </View>
 
+      {/* window in play: pick is locked, the match fast-forwards through the
+          real window on screen — the wait for settlement IS the drama */}
+      {windowPhase && !verdict && q && (
+        <FadeIn dy={6} duration={240} style={styles.windowRow}>
+          <View style={[styles.windowChip, glow(C.gold, 9, 0.4)]}>
+            <Icon name="clock" size={12} color={C.gold} style={{ marginRight: 6 }} />
+            <Text style={styles.windowChipTxt}>WINDOW IN PLAY · SETTLES AT {q.fromMin + q.windowLen}'</Text>
+          </View>
+          <Text style={styles.windowSub}>
+            {settings.mode === "live"
+              ? `${q.windowLen} real minutes — hold your nerve`
+              : `replay ×${settings.playbackRate} — this is ${q.windowLen} real minutes in live mode`}
+          </Text>
+        </FadeIn>
+      )}
       {verdict && (
         <FadeIn dy={6} duration={240}>
           <Text accessibilityLiveRegion="polite" style={[styles.verdict, verdict.kind === "ok" && { color: C.hi }, verdict.kind === "out" && { color: C.lo }]}>
@@ -663,6 +701,10 @@ const styles = StyleSheet.create({
   },
   timerCirclePanic: { borderColor: C.lo },
   timerNum: { color: C.text, fontSize: 24, fontWeight: "900", fontVariant: ["tabular-nums"] },
+  windowRow: { alignItems: "center", marginBottom: 6 },
+  windowChip: { flexDirection: "row", alignItems: "center", backgroundColor: C.goldSoft, borderColor: C.gold, borderWidth: 1, borderRadius: 99, paddingHorizontal: 13, paddingVertical: 7 },
+  windowChipTxt: { color: C.gold, fontSize: 11, fontWeight: "900", letterSpacing: 1, fontVariant: ["tabular-nums"] },
+  windowSub: { color: C.muted, fontSize: 9, fontWeight: "700", letterSpacing: 0.4, marginTop: 5 },
   verdict: { color: C.text, textAlign: "center", fontWeight: "800", marginBottom: 4, fontSize: 15 },
   reward: { color: C.gold, textAlign: "center", fontSize: 11, fontWeight: "900", letterSpacing: 0.8, marginBottom: 4 },
   rewardZero: { color: C.muted },

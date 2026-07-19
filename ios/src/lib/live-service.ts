@@ -3,33 +3,67 @@ import type { ScoreEvent, StatMap, StreamHandle } from "./txline-mock";
 interface LiveEnvironment {
   baseUrl: string;
   fixtureId: string;
+  kickoffMs: number;
+  team1: string;
+  team2: string;
 }
 
 export interface LiveStatus {
   ready: boolean;
   message: string;
   fixtureId?: string;
+  team1?: string;
+  team2?: string;
 }
 
 const EMPTY_STATS: StatMap = { c1: 0, c2: 0, s1: 0, s2: 0, y1: 0, y2: 0, r1: 0, r2: 0, g1: 0, g2: 0 };
 
 function environment(): LiveEnvironment {
+  const configuredFixture = (process.env.EXPO_PUBLIC_TXLINE_FIXTURE_ID || "").trim();
+  const fixtureId = configuredFixture || "18257739";
+  const isDefaultFinal = fixtureId === "18257739";
   return {
     // Native clients use our server-side SSE bridge. TxLINE credentials stay
     // in the backend environment and are never extractable from the app.
     baseUrl: (process.env.EXPO_PUBLIC_HILO_API_URL || "https://hilo-royale.vercel.app").replace(/\/$/, ""),
-    // Live mode is opt-in. A hard-coded finished fixture would make the app
-    // display "LIVE NOW" when no match is actually in play.
-    fixtureId: process.env.EXPO_PUBLIC_TXLINE_FIXTURE_ID || "",
+    // Default: the next scheduled real fixture — the FIFA World Cup 2026 FINAL,
+    // Spain v Argentina (18257739), KO 2026-07-19 19:00 UTC. The kickoff-window
+    // gate below keeps "LIVE" honest: outside ±(15min/3h) of KO the lobby shows
+    // the countdown message instead, so a finished/future fixture never reads
+    // as live. Env vars still override for a different fixture.
+    fixtureId,
+    kickoffMs: Number(process.env.EXPO_PUBLIC_TXLINE_KICKOFF_MS || (isDefaultFinal ? 1784487600000 : 0)),
+    team1: (process.env.EXPO_PUBLIC_LIVE_TEAM_1 || (isDefaultFinal ? "Spain" : "")).trim(),
+    team2: (process.env.EXPO_PUBLIC_LIVE_TEAM_2 || (isDefaultFinal ? "Argentina" : "")).trim(),
   };
 }
 
-export function liveStatus(): LiveStatus {
+const LIVE_EARLY_ALLOWANCE_MS = 15 * 60 * 1000;
+const LIVE_LATE_ALLOWANCE_MS = 3 * 60 * 60 * 1000;
+
+export function liveStatus(nowMs = Date.now()): LiveStatus {
   const env = environment();
   if (!env.fixtureId) {
     return { ready: false, message: "Set EXPO_PUBLIC_TXLINE_FIXTURE_ID to enable a live lobby." };
   }
-  return { ready: true, message: "TxLINE live stream configured", fixtureId: env.fixtureId };
+  if (!Number.isFinite(env.kickoffMs) || env.kickoffMs <= 0) {
+    return { ready: false, message: "Set EXPO_PUBLIC_TXLINE_KICKOFF_MS so Live appears only during the match window." };
+  }
+  if (!env.team1 || !env.team2 || env.team1.toLowerCase() === env.team2.toLowerCase()) {
+    return { ready: false, message: "Set both live team names so the scoreboard matches the configured fixture." };
+  }
+  if (nowMs < env.kickoffMs - LIVE_EARLY_ALLOWANCE_MS || nowMs > env.kickoffMs + LIVE_LATE_ALLOWANCE_MS) {
+    const when = new Date(env.kickoffMs);
+    const hh = String(when.getUTCHours()).padStart(2, "0");
+    const mm = String(when.getUTCMinutes()).padStart(2, "0");
+    return {
+      ready: false,
+      message: nowMs < env.kickoffMs
+        ? `Next live lobby: the World Cup final kicks off ${when.getUTCDate()} Jul ${hh}:${mm} UTC. Until then, play today's replay lobby.`
+        : "That match has finished — play today's replay lobby, or wait for the next live fixture.",
+    };
+  }
+  return { ready: true, message: "TxLINE live stream configured", fixtureId: env.fixtureId, team1: env.team1, team2: env.team2 };
 }
 
 function numberOr(value: unknown, fallback = 0): number {
