@@ -36,11 +36,12 @@ interface Props {
   replay: ReplayFixture;
   dailyKey: string;
   onJoin: () => void;
+  onPrivateBattle: () => void;
   onProfile: () => void;
   onSettings: () => void;
 }
 
-export default function LobbyScreen({ profile, identity, settings, replay, dailyKey, onJoin, onProfile, onSettings }: Props) {
+export default function LobbyScreen({ profile, identity, settings, replay, dailyKey, onJoin, onPrivateBattle, onProfile, onSettings }: Props) {
   const [reminder, setReminder] = useState<"idle" | "set" | "denied">("idle");
   const [secs, setSecs] = useState(secondsToKickoff);
   const [roomPlayers, setRoomPlayers] = useState<RoomPlayer[]>([]);
@@ -120,9 +121,15 @@ export default function LobbyScreen({ profile, identity, settings, replay, daily
         <View style={styles.nextCard}>
           <Text style={styles.nextLbl}>{trulyLive ? "LIVE ARENA" : "NEXT KICK-OFF IN"}</Text>
           <Text style={styles.countdown}>{trulyLive ? <Text style={{ color: C.lo }}>LIVE NOW</Text> : <><Text style={{ color: C.hi }}>{clock(secs).slice(3, 6)}</Text><Text style={{ color: C.lo }}>{clock(secs).slice(6)}</Text></>}</Text>
-          <Tap scaleTo={0.97} accessibilityRole="button" style={[styles.join, glow(C.gold, 10, 0.4)]} onPress={onJoin}>
-            <Text style={styles.joinTxt}>JOIN {Math.max(1, 100 - roomPlayers.length)} FANS NOW  →</Text>
-          </Tap>
+          <View style={styles.battleActions}>
+            <Tap scaleTo={0.97} accessibilityRole="button" accessibilityLabel="Enter public Hi-Lo Royale battle" style={[styles.join, glow(C.gold, 10, 0.4)]} onPress={onJoin}>
+              <Text style={styles.joinTxt}>ENTER HI-LO ROYALE  →</Text>
+            </Tap>
+            <Tap scaleTo={0.97} accessibilityRole="button" accessibilityLabel="Create a private battle and invite friends" style={styles.privateBattle} onPress={onPrivateBattle}>
+              <Text style={styles.privateBattleTxt}>CREATE PRIVATE BATTLE</Text>
+              <Text style={styles.privateBattleMeta}>INVITE FRIENDS WITH A CODE</Text>
+            </Tap>
+          </View>
           {!trulyLive && (
             <Text style={styles.simNote}>
               {settings.mode === "live"
@@ -162,7 +169,7 @@ export default function LobbyScreen({ profile, identity, settings, replay, daily
         <View style={styles.sectionHeader}><Text style={styles.sectionLbl}>FRIENDS PLAYING</Text><Text style={[styles.sectionMeta, { color: C.success }]}>{roomService.ready ? `${roomPlayers.length} LIVE` : "DEMO CREW"}</Text></View>
         <View style={styles.friendRow}>
           {(roomPlayers.length ? roomPlayers.slice(0, 5).map(player => player.name.slice(0, 1).toUpperCase()) : FRIENDS).map((letter, index) => <View key={`${letter}-${index}`} style={[styles.friendAvatar, { borderColor: index === 4 ? C.lo : C.hi }]}><Text style={styles.friendTxt}>{letter}</Text><View style={styles.onlineDot} /></View>)}
-          <Tap accessibilityRole="button" accessibilityLabel="Invite a friend" style={styles.inviteCircle}><Text style={styles.invitePlus}>+</Text></Tap>
+          <Tap onPress={onPrivateBattle} accessibilityRole="button" accessibilityLabel="Create a private battle and invite friends" style={styles.inviteCircle}><Text style={styles.invitePlus}>+</Text></Tap>
         </View>
       </FadeIn>
 
@@ -199,7 +206,7 @@ const styles = StyleSheet.create({
   teamBadge: { width: 66, height: 66, borderRadius: 18, borderWidth: 2, backgroundColor: C.panelDeep, alignItems: "center", justifyContent: "center", transform: [{ rotate: "-2deg" }] }, teamBadgeTxt: { fontSize: 18, ...displayFont }, teamName: { color: C.text, fontSize: 10, fontWeight: "800", marginTop: 6 },
   vsBlock: { alignItems: "center" }, vs: { color: C.muted, fontSize: 10, fontWeight: "900", letterSpacing: 1.4, marginTop: 3 },
   nextCard: { borderColor: C.line, borderWidth: hairline, borderRadius: 16, backgroundColor: C.panelDeep, padding: 14, alignItems: "center" }, nextLbl: { ...type.caption, letterSpacing: 1.6 },
-  countdown: { fontSize: 48, ...displayFont, fontVariant: ["tabular-nums"], marginVertical: 1 }, join: { alignSelf: "stretch", backgroundColor: C.gold, borderRadius: 13, minHeight: 50, alignItems: "center", justifyContent: "center" }, joinTxt: { color: "#130e03", fontSize: 15, fontWeight: "800", letterSpacing: 0.4 }, disabled: { opacity: 0.35 }, notReady: { color: C.lo, fontSize: 11, lineHeight: 15, marginTop: 8, textAlign: "center" }, simNote: { color: C.muted, fontSize: 10, lineHeight: 15, marginTop: 8, textAlign: "center" },
+  countdown: { fontSize: 48, ...displayFont, fontVariant: ["tabular-nums"], marginVertical: 1 }, battleActions: { alignSelf: "stretch", gap: 8 }, join: { alignSelf: "stretch", backgroundColor: C.gold, borderRadius: 13, minHeight: 50, alignItems: "center", justifyContent: "center" }, joinTxt: { color: "#130e03", fontSize: 15, fontWeight: "800", letterSpacing: 0.4 }, privateBattle: { alignSelf: "stretch", borderColor: C.hi, borderWidth: 1, borderRadius: 13, minHeight: 52, alignItems: "center", justifyContent: "center", backgroundColor: C.hiSoft }, privateBattleTxt: { color: C.hi, fontSize: 13, fontWeight: "800", letterSpacing: 0.5 }, privateBattleMeta: { color: C.muted, fontSize: 8, fontWeight: "700", letterSpacing: 1, marginTop: 2 }, disabled: { opacity: 0.35 }, notReady: { color: C.lo, fontSize: 11, lineHeight: 15, marginTop: 8, textAlign: "center" }, simNote: { color: C.muted, fontSize: 10, lineHeight: 15, marginTop: 8, textAlign: "center" },
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }, sectionLblRow: { flexDirection: "row", alignItems: "center" }, sectionLbl: { ...type.section }, sectionMeta: { ...type.caption, fontSize: 10 },
   hotRow: { flexDirection: "row", gap: 8, marginBottom: 16 }, hotCard: { flex: 1, backgroundColor: C.panelDeep, borderColor: C.line, borderWidth: hairline, borderRadius: 16, padding: 8, paddingVertical: 10, alignItems: "center" }, hotLabel: { fontSize: 9, fontWeight: "800", letterSpacing: 0.5, marginTop: 3 }, hotDuel: { flexDirection: "row", alignItems: "center", gap: 3, marginVertical: 7 }, hotHi: { color: C.hi, fontSize: 11, ...displayFont, maxWidth: 34 }, hotVs: { color: C.muted, fontSize: 7 }, hotLo: { color: C.lo, fontSize: 11, ...displayFont, maxWidth: 34 }, hotPlay: { alignSelf: "stretch", borderWidth: 1, borderRadius: 9, paddingVertical: 7, alignItems: "center" }, hotPlayTxt: { fontSize: 10, fontWeight: "800" },
   controlCard: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: C.panel, borderColor: C.line, borderWidth: hairline, borderRadius: 16, padding: 14, marginBottom: 12 }, controlLabel: { ...type.caption, color: C.gold, letterSpacing: 1.1 }, controlValue: { ...type.footnote, fontSize: 11, lineHeight: 16, marginTop: 3 }, controlBtn: { borderColor: C.gold, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, minHeight: 36, justifyContent: "center" }, controlBtnTxt: { color: C.gold, fontSize: 11, fontWeight: "700" },

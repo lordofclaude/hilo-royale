@@ -16,15 +16,15 @@ const SQUAD_WALL = [
 ] as const;
 
 export default function SquadScreen({ identity, initialCode }: Props) {
-  const generatedCode = useMemo(() => `CROWN-${identity.id.slice(-4).toUpperCase()}`, [identity.id]);
+  const generatedCode = useMemo(() => `BATTLE-${identity.id.slice(-4).toUpperCase()}`, [identity.id]);
   const [code, setCode] = useState(initialCode || generatedCode);
   const [joined, setJoined] = useState(Boolean(initialCode));
   const inviteUrl = `https://hilo-royale.vercel.app/play?squad=${encodeURIComponent(code)}`;
   const roomService = roomServiceStatus();
 
   const invite = () => Share.share({
-    title: "Join my Hi-Lo Royale squad",
-    message: `Join ${identity.name}'s Crown Crew for the next match. Squad code: ${code}\n${inviteUrl}`,
+    title: "Join my Hi-Lo Royale private battle",
+    message: `Join ${identity.name}'s private Hi-Lo Royale battle. Battle code: ${code}\n${inviteUrl}`,
     url: inviteUrl,
   }).catch(() => {});
 
@@ -37,14 +37,14 @@ export default function SquadScreen({ identity, initialCode }: Props) {
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <ScreenHeader
-        title="Squad"
-        caption="SQUAD ROOM"
+        title="Private Battle"
+        caption="INVITE FRIENDS"
         right={<View style={styles.liveRow}><View style={styles.liveDot} /><Text style={styles.liveTxt}>{roomService.ready ? "5 ONLINE" : "DEMO CREW"}</Text></View>}
       />
 
       <FadeIn dy={12} style={[styles.hero, glow(C.hi, 12, 0.22)]}>
         <Icon name="crown" size={32} color={C.gold} style={{ marginBottom: 6 }} />
-        <Text style={styles.heroTitle}>CROWN CREW</Text>
+        <Text style={styles.heroTitle} numberOfLines={1} adjustsFontSizeToFit>YOUR BATTLE ROOM</Text>
         <View style={styles.members}>
           {[identity.name, ...MEMBERS].map((name, i) => (
             <View key={name} style={styles.member}>
@@ -54,7 +54,7 @@ export default function SquadScreen({ identity, initialCode }: Props) {
           ))}
         </View>
         <View style={styles.streak}>
-          <Text style={styles.streakLabel}>SQUAD STREAK</Text>
+          <Text style={styles.streakLabel}>BATTLE STREAK</Text>
           <View style={styles.streakValueRow}>
             <Text style={styles.streakValue}>x12</Text>
             <Icon name="bolt" size={16} color={C.gold} style={{ marginLeft: 6 }} />
@@ -63,11 +63,11 @@ export default function SquadScreen({ identity, initialCode }: Props) {
       </FadeIn>
 
       <FadeIn delay={70} dy={10} style={styles.inviteCard}>
-        <Text style={styles.cardKicker}>{joined ? "SQUAD JOINED" : "INVITE FRIENDS"}</Text>
-        <Text style={styles.cardText}>Bring your people. Every surviving squadmate adds a bonus to the crew ladder.</Text>
+        <Text style={styles.cardKicker}>{joined ? "BATTLE READY" : "CREATE YOUR BATTLE"}</Text>
+        <Text style={styles.cardText}>Create the room, then share its private code so friends can join your next match.</Text>
         <View style={styles.codeRow}>
           <TextInput value={code} onChangeText={setCode} autoCapitalize="characters" style={styles.codeInput} />
-          <Tap onPress={() => { void joinSquad(); }} accessibilityRole="button" style={styles.joinBtn}><Text style={styles.joinBtnTxt}>JOIN</Text></Tap>
+          <Tap onPress={() => { void joinSquad(); }} accessibilityRole="button" style={styles.joinBtn}><Text style={styles.joinBtnTxt}>{initialCode ? "JOIN" : "CREATE"}</Text></Tap>
         </View>
         <View style={styles.actionRow}>
           <Tap onPress={invite} accessibilityRole="button" style={[styles.action, { borderColor: C.hi }]}><Text style={[styles.actionTxt, { color: C.hi }]}>↗ SHARE INVITE</Text></Tap>
@@ -81,13 +81,13 @@ export default function SquadScreen({ identity, initialCode }: Props) {
         <Text style={styles.groupMeta}>3 crew members are leaning HI</Text>
       </FadeIn>
 
-      <Text style={styles.section}>SQUAD LEADERBOARD</Text>
+      <Text style={styles.section}>PRIVATE BATTLE LEADERBOARD</Text>
       <View style={styles.wall}>
         {SQUAD_WALL.map(([name, points], i) => (
           <View key={name} style={[styles.wallRow, i === 3 && styles.wallYou]}><Text style={[styles.wallRank, i === 3 && { color: C.hi }]}>{i + 1}</Text><Text style={[styles.wallName, i === 3 && { color: C.hi }]}>{name}</Text><Text style={styles.wallPts}>{points.toLocaleString()}</Text></View>
         ))}
       </View>
-      <Text style={styles.note}>Deep-link invites open this squad screen. {roomService.ready ? "Cross-device room presence is connected." : roomService.message + "."}</Text>
+      <Text style={styles.note}>Deep-link invites open this private battle room. {roomService.ready ? "Cross-device room presence is connected." : roomService.message + "."}</Text>
     </ScrollView>
   );
 }

@@ -191,6 +191,7 @@ export default function App() {
             replay={activeReplay}
             dailyKey={todayKey}
             onJoin={() => { void joinGame(); }}
+            onPrivateBattle={() => setScreen("squad")}
             onProfile={() => setScreen("profile")}
             onSettings={() => setScreen("settings")}
           />
@@ -218,7 +219,7 @@ export default function App() {
         <FadeIn dy={6} duration={260} style={[styles.tabBar, cardShadow()]}>
           <TabButton icon="play" label="Play" active={screen === "lobby"} onPress={() => setScreen("lobby")} />
           <TabButton icon="chart" label="Rank" active={screen === "rank"} onPress={() => setScreen("rank")} />
-          <TabButton icon="users" label="Squad" active={screen === "squad"} onPress={() => setScreen("squad")} />
+          <TabButton icon="users" label="Private" active={screen === "squad"} onPress={() => setScreen("squad")} />
           <TabButton icon="user" label="Me" active={screen === "profile"} onPress={() => setScreen("profile")} />
         </FadeIn>
       )}
