@@ -1,0 +1,10 @@
+allowBuilds:
+  bigint-buffer: true
+  bufferutil: true
+  utf-8-validate: true
+onlyBuiltDependencies:
+  - bigint-buffer
+  - bufferutil
+  - utf-8-validate
+overrides:
+  uuid: 11.1.1

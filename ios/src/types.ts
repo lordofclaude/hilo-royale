@@ -1,4 +1,5 @@
 import type { Answer, Side } from "./lib/game-logic";
+import type { RoundSettlement } from "./lib/room-service";
 
 export interface RoundRecord {
   round: number;
@@ -47,4 +48,5 @@ export interface GameResult {
   death?: DeathMoment;
   badges: string[];
   history: RoundRecord[];
+  settlement?: RoundSettlement;
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import * as L from "../lib/game-logic";
 import { liveStatus, streamLive } from "../lib/live-service";
@@ -10,10 +10,12 @@ import { GameSettings } from "../lib/settings";
 import { DeathMoment, GameResult, RoundRecord } from "../types";
 import { lobbyRng } from "../lib/vrf";
 import Icon, { IconName, KEY_ICON } from "../components/Icon";
+import { FanIdentity } from "../lib/auth";
+import { RoundSettlement, submitPrediction, submitRoundSettlement } from "../lib/room-service";
 
 interface Bot { alive: boolean; isMe: boolean; name: string; }
 interface LivePending { question: L.Question; myPick: L.Side | null; botPicks: Array<{ index: number; pick: L.Side }>; deadline: number; resolved: boolean; }
-interface Props { settings: GameSettings; onEnd: (result: GameResult) => void; }
+interface Props { settings: GameSettings; roomId: string; identity: FanIdentity; onEnd: (result: GameResult) => void; }
 
 const WINDOW_MINUTES = 5;
 // The lobby only enables Live after fixture, kickoff, and team metadata agree.
@@ -24,7 +26,7 @@ const TEAM_2 = LIVE.team2 || "Team 2";
 const CODE_1 = TEAM_1.slice(0, 3).toUpperCase();
 const CODE_2 = TEAM_2.slice(0, 3).toUpperCase();
 
-export default function LiveGameScreen({ settings, onEnd }: Props) {
+export default function LiveGameScreen({ settings, roomId, identity, onEnd }: Props) {
   // Deterministic simulation: bot picks draw from the fulfilled ORAO seed source.
   const rngRef = useRef(lobbyRng());
   const rng = rngRef.current;
@@ -42,6 +44,8 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
   const deathRef = useRef<DeathMoment | undefined>(undefined);
   const ghostRankRef = useRef<number | undefined>(undefined);
   const gameOverRef = useRef(false);
+  const settlementRef = useRef<RoundSettlement | undefined>(undefined);
+  const settlementTaskRef = useRef<Promise<RoundSettlement | null> | null>(null);
 
   const [connected, setConnected] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -62,6 +66,7 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
   const [suddenDeath, setSuddenDeath] = useState(false);
   const [ghostMessage, setGhostMessage] = useState<string | null>(null);
   const [roundReward, setRoundReward] = useState<{ points: number; correctPct: number } | null>(null);
+  const [roundSettlement, setRoundSettlement] = useState<RoundSettlement | null>(null);
 
   const later = (fn: () => void, ms: number) => timersRef.current.push(setTimeout(fn, ms));
   const aliveTotal = () => botsRef.current.filter(bot => bot.alive).length;
@@ -145,6 +150,14 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
     setLocked(true);
     setVerdict(`PICK LOCKED · RESOLVES AT ${current.question.fromMin + current.question.windowLen}'`);
     Haptics.selectionAsync().catch(() => {});
+    const fixtureId = liveStatus().fixtureId || "";
+    if (fixtureId) void submitPrediction(roomId, identity, {
+      fixtureId,
+      round: roundRef.current,
+      questionId: `${current.question.kind || "compare_window"}:${current.question.key}:${current.question.fromMin}:${current.question.windowLen}`,
+      pick: side,
+      msRemaining: 0,
+    }).catch(() => { /* Live play never blocks on persistence. */ });
   }
 
   function resolveWindow() {
@@ -155,6 +168,19 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
     current.resolved = true;
     if (tickRef.current) clearInterval(tickRef.current);
     const outcome = L.resolveQuestion(eventsRef.current, current.question);
+    const fixtureId = liveStatus().fixtureId || "";
+    if (fixtureId) {
+      const settlementTask = submitRoundSettlement(roomId, identity, {
+        fixtureId,
+        round: roundRef.current,
+        answer: outcome.answer,
+      }).then(receipt => {
+        settlementRef.current = receipt;
+        setRoundSettlement(receipt);
+        return receipt;
+      }).catch(() => null);
+      settlementTaskRef.current = settlementTask;
+    }
     const playerVerdict = L.judge(outcome.answer, current.myPick);
     const wasAlive = meRef.current.alive;
     const allPicks = current.botPicks.map(entry => entry.pick).concat(current.myPick ? [current.myPick] : []);
@@ -259,7 +285,17 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
       badges: historyRef.current.length > 0 && historyRef.current.every(item => item.correct) ? ["perfect_round"] : [],
       history: historyRef.current,
     };
-    later(() => onEnd(result), 900);
+    later(() => {
+      void (async () => {
+        if (settlementTaskRef.current) {
+          await Promise.race([
+            settlementTaskRef.current,
+            new Promise<null>(resolve => setTimeout(() => resolve(null), 4500)),
+          ]);
+        }
+        onEnd({ ...result, settlement: settlementRef.current });
+      })();
+    }, 900);
   }
 
   const resolvingAt = question ? question.fromMin + question.windowLen : null;
@@ -305,6 +341,7 @@ export default function LiveGameScreen({ settings, onEnd }: Props) {
       <View style={[styles.timer, glow(secondsLeft <= 3 ? C.lo : C.hi, 10, 0.5)]}><Text style={[styles.timerNum, secondsLeft <= 3 && { color: C.lo }]}>{question && !answer ? String(secondsLeft).padStart(2, "0") : "—"}</Text><Text style={styles.timerLabel}>{question ? (locked ? "LOCKED" : "SECONDS TO PICK") : "STANDBY"}</Text></View>
       {!!verdict && <FadeIn dy={6} duration={240}><Text accessibilityLiveRegion="polite" style={[styles.verdict, answer === "hi" && { color: C.hi }, answer === "lo" && { color: C.lo }]}>{verdict}</Text></FadeIn>}
       {roundReward && <FadeIn dy={6} duration={240} delay={60}><Text style={[styles.reward, roundReward.points === 0 && { color: C.muted }]}>{roundReward.points > 0 ? `+${roundReward.points} PTS · ONLY ${roundReward.correctPct}% GOT IT RIGHT` : "0 PTS · WRONG / PUSH"}</Text></FadeIn>}
+      {roundSettlement && <Tap accessibilityRole="link" onPress={() => Linking.openURL(roundSettlement.explorerUrl).catch(() => {})} style={[styles.settlementPill, glow(C.success, 7, 0.25)]}><Icon name="chain" size={11} color={C.success} style={{ marginRight: 6 }} /><Text style={styles.settlementTxt}>ROUND {roundSettlement.round} · {roundSettlement.counts.total} REAL VOTE{roundSettlement.counts.total === 1 ? "" : "S"} SETTLED ON SOLANA ↗</Text></Tap>}
       {ghostMessage && <FadeIn dy={6}><Text style={styles.ghostMode}>{ghostMessage} · KEEP WATCHING</Text></FadeIn>}
       <Pulse trigger={`${streak}-${predictionPoints}`} style={styles.streak}><Icon name="bolt" size={12} color={C.gold} style={{ marginRight: 6 }} /><Text style={styles.streakTxt}>STREAK <Text style={styles.streakNum}>x{streak}</Text>  ·  {predictionPoints} SKILL PTS</Text></Pulse>
 
@@ -327,5 +364,7 @@ const styles = StyleSheet.create({
   crowdRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12 }, crowdHi: { color: C.hi, width: 55, fontSize: 11, fontWeight: "900" }, crowdLo: { color: C.lo, width: 55, textAlign: "right", fontSize: 11, fontWeight: "900" }, crowdTrack: { flex: 1, flexDirection: "row", height: 9, borderRadius: 99, overflow: "hidden" }, crowdHiFill: { backgroundColor: C.hi }, crowdLoFill: { backgroundColor: C.lo }, crowdMeta: { color: C.muted, fontSize: 8, letterSpacing: 1, textAlign: "center", marginTop: 5 },
   timer: { alignSelf: "center", width: 78, height: 78, borderRadius: 39, borderColor: C.hi, borderWidth: 2, backgroundColor: C.panelDeep, alignItems: "center", justifyContent: "center", marginVertical: 12 }, timerNum: { color: C.text, fontSize: 27, fontWeight: "900", fontVariant: ["tabular-nums"] }, timerLabel: { color: C.muted, fontSize: 8, fontWeight: "700", letterSpacing: 0.6 }, verdict: { color: C.gold, textAlign: "center", fontSize: 13, fontWeight: "900", marginBottom: 8 }, streak: { alignSelf: "center", flexDirection: "row", alignItems: "center", borderColor: C.gold, borderWidth: 1, backgroundColor: C.goldSoft, borderRadius: 99, paddingHorizontal: 16, minHeight: 36, paddingVertical: 7 }, streakTxt: { color: C.gold, fontSize: 12, fontWeight: "700" }, streakNum: { ...displayFont, fontSize: 13 },
   reward: { color: C.gold, textAlign: "center", fontSize: 10, fontWeight: "900", letterSpacing: 0.8, marginBottom: 7 },
+  settlementPill: { alignSelf: "center", flexDirection: "row", alignItems: "center", borderColor: C.success, borderWidth: 1, backgroundColor: C.panel, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 7, marginBottom: 7 },
+  settlementTxt: { color: C.success, fontSize: 9, fontWeight: "900", letterSpacing: 0.55 },
   section: { ...type.caption, fontSize: 10, letterSpacing: 1.4, textAlign: "center", marginTop: 14, marginBottom: 7 }, grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center" }, dot: { width: "8.5%", aspectRatio: 1, borderRadius: 99, margin: "0.7%", backgroundColor: "#172131", borderColor: "#293a52", borderWidth: 1 }, you: { borderColor: C.gold, borderWidth: 2, backgroundColor: C.goldSoft }, dead: { backgroundColor: C.loSoft, borderColor: C.lo, transform: [{ scale: 0.55 }] }, truth: { color: C.muted, fontSize: 9, lineHeight: 14, textAlign: "center", marginTop: 9 },
 });

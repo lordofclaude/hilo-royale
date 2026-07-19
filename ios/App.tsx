@@ -7,7 +7,7 @@ import { ChallengeRun, GameResult } from "./src/types";
 import { clearProfile, loadProfile, saveProfile, Profile, EMPTY_PROFILE } from "./src/lib/storage";
 import { clearIdentity, FanIdentity, loadIdentity } from "./src/lib/auth";
 import { clearGameSettings, DEFAULT_GAME_SETTINGS, GameSettings, loadGameSettings, saveGameSettings } from "./src/lib/settings";
-import { joinRoom } from "./src/lib/room-service";
+import { joinRoom, submitRoomResult } from "./src/lib/room-service";
 import { liveStatus } from "./src/lib/live-service";
 import { arenaEntryMode, type ArenaEntryMode } from "./src/lib/arena-entry";
 import { replayByFixtureId, replayForDate, ReplayFixture } from "./src/lib/txline-real";
@@ -60,6 +60,7 @@ export default function App() {
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_GAME_SETTINGS);
   const [activeGameMode, setActiveGameMode] = useState<ArenaEntryMode>("replay");
   const [activeReplay, setActiveReplay] = useState<ReplayFixture>(() => replayForDate());
+  const [activeRoomId, setActiveRoomId] = useState(() => replayForDate().lobbyId);
   const [todayKey, setTodayKey] = useState(() => dailyKey(new Date()));
   const [challenge, setChallenge] = useState<ChallengeRun | null>(null);
   const [lastResult, setLastResult] = useState<GameResult | null>(null);
@@ -87,6 +88,7 @@ export default function App() {
           if (replay) {
             setActiveReplay(replay);
             setActiveGameMode("replay");
+            setActiveRoomId(replay.lobbyId);
             setChallenge(nextChallenge);
             setSettings(current => ({ ...current, mode: "replay" }));
             setScreen("game");
@@ -118,6 +120,7 @@ export default function App() {
   }, []);
 
   const onGameEnd = useCallback((result: GameResult) => {
+    if (identity) void submitRoomResult(activeRoomId, identity, result).catch(() => { /* Local results still complete offline. */ });
     setLastResult(result);
     setProfile(prev => {
       const perKeyCorrect = { ...prev.perKeyCorrect };
@@ -141,7 +144,7 @@ export default function App() {
       return next;
     });
     setScreen("result");
-  }, []);
+  }, [activeRoomId, identity]);
 
   const signOut = async () => {
     await clearIdentity();
@@ -171,9 +174,26 @@ export default function App() {
     setTodayKey(dailyKey(now));
     setActiveReplay(replay);
     setActiveGameMode(entryMode);
+    setActiveRoomId(replay.lobbyId);
     setChallenge(null);
     setScreen("game");
     void joinRoom(replay.lobbyId, identity).catch(() => { /* Presence is optional; never block the arena. */ });
+  };
+
+  const startPrivateBattle = (code: string) => {
+    if (!identity) return;
+    const normalizedCode = code.toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 40);
+    if (!normalizedCode) return;
+    const now = new Date();
+    const replay = replayForDate(now);
+    const roomId = `private-${normalizedCode}`;
+    setTodayKey(dailyKey(now));
+    setActiveReplay(replay);
+    setActiveGameMode("replay");
+    setActiveRoomId(roomId);
+    setChallenge(null);
+    setScreen("game");
+    void joinRoom(roomId, identity, normalizedCode).catch(() => { /* The deterministic battle remains playable offline. */ });
   };
 
   if (loading) return <View style={styles.loading}><Icon name="crown" size={52} color={C.gold} style={{ marginBottom: 14 }} /><Text style={styles.loadingText}>OPENING THE ARENA</Text></View>;
@@ -199,7 +219,7 @@ export default function App() {
         {/* True live only when a real fixture is in its window — otherwise the
             join runs SIM LIVE (the real replay presented as if live), so the
             arena is never dead. */}
-        {screen === "game" && (activeGameMode === "live" ? <LiveGameScreen settings={settings} onEnd={onGameEnd} /> : <GameScreen settings={settings} replay={activeReplay} dailyKey={todayKey} challenge={challenge} onEnd={onGameEnd} />)}
+        {screen === "game" && (activeGameMode === "live" ? <LiveGameScreen settings={settings} roomId={activeRoomId} identity={identity} onEnd={onGameEnd} /> : <GameScreen settings={settings} replay={activeReplay} dailyKey={todayKey} challenge={challenge} roomId={activeRoomId} identity={identity} onEnd={onGameEnd} />)}
         {screen === "result" && lastResult && (
           <ResultScreen
             result={lastResult}
@@ -212,7 +232,7 @@ export default function App() {
         )}
         {screen === "profile" && <ProfileScreen identity={identity} profile={profile} onBack={() => setScreen("lobby")} onSettings={() => setScreen("settings")} />}
         {screen === "rank" && <RankScreen profile={profile} />}
-        {screen === "squad" && <SquadScreen identity={identity} initialCode={initialSquadCode} />}
+        {screen === "squad" && <SquadScreen identity={identity} fixtureId={activeReplay.fixtureId} initialCode={initialSquadCode} onEnterBattle={startPrivateBattle} />}
         {screen === "settings" && <SettingsScreen identity={identity} settings={settings} onChange={updateSettings} onBack={() => setScreen("lobby")} onSignOut={signOut} onDeleteData={deleteLocalData} />}
       </View>
       {TAB_SCREENS.includes(screen) && (

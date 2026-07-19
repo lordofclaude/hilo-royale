@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ImageBackground, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ImageBackground, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import * as TxMock from "../lib/txline-real";
 import * as L from "../lib/game-logic";
@@ -10,6 +10,8 @@ import { notifySurvival } from "../lib/notifications";
 import { GameSettings } from "../lib/settings";
 import { lobbyRng } from "../lib/vrf";
 import Icon, { IconName, KEY_ICON, KIND_ICON } from "../components/Icon";
+import { FanIdentity } from "../lib/auth";
+import { RoundSettlement, submitPrediction, submitRoundSettlement } from "../lib/room-service";
 
 
 // Precomputed once (in txline-real.ts) from the static real-match tape: every
@@ -40,10 +42,12 @@ interface Props {
   replay: TxMock.ReplayFixture;
   dailyKey: string;
   challenge: ChallengeRun | null;
+  roomId: string;
+  identity: FanIdentity;
   onEnd: (r: GameResult) => void;
 }
 
-export default function GameScreen({ settings, replay, dailyKey, challenge, onEnd }: Props) {
+export default function GameScreen({ settings, replay, dailyKey, challenge, roomId, identity, onEnd }: Props) {
   const baseQms = settings.answerSeconds * 1000;
   const CODE1 = TxMock.teamCode(replay.fixture.Participant1);
   const CODE2 = TxMock.teamCode(replay.fixture.Participant2);
@@ -72,6 +76,8 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
   const timersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const tickIvRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const nextBeatRef = useRef(0);
+  const settlementRef = useRef<RoundSettlement | undefined>(undefined);
+  const settlementTaskRef = useRef<Promise<RoundSettlement | null> | null>(null);
 
   // ----- render state -----
   const [countdown, setCountdown] = useState(3);
@@ -97,6 +103,7 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
   const [score, setScore] = useState(`${CODE1} 0 – 0 ${CODE2}`);
   const [lastEvent, setLastEvent] = useState<{ icon: IconName | null; text: string }>({ icon: null, text: "kickoff imminent…" });
   const [matchMinute, setMatchMinute] = useState(0);
+  const [roundSettlement, setRoundSettlement] = useState<RoundSettlement | null>(null);
 
   const later = (fn: () => void, ms: number) => { timersRef.current.push(setTimeout(fn, ms)); };
   const aliveTotal = () => botsRef.current.filter(b => b.alive).length;
@@ -241,6 +248,13 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
     setMyPick(side);
     setLocked(true);
     Haptics.selectionAsync().catch(() => {});
+    void submitPrediction(roomId, identity, {
+      fixtureId: replay.fixtureId,
+      round: P.q.n,
+      questionId: `${P.q.kind || "compare_window"}:${P.q.key}:${P.q.fromMin}:${P.q.windowLen}`,
+      pick: side,
+      msRemaining: P.myPickAtMs,
+    }).catch(() => { /* Gameplay remains responsive if persistence is unavailable. */ });
     drainWindowIntoView(); // pick locked — start sweating the window immediately
   }
 
@@ -251,6 +265,16 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
     setWindowPhase(false);
     const { val, answer } = P.outcome;
     const question = P.q;
+    const settlementTask = submitRoundSettlement(roomId, identity, {
+      fixtureId: replay.fixtureId,
+      round: question.n,
+      answer,
+    }).then(receipt => {
+      settlementRef.current = receipt;
+      setRoundSettlement(receipt);
+      return receipt;
+    }).catch(() => null);
+    settlementTaskRef.current = settlementTask;
     setAnswerSide(answer);
     setLocked(true);
     setRemainingPct(0);
@@ -398,16 +422,27 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
       points: r.points, correctShare: r.correctShare,
     }));
     if (won) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    later(() => onEnd({
-      fixtureId: replay.fixtureId, dailyKey,
-      won, survivedToEnd: me.alive, streak: me.streak, outlivedCount,
-      predictionPoints: predictionPointsRef.current, survivalPoints: outlivedCount, crownBonus, pts,
-      rounds: historyRef.current.length, aliveAtEnd: aliveTotal(),
-      challengeTargetPoints: challenge?.targetPoints,
-      ghostRankAtEnd: ghostRankRef.current,
-      death: deathRef.current,
-      badges, history,
-    }), 1200);
+    later(() => {
+      void (async () => {
+        if (settlementTaskRef.current) {
+          await Promise.race([
+            settlementTaskRef.current,
+            new Promise<null>(resolve => setTimeout(() => resolve(null), 4500)),
+          ]);
+        }
+        onEnd({
+          fixtureId: replay.fixtureId, dailyKey,
+          won, survivedToEnd: me.alive, streak: me.streak, outlivedCount,
+          predictionPoints: predictionPointsRef.current, survivalPoints: outlivedCount, crownBonus, pts,
+          rounds: historyRef.current.length, aliveAtEnd: aliveTotal(),
+          challengeTargetPoints: challenge?.targetPoints,
+          ghostRankAtEnd: ghostRankRef.current,
+          death: deathRef.current,
+          badges, history,
+          settlement: settlementRef.current,
+        });
+      })();
+    }, 1200);
   }
 
   // ----- render -----
@@ -588,6 +623,16 @@ export default function GameScreen({ settings, replay, dailyKey, challenge, onEn
           </Text>
         </FadeIn>
       )}
+      {roundSettlement && (
+        <Tap
+          accessibilityRole="link"
+          onPress={() => Linking.openURL(roundSettlement.explorerUrl).catch(() => {})}
+          style={[styles.settlementPill, glow(C.success, 7, 0.25)]}
+        >
+          <Icon name="chain" size={11} color={C.success} style={{ marginRight: 6 }} />
+          <Text style={styles.settlementTxt}>ROUND {roundSettlement.round} · {roundSettlement.counts.total} REAL VOTE{roundSettlement.counts.total === 1 ? "" : "S"} SETTLED ON SOLANA ↗</Text>
+        </Tap>
+      )}
       {nearDeath && (
         <FadeIn dy={6} duration={240} delay={110} style={styles.nearDeathRow}>
           <Icon name={nearDeath.icon} size={12} color={C.gold} style={{ marginRight: 6 }} />
@@ -724,6 +769,8 @@ const styles = StyleSheet.create({
   verdict: { color: C.text, textAlign: "center", fontWeight: "800", marginBottom: 4, fontSize: 15 },
   reward: { color: C.gold, textAlign: "center", fontSize: 11, fontWeight: "900", letterSpacing: 0.8, marginBottom: 4 },
   rewardZero: { color: C.muted },
+  settlementPill: { alignSelf: "center", flexDirection: "row", alignItems: "center", borderColor: C.success, borderWidth: 1, backgroundColor: C.panel, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 7, marginBottom: 5 },
+  settlementTxt: { color: C.success, fontSize: 9, fontWeight: "900", letterSpacing: 0.55 },
   nearDeathRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 4 },
   nearDeath: { color: C.gold, textAlign: "center", fontWeight: "900" },
   ghostMode: { color: C.hi, backgroundColor: C.hiSoft, borderColor: C.hi, borderWidth: 1, borderRadius: 10, paddingVertical: 9, textAlign: "center", fontSize: 10, fontWeight: "900", letterSpacing: 0.6, marginBottom: 8 },
