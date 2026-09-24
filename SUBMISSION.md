@@ -33,7 +33,7 @@ powered by TxODDS's TxLINE feed and provable on Solana.
 | TxLINE API feedback | `TXLINE-FEEDBACK.md` in the repo |
 
 **Team:** Tiago Dias — solo build (product, game engine, TxLINE integration,
-on-chain work). Contact: tiagobrbdias@gmail.com · GitHub `lordofclaude`.
+on-chain work). GitHub `lordofclaude`.
 
 ---
 
